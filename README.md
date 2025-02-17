@@ -12,5 +12,5 @@ The system facilitates budget allocation, cost tracking, supplier management, an
 - **Juan Diego Llorente**
 
 ## 📂 Deliverable 0
-For detailed documentation and the initial project proposal, refer to **[Deliverable 0](WIKI_LINK_HERE)** in the project wiki.
+For detailed documentation and the initial project proposal, refer to **[Deliverable 0](https://github.com/linasofi13/Finup-project/wiki)** in the project wiki.
 

@@ -1,3 +1,4 @@
+
 # 🛑 Ignorar archivos de entorno
 .env
 .env.local
@@ -23,3 +24,6 @@ docker-compose.override.yml
 .vscode/
 .DS_Store
 .idea/
+venv/
+__pycache__/
+

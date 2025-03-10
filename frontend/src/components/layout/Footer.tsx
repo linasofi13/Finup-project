@@ -19,7 +19,7 @@ export default function Footer() {
               <span className="text-neutral-dark">Up</span>
             </Link>
             <p className="text-sm text-gray-500 mb-4">
-              Tu aliado para una mejor salud financiera.
+              Optimización de la gestión del talento humano y presupuesto.
             </p>
             <div className="flex space-x-4">
               {/* Facebook */}

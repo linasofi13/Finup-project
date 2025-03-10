@@ -1,20 +1,29 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
-from app.config.env import DATABASE_URL  # Ensure this exists in `env.py`
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-# Create database engine
-engine = create_engine(DATABASE_URL)
+from app.routes import auth, users, evcs, providers  # Import the new routers
+from app.database import engine, Base
 
-# Create a session factory
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Crear las tablas en la base de datos
+Base.metadata.create_all(bind=engine)
 
-# Base model for all ORM models
-Base = declarative_base()
+app = FastAPI(title="Finup API")
 
-# Dependency function for getting the database session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# Configurar CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # En producción, especificar los orígenes permitidos
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Incluir rutas
+app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+app.include_router(users.router, prefix="/users", tags=["Users"])
+app.include_router(evcs.router, prefix="/evcs", tags=["EVCs"])  # Include the evcs router
+app.include_router(providers.router, prefix="/providers", tags=["Providers"])  # Include the providers router
+
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to Finup API"}

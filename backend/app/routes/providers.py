@@ -12,13 +12,16 @@ from app.services.provider_service import (
 
 router = APIRouter(prefix="/providers", tags=["providers"])
 
+
 @router.get("/", response_model=list[ProviderResponse])
 def list_providers(db: Session = Depends(get_db)):
     return get_providers(db)
 
+
 @router.post("/", response_model=ProviderResponse)
 def add_provider(provider: ProviderCreate, db: Session = Depends(get_db)):
     return create_provider(db, provider)
+
 
 @router.get("/{provider_id}", response_model=ProviderResponse)
 def get_provider(provider_id: int, db: Session = Depends(get_db)):
@@ -26,6 +29,7 @@ def get_provider(provider_id: int, db: Session = Depends(get_db)):
     if not provider:
         raise HTTPException(status_code=404, detail="Provider not found")
     return provider
+
 
 @router.delete("/{provider_id}", response_model=dict)
 def remove_provider(provider_id: int, db: Session = Depends(get_db)):

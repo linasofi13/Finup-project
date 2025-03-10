@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
-import { useAuth } from '@/hooks/useAuth';
-import Link from 'next/link';
-import Input from '@/components/ui/Input';
-import Button from '@/components/ui/Button';
-import Card from '@/components/ui/Card';
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+import { useAuth } from "@/hooks/useAuth";
+import Link from "next/link";
+import Input from "@/components/ui/Input";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
 
 interface FormData {
   email: string;
@@ -17,8 +17,8 @@ interface FormData {
 
 const schema = yup
   .object({
-    email: yup.string().email('Email inválido').required('Email es requerido'),
-    password: yup.string().required('Contraseña es requerida'),
+    email: yup.string().email("Email inválido").required("Email es requerido"),
+    password: yup.string().required("Contraseña es requerida"),
   })
   .required();
 
@@ -46,7 +46,7 @@ export default function LoginPage() {
       setError(
         Array.isArray(errorMessage)
           ? errorMessage[0].msg
-          : errorMessage || authError || 'Error al iniciar sesión'
+          : errorMessage || authError || "Error al iniciar sesión",
       );
     } finally {
       setIsLoading(false);
@@ -59,12 +59,14 @@ export default function LoginPage() {
       <div className="absolute top-10 left-10 w-32 h-32 bg-primary/20 rounded-full filter blur-3xl"></div>
       <div className="absolute bottom-10 right-10 w-32 h-32 bg-secondary/20 rounded-full filter blur-3xl"></div>
       <div className="absolute top-1/2 left-1/4 w-64 h-64 bg-primary/10 rounded-full filter blur-3xl"></div>
-      
+
       <div className="max-w-md w-full space-y-8 relative z-10 mx-auto">
         <div className="text-center">
           <div className="flex justify-center mb-4">
             <div className="bg-primary rounded-full p-3 shadow-lg transform transition-all duration-500 hover:scale-110">
-              <span className="text-3xl font-extrabold text-neutral-dark">FinUp</span>
+              <span className="text-3xl font-extrabold text-neutral-dark">
+                FinUp
+              </span>
             </div>
           </div>
           <h2 className="mt-2 text-center text-3xl font-extrabold text-neutral-dark">
@@ -89,7 +91,7 @@ export default function LoginPage() {
               type="email"
               autoComplete="email"
               error={errors.email?.message}
-              {...register('email')}
+              {...register("email")}
             />
 
             <Input
@@ -98,7 +100,7 @@ export default function LoginPage() {
               type="password"
               autoComplete="current-password"
               error={errors.password?.message}
-              {...register('password')}
+              {...register("password")}
             />
 
             <Button
@@ -107,14 +109,17 @@ export default function LoginPage() {
               variant="primary"
               className="w-full"
             >
-              {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+              {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
             </Button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              ¿No tienes una cuenta?{' '}
-              <Link href="/register" className="font-medium text-secondary hover:text-secondary-dark">
+              ¿No tienes una cuenta?{" "}
+              <Link
+                href="/register"
+                className="font-medium text-secondary hover:text-secondary-dark"
+              >
                 Regístrate aquí
               </Link>
             </p>

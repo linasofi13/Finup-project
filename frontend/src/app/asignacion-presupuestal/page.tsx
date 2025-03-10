@@ -6,9 +6,27 @@ import { FaFilter, FaDownload, FaTrash, FaPlus } from "react-icons/fa";
 export default function AsignacionPresupuestalPage() {
   // Estado para las bolsas presupuestales
   const [bolsas, setBolsas] = useState([
-    { id: 1, nombre: "Bolsa 1", detalle: "Descripción de la bolsa 1", valor: "$ 10.000", fechaCreacion: "16/11/2022" },
-    { id: 2, nombre: "Bolsa 2", detalle: "Descripción de la bolsa 2", valor: "$ 10.000", fechaCreacion: "16/11/2022" },
-    { id: 3, nombre: "Bolsa 3", detalle: "Descripción de la bolsa 3", valor: "$ 10.000", fechaCreacion: "16/11/2022" },
+    {
+      id: 1,
+      nombre: "Bolsa 1",
+      detalle: "Descripción de la bolsa 1",
+      valor: "$ 10.000",
+      fechaCreacion: "16/11/2022",
+    },
+    {
+      id: 2,
+      nombre: "Bolsa 2",
+      detalle: "Descripción de la bolsa 2",
+      valor: "$ 10.000",
+      fechaCreacion: "16/11/2022",
+    },
+    {
+      id: 3,
+      nombre: "Bolsa 3",
+      detalle: "Descripción de la bolsa 3",
+      valor: "$ 10.000",
+      fechaCreacion: "16/11/2022",
+    },
   ]);
 
   // Estado para controlar la creación de una nueva Bolsa (en el formulario de la izquierda)
@@ -18,7 +36,8 @@ export default function AsignacionPresupuestalPage() {
     valorAcuerdo: "",
     evc: "",
   });
-  const [mostrandoFormularioBolsa, setMostrandoFormularioBolsa] = useState(false);
+  const [mostrandoFormularioBolsa, setMostrandoFormularioBolsa] =
+    useState(false);
 
   // Estado para la asignación parcial (formulario a la derecha)
   const [asignacionParcial, setAsignacionParcial] = useState({
@@ -31,16 +50,21 @@ export default function AsignacionPresupuestalPage() {
 
   // Manejo de inputs de la Bolsa
   const manejarCambioBolsa = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     setNuevaBolsa({ ...nuevaBolsa, [e.target.name]: e.target.value });
   };
 
   // Manejo de inputs de Asignación Parcial
   const manejarCambioAsignacion = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >,
   ) => {
-    setAsignacionParcial({ ...asignacionParcial, [e.target.name]: e.target.value });
+    setAsignacionParcial({
+      ...asignacionParcial,
+      [e.target.name]: e.target.value,
+    });
   };
 
   // Función para crear una nueva Bolsa
@@ -65,7 +89,7 @@ export default function AsignacionPresupuestalPage() {
   const asignarParcial = () => {
     // Aquí podrías implementar la lógica para asignar presupuesto
     alert(
-      `Asignación parcial guardada. Comentarios: ${asignacionParcial.comentarios}`
+      `Asignación parcial guardada. Comentarios: ${asignacionParcial.comentarios}`,
     );
     // Limpiar
     setAsignacionParcial({
@@ -103,10 +127,14 @@ export default function AsignacionPresupuestalPage() {
         {/* Administración Bolsas Presupuestales */}
         <div className="p-4 bg-gray-100 rounded-md">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold">Administración Bolsas Presupuestales</h2>
+            <h2 className="text-lg font-bold">
+              Administración Bolsas Presupuestales
+            </h2>
             {/* Botón para mostrar formulario de crear Bolsa */}
             <button
-              onClick={() => setMostrandoFormularioBolsa(!mostrandoFormularioBolsa)}
+              onClick={() =>
+                setMostrandoFormularioBolsa(!mostrandoFormularioBolsa)
+              }
               className="px-3 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
             >
               + Crear Bolsa

@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
-from dotenv import load_dotenv 
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -17,7 +17,7 @@ if ENVIRONMENT == "production":
 else:
     # Usar SQLite para desarrollo
     SQLALCHEMY_DATABASE_URL = "sqlite:///./finup.db"
-    
+
 # Crear el motor de base de datos
 if ENVIRONMENT == "development" and SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
     engine = create_engine(
@@ -31,6 +31,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Base para los modelos
 Base = declarative_base()
+
 
 # Función para obtener la base de datos
 def get_db():

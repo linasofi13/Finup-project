@@ -59,6 +59,7 @@ def run_migrations_online() -> None:
     """
     # alembic/env.py
     from app.models import Base  # Import your SQLAlchemy Base
+
     target_metadata = Base.metadata
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
@@ -67,9 +68,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

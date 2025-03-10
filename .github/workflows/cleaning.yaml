@@ -1,0 +1,77 @@
+name: Format Code
+
+on: 
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.17.0
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm install
+        working-directory: frontend
+
+      - name: Run Prettier
+        run: npx prettier --write .
+        working-directory: frontend
+
+      - name: Run ESLint
+        run: npx eslint . --ext .js,.jsx,.ts,.tsx --fix || true
+        working-directory: frontend
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12.0"
+
+      - name: Install backend dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r ../requirements.txt
+        working-directory: backend
+
+      - name: Run Black (Python formatter)
+        run: |
+          source venv/bin/activate
+          black --quiet .
+        working-directory: backend
+
+      - name: Commit and push formatted code
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add .
+          git commit -m "Autoformat code with Prettier, ESLint & Black" || echo "No changes to commit"
+          
+          # Identificar la rama correcta para hacer push
+          BRANCH_NAME=${{ github.head_ref || github.ref_name }}
+
+          # Actualizar la rama para evitar conflictos
+          git pull --rebase origin $BRANCH_NAME
+          
+          # Hacer push de los cambios formateados a la misma rama
+          git push https://x-access-token:${GITHUB_TOKEN}@github.com/linasofi13/Finup-project.git HEAD:$BRANCH_NAME

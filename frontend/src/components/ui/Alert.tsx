@@ -1,17 +1,17 @@
-import React from 'react';
+import React from "react";
 
 interface AlertProps {
-  type: 'success' | 'error' | 'warning' | 'info';
+  type: "success" | "error" | "warning" | "info";
   message: string;
   className?: string;
 }
 
-export default function Alert({ type, message, className = '' }: AlertProps) {
+export default function Alert({ type, message, className = "" }: AlertProps) {
   const typeClasses = {
-    success: 'bg-green-50 text-green-700',
-    error: 'bg-red-50 text-red-700',
-    warning: 'bg-yellow-50 text-yellow-700',
-    info: 'bg-blue-50 text-blue-700',
+    success: "bg-green-50 text-green-700",
+    error: "bg-red-50 text-red-700",
+    warning: "bg-yellow-50 text-yellow-700",
+    info: "bg-blue-50 text-blue-700",
   };
 
   return (

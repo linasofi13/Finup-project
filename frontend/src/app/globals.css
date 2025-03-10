@@ -6,8 +6,8 @@
 :root {
   --background: #ffffff;
   --foreground: #333333;
-  --primary: #FFE500;
-  --primary-hover: #FFF159;
+  --primary: #ffe500;
+  --primary-hover: #fff159;
   --error: #ef4444;
   --success: #10b981;
 }
@@ -27,8 +27,8 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
-    --primary: #FFE500;
-    --primary-hover: #FFF159;
+    --primary: #ffe500;
+    --primary-hover: #fff159;
     --error: #f87171;
     --success: #34d399;
   }
@@ -37,7 +37,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Inter', Arial, sans-serif;
+  font-family: "Inter", Arial, sans-serif;
 }
 
 /* Custom form styles */

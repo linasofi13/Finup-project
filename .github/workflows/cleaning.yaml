@@ -64,5 +64,11 @@ jobs:
           git config --global user.email "actions@github.com"
           git add .
           git commit -m "Autoformat Python code with Black" || echo "No changes to commit"
-          git pull --rebase origin ${{ github.ref_name }}
-          git push origin HEAD:${{ github.head_ref }}
+
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "Skipping push: Workflow is running on a pull request."
+            exit 0
+          fi
+
+          git pull --rebase origin ${{ github.head_ref || github.ref_name }}
+          git push https://x-access-token:${GITHUB_TOKEN}@github.com/linasofi13/Finup-project.git HEAD:${{ github.head_ref || github.ref_name }}

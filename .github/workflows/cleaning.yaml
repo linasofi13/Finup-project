@@ -51,7 +51,9 @@ jobs:
         working-directory: backend
       
       - name: Run Black (Python formatter)
-        run: black --quiet .
+        run: |
+          source venv/bin/activate
+          black --quiet .
         working-directory: backend
       
       - name: Commit changes if needed

@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -25,7 +27,7 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install dependencies
+      - name: Install frontend dependencies
         run: npm install
         working-directory: frontend
 
@@ -41,7 +43,7 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: "3.12.0"
-        
+
       - name: Install backend dependencies
         run: |
           python -m venv venv
@@ -49,26 +51,27 @@ jobs:
           pip install --upgrade pip
           pip install -r ../requirements.txt
         working-directory: backend
-      
+
       - name: Run Black (Python formatter)
         run: |
           source venv/bin/activate
           black --quiet .
         working-directory: backend
-      
-      - name: Commit changes if needed
+
+      - name: Commit and push formatted code
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
           git add .
-          git commit -m "Autoformat Python code with Black" || echo "No changes to commit"
+          git commit -m "Autoformat code with Prettier, ESLint & Black" || echo "No changes to commit"
+          
+          # Identificar la rama correcta para hacer push
+          BRANCH_NAME=${{ github.head_ref || github.ref_name }}
 
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            echo "Skipping push: Workflow is running on a pull request."
-            exit 0
-          fi
-
-          git pull --rebase origin ${{ github.head_ref || github.ref_name }}
-          git push https://x-access-token:${GITHUB_TOKEN}@github.com/linasofi13/Finup-project.git HEAD:${{ github.head_ref || github.ref_name }}
+          # Actualizar la rama para evitar conflictos
+          git pull --rebase origin $BRANCH_NAME
+          
+          # Hacer push de los cambios formateados a la misma rama
+          git push https://x-access-token:${GITHUB_TOKEN}@github.com/linasofi13/Finup-project.git HEAD:$BRANCH_NAME

@@ -64,14 +64,14 @@ export default function LoginPage() {
         <div className="text-center">
           <div className="flex justify-center mb-4">
             <div className="bg-primary rounded-full p-3 shadow-lg transform transition-all duration-500 hover:scale-110">
-              <span className="text-3xl font-extrabold text-neutral-dark">F</span>
+              <span className="text-3xl font-extrabold text-neutral-dark">FinUp</span>
             </div>
           </div>
           <h2 className="mt-2 text-center text-3xl font-extrabold text-neutral-dark">
             Iniciar sesión
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Accede a tu cuenta para gestionar tus finanzas personales
+            Accede a tu cuenta
           </p>
         </div>
 

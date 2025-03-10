@@ -27,10 +27,10 @@ export default function UserMenu({ user }: UserMenuProps) {
       {/* Dashboard link */}
       <Link
         href="/dashboard"
-        className={`text-sm font-medium ${
+        className={`text-sm font-medium transition-colors duration-300 p-2 rounded-md ${
           pathname === '/dashboard'
-            ? 'text-bancolombia-blue'
-            : 'text-bancolombia-text hover:text-bancolombia-blue'
+            ? 'text-bancolombia-blue bg-yellow-400'
+            : 'text-bancolombia-text hover:text-bancolombia-blue hover:bg-yellow-400'
         }`}
       >
         Dashboard
@@ -39,10 +39,10 @@ export default function UserMenu({ user }: UserMenuProps) {
       {/* Profile link */}
       <Link
         href="/profile"
-        className={`text-sm font-medium ${
+        className={`text-sm font-medium transition-colors duration-300 p-2 rounded-md ${
           pathname === '/profile'
-            ? 'text-bancolombia-blue'
-            : 'text-bancolombia-text hover:text-bancolombia-blue'
+            ? 'text-bancolombia-blue bg-yellow-400'
+            : 'text-bancolombia-text hover:text-bancolombia-blue hover:bg-yellow-400'
         }`}
       >
         Mi Perfil
@@ -51,7 +51,7 @@ export default function UserMenu({ user }: UserMenuProps) {
       {/* Logout button */}
       <button
         onClick={logout}
-        className="text-sm font-medium text-bancolombia-text hover:text-bancolombia-blue"
+        className="text-sm font-medium text-bancolombia-text hover:text-bancolombia-blue hover:bg-yellow-400 p-2 rounded-md transition-colors duration-300"
       >
         Cerrar sesión
       </button>

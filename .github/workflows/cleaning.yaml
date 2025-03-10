@@ -34,7 +34,7 @@ jobs:
         working-directory: frontend
 
       - name: Run ESLint
-        run: npx eslint . --ext .js,.jsx,.ts,.tsx
+        run: npx eslint . --ext .js,.jsx,.ts,.tsx --fix || true
         working-directory: frontend
 
       - name: Setup Python

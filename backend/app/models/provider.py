@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean
-from app.database.database import Base
+from app.database import Base
 
 class Provider(Base):
     __tablename__ = "providers"

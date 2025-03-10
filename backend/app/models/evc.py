@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
-from app.database.database import Base
+from app.database import Base
+
 
 class EVC(Base):
     __tablename__ = "evcs"  # Define the table name

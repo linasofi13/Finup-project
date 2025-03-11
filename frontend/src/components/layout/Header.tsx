@@ -30,16 +30,23 @@ export default function Header({ isSidebarOpen }: HeaderProps) {
       <div className="w-full px-6">
         <div className="max-w-7xl mx-auto flex justify-between h-16 items-center">
           <div className="flex items-center">
-            <Link href="/" className="flex items-center transition-transform duration-200 hover:scale-105">
-              <Image 
-                src="/images/logo.png" 
-                alt="Logo FinUp" 
-                width={40} 
-                height={40} 
-                className="mr-3" 
+            <Link
+              href="/"
+              className="flex items-center transition-transform duration-200 hover:scale-105"
+            >
+              <Image
+                src="/images/logo.png"
+                alt="Logo FinUp"
+                width={40}
+                height={40}
+                className="mr-3"
               />
-              <span className="text-secondary mr-1 text-2xl font-extrabold">Fin</span>
-              <span className="text-neutral-dark text-2xl font-extrabold">Up</span>
+              <span className="text-secondary mr-1 text-2xl font-extrabold">
+                Fin
+              </span>
+              <span className="text-neutral-dark text-2xl font-extrabold">
+                Up
+              </span>
             </Link>
           </div>
 

@@ -8,7 +8,7 @@ from app.services.provider_service import (
     get_provider_by_id,
     delete_provider,
     update_provider,
-    bulk_create_providers
+    bulk_create_providers,
 )
 from typing import List
 
@@ -16,8 +16,6 @@ router = APIRouter(prefix="/providers", tags=["Providers"])
 
 
 @router.get("/", response_model=List[ProviderResponse])
-
-
 def list_providers(db: Session = Depends(get_db)):
     return get_providers(db)
 
@@ -41,18 +39,26 @@ def remove_provider(provider_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Provider not found")
     return {"message": "Provider deleted successfully"}
 
+
 @router.put("/{provider_id}", response_model=ProviderResponse)
-def update_provider_route(provider_id: int, provider_data: ProviderCreate, db: Session = Depends(get_db)):
+def update_provider_route(
+    provider_id: int, provider_data: ProviderCreate, db: Session = Depends(get_db)
+):
     provider = update_provider(db, provider_id, provider_data)
     if not provider:
         raise HTTPException(status_code=404, detail="Provider not found")
     return provider
 
+
 @router.post("/bulk-upload")
-def bulk_upload_providers(providers: List[ProviderCreate], db: Session = Depends(get_db)):
+def bulk_upload_providers(
+    providers: List[ProviderCreate], db: Session = Depends(get_db)
+):
     """Carga masiva de proveedores desde un JSON, evitando duplicados"""
     try:
         added_providers = bulk_create_providers(db, providers)
         return {"message": f"{len(added_providers)} proveedores subidos exitosamente"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al procesar la carga: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error al procesar la carga: {str(e)}"
+        )

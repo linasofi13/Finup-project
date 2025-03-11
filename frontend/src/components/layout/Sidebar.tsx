@@ -69,7 +69,9 @@ const Sidebar = () => {
       {/* Logo */}
       <div className="flex items-center mb-10">
         <Image src="/images/logo.png" alt="FinUp Logo" width={40} height={40} />
-        {mounted && isOpen && <span className="text-xl font-bold ml-3">Menú</span>}
+        {mounted && isOpen && (
+          <span className="text-xl font-bold ml-3">Menú</span>
+        )}
       </div>
 
       {/* Menú de Navegación */}

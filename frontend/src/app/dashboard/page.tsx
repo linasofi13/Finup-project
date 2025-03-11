@@ -53,8 +53,8 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout title="Dashboard">
-  <div className="h-6"></div> {/* Agrega espacio antes del contenido */}
-  <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="h-6"></div> {/* Agrega espacio antes del contenido */}
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Información General */}
         <Card title="Información General">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

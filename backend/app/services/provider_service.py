@@ -31,6 +31,7 @@ def delete_provider(db: Session, provider_id: int):
         return True
     return False
 
+
 def update_provider(db: Session, provider_id: int, provider_data: ProviderCreate):
     """Updates a provider by ID."""
     provider = db.query(Provider).filter(Provider.id == provider_id).first()
@@ -42,9 +43,12 @@ def update_provider(db: Session, provider_id: int, provider_data: ProviderCreate
         return provider
     return None
 
+
 def bulk_create_providers(db: Session, providers_data: list[ProviderCreate]):
     """Creates multiple providers in the database, avoiding duplicates."""
-    existing_emails = {p.email for p in db.query(Provider.email).all()}  # Verificar duplicados
+    existing_emails = {
+        p.email for p in db.query(Provider.email).all()
+    }  # Verificar duplicados
     new_providers = []
 
     for provider_data in providers_data:

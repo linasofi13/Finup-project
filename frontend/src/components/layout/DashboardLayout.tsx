@@ -23,25 +23,25 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-bancolombia-yellow"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-500"></div>
       </div>
     );
   }
 
   if (!user) {
-    return null; // Will redirect in the useEffect
+    return null; // Redirige en useEffect
   }
 
   return (
-    <div className="min-h-screen bg-bancolombia-gray">
-      <div className="py-10">
-        <header>
+    <div className="min-h-screen bg-gradient-to-b from-yellow-300 to-yellow-500 bg-cover bg-no-repeat">
+      <div className="py-14">
+        <header className="mb-6">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h1 className="text-3xl font-bold leading-tight text-bancolombia-text">{title}</h1>
+            <h1 className="text-3xl font-bold leading-tight text-gray-900">{title}</h1>
           </div>
         </header>
-        <main>
-          <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 py-6">
+        <main className="h-full">
+          <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 py-6 h-full">
             {children}
           </div>
         </main>

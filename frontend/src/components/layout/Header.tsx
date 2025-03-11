@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 import UserMenu from "@/components/ui/UserMenu";
 import { FaBell, FaSearch } from "react-icons/fa";
@@ -26,9 +27,16 @@ export default function Header({ isSidebarOpen }: HeaderProps) {
       <div className="w-full px-6">
         <div className="max-w-7xl mx-auto flex justify-between h-16 items-center">
           <div className="flex items-center">
-            <Link href="/" className="text-neutral-dark text-xl font-bold flex items-center transition-transform duration-200 hover:scale-105">
-              <span className="text-secondary mr-1">Fin</span>
-              <span className="text-neutral-dark">Up</span>
+            <Link href="/" className="flex items-center transition-transform duration-200 hover:scale-105">
+              <Image 
+                src="/images/logo.png" 
+                alt="Logo FinUp" 
+                width={40} 
+                height={40} 
+                className="mr-3" 
+              />
+              <span className="text-secondary mr-1 text-2xl font-extrabold">Fin</span>
+              <span className="text-neutral-dark text-2xl font-extrabold">Up</span>
             </Link>
           </div>
 

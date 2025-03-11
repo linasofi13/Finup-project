@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useState, useEffect, useRef } from 'react';
 import { FaCheck, FaPlus, FaTrash, FaEdit, FaTimes, FaFileUpload, FaCloudUploadAlt } from 'react-icons/fa';
@@ -47,10 +47,9 @@ export default function ProveedoresPage() {
       const response = await axios.get(API_URL);
       setProveedores(response.data);
     } catch (error) {
-      console.error('Error fetching providers:', error);
+      console.error("Error fetching providers:", error);
     }
   };
-
   // Función para exportar a Excel
   const exportToExcel = () => {
     const ws = XLSX.utils.json_to_sheet(proveedores);
@@ -184,7 +183,7 @@ export default function ProveedoresPage() {
       setProveedores(proveedores.filter((prov) => prov.id !== id));
       setSelectedIds(selectedIds.filter(item => item !== id));
     } catch (error) {
-      console.error('Error deleting provider:', error);
+      console.error("Error deleting provider:", error);
     }
   };
 
@@ -653,7 +652,6 @@ export default function ProveedoresPage() {
             </tbody>
           </table>
         </div>
-
         {/* Carga Masiva */}
         <div className='mt-8 p-6 bg-gray-50 rounded-lg shadow-md w-full'>
           <h2 className='text-lg font-semibold'>Carga Masiva de Proveedores</h2>

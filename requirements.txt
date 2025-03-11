@@ -10,3 +10,4 @@ python-multipart==0.0.19
 passlib==1.7.4
 python-jose==3.3.0
 bcrypt==3.2.2
+black==23.12.1

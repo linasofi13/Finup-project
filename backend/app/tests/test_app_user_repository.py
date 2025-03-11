@@ -3,12 +3,14 @@ from app.models.app_user import AppUser
 from app.repositories.app_user_repository import create_user, get_user_by_username
 from app.database import SessionLocal
 
+
 def get_test_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
 
 def test_create_user():
     db: Session = next(get_test_db())
@@ -19,6 +21,7 @@ def test_create_user():
 
     assert created_user is not None
     assert created_user.username == "testuser"
+
 
 def test_get_user_by_username():
     db: Session = next(get_test_db())

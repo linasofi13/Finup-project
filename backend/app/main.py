@@ -21,8 +21,13 @@ app.add_middleware(
 # Incluir rutas
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 app.include_router(users.router, prefix="/users", tags=["Users"])
-app.include_router(evcs.router, prefix="/evcs", tags=["EVCs"])  # Include the evcs router
-app.include_router(providers.router, prefix="/providers", tags=["Providers"])  # Include the providers router
+app.include_router(
+    evcs.router, prefix="/evcs", tags=["EVCs"]
+)  # Include the evcs router
+app.include_router(
+    providers.router, prefix="/providers", tags=["Providers"]
+)  # Include the providers router
+
 
 @app.get("/")
 def read_root():

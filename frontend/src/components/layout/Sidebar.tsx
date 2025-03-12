@@ -63,7 +63,7 @@ const Sidebar = ({ isOpen, toggleSidebar }: SidebarProps) => {
     <div
       className={clsx(
         "h-screen fixed left-0 top-0 bg-white shadow-lg p-5 flex flex-col transition-all duration-300 overflow-y-auto z-50",
-        { "w-64": mounted && isOpen, "w-20": mounted && !isOpen }
+        { "w-64": mounted && isOpen, "w-20": mounted && !isOpen },
       )}
     >
       <button

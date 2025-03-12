@@ -44,7 +44,7 @@ export default function ProfilePage() {
   } = useForm<FormData>({
     resolver: yupResolver(schema),
     defaultValues: {
-      name: user?.name || "",  // This will now work with the updated User interface
+      name: user?.name || "", // This will now work with the updated User interface
       email: user?.email || "",
     },
   });

@@ -8,14 +8,14 @@ load_dotenv()
 
 # Use environment variables for database connection
 SQLALCHEMY_DATABASE_URL = os.getenv(
-    "DB_URL",
-    "postgresql+psycopg2://postgres:123@localhost:5432/finup"
+    "DB_URL", "postgresql+psycopg2://postgres:123@localhost:5432/finup"
 )
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
+
 
 def get_db():
     db = SessionLocal()

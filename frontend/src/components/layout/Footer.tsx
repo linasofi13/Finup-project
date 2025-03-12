@@ -173,7 +173,8 @@ export default function Footer() {
         {/* Línea de cierre */}
         <div className="border-t border-gray-700 pt-8">
           <p className="text-sm text-gray-300 text-center">
-            © {new Date().getFullYear()} Bancoders. Todos los derechos reservados.
+            © {new Date().getFullYear()} Bancoders. Todos los derechos
+            reservados.
           </p>
         </div>
       </div>

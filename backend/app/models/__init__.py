@@ -7,4 +7,12 @@ from app.models.technical_leader import TechnicalLeader
 from app.models.entorno import Entorno
 
 # Export Base and all models
-__all__ = ['Base', 'User', 'EVC', 'EVC_Q', 'FunctionalLeader', 'TechnicalLeader', 'Entorno']
+__all__ = [
+    "Base",
+    "User",
+    "EVC",
+    "EVC_Q",
+    "FunctionalLeader",
+    "TechnicalLeader",
+    "Entorno",
+]

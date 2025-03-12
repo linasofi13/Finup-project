@@ -26,11 +26,11 @@ export default function EvcsPage() {
   // Modelo EVC actualizado
   // ======================
   const [newEvc, setNewEvc] = useState({
-    name: "",                // EVC.name
-    project: "",             // EVC.project
+    name: "", // EVC.name
+    project: "", // EVC.project
     technical_leader_id: "", // EVC.technical_leader_id (FK)
-    functional_leader_id: "",// EVC.functional_leader_id (FK)
-    entorno_id: "",          // EVC.entorno_id (FK)
+    functional_leader_id: "", // EVC.functional_leader_id (FK)
+    entorno_id: "", // EVC.entorno_id (FK)
   });
 
   // Roles y proveedores (sigue la misma lógica si aún la necesitas)
@@ -54,8 +54,12 @@ export default function EvcsPage() {
   const [availableCountries, setAvailableCountries] = useState([]);
 
   // Nuevos: líderes y entornos
-  const [availableTechnicalLeaders, setAvailableTechnicalLeaders] = useState([]);
-  const [availableFunctionalLeaders, setAvailableFunctionalLeaders] = useState([]);
+  const [availableTechnicalLeaders, setAvailableTechnicalLeaders] = useState(
+    [],
+  );
+  const [availableFunctionalLeaders, setAvailableFunctionalLeaders] = useState(
+    [],
+  );
   const [availableEntornos, setAvailableEntornos] = useState([]);
 
   // ======================
@@ -108,7 +112,7 @@ export default function EvcsPage() {
 
   const handleRoleFieldChange = (roleId, field, value) => {
     setRoles((prev) =>
-      prev.map((r) => (r.id === roleId ? { ...r, [field]: value } : r))
+      prev.map((r) => (r.id === roleId ? { ...r, [field]: value } : r)),
     );
   };
 
@@ -127,7 +131,7 @@ export default function EvcsPage() {
   const fetchAvailableCompanies = async () => {
     try {
       const resp = await axios.get(
-        "http://127.0.0.1:8000/providers/providers/distinct-companies"
+        "http://127.0.0.1:8000/providers/providers/distinct-companies",
       );
       setAvailableCompanies(resp.data);
     } catch (error) {
@@ -138,7 +142,7 @@ export default function EvcsPage() {
   const fetchAvailableCountries = async () => {
     try {
       const resp = await axios.get(
-        "http://127.0.0.1:8000/providers/providers/distinct-countries"
+        "http://127.0.0.1:8000/providers/providers/distinct-countries",
       );
       setAvailableCountries(resp.data);
     } catch (error) {
@@ -149,7 +153,9 @@ export default function EvcsPage() {
   // Nuevos: fetch de líderes y entornos
   const fetchAvailableTechnicalLeaders = async () => {
     try {
-      const resp = await axios.get("http://127.0.0.1:8000/users/technical-leaders");
+      const resp = await axios.get(
+        "http://127.0.0.1:8000/users/technical-leaders",
+      );
       setAvailableTechnicalLeaders(resp.data);
     } catch (error) {
       console.error("Error al cargar líderes técnicos:", error);
@@ -158,7 +164,9 @@ export default function EvcsPage() {
 
   const fetchAvailableFunctionalLeaders = async () => {
     try {
-      const resp = await axios.get("http://127.0.0.1:8000/users/functional-leaders");
+      const resp = await axios.get(
+        "http://127.0.0.1:8000/users/functional-leaders",
+      );
       setAvailableFunctionalLeaders(resp.data);
     } catch (error) {
       console.error("Error al cargar líderes funcionales:", error);
@@ -188,13 +196,13 @@ export default function EvcsPage() {
             cost_min: 0,
             cost_max: targetRole.costMax,
           },
-        }
+        },
       );
       const providers = resp.data;
       setRoles((prev) =>
         prev.map((r) =>
-          r.id === roleId ? { ...r, filteredProviders: providers } : r
-        )
+          r.id === roleId ? { ...r, filteredProviders: providers } : r,
+        ),
       );
     } catch (error) {
       console.error("Error al filtrar proveedores:", error);
@@ -423,7 +431,11 @@ export default function EvcsPage() {
                     className="p-2 border rounded w-full"
                     value={r.companyFilter}
                     onChange={(e) =>
-                      handleRoleFieldChange(r.id, "companyFilter", e.target.value)
+                      handleRoleFieldChange(
+                        r.id,
+                        "companyFilter",
+                        e.target.value,
+                      )
                     }
                   >
                     <option value="">Cualquiera</option>
@@ -440,7 +452,11 @@ export default function EvcsPage() {
                     className="p-2 border rounded w-full"
                     value={r.countryFilter}
                     onChange={(e) =>
-                      handleRoleFieldChange(r.id, "countryFilter", e.target.value)
+                      handleRoleFieldChange(
+                        r.id,
+                        "countryFilter",
+                        e.target.value,
+                      )
                     }
                   >
                     <option value="">Cualquiera</option>
@@ -482,7 +498,7 @@ export default function EvcsPage() {
                       handleRoleFieldChange(
                         r.id,
                         "providerId",
-                        parseInt(e.target.value, 10)
+                        parseInt(e.target.value, 10),
                       )
                     }
                   >
@@ -548,7 +564,8 @@ export default function EvcsPage() {
             <div className="mb-3 text-lg">
               <p className="flex items-center">
                 <FaGlobe className="mr-2 text-white/80" />
-                <span className="font-semibold mr-1">Proyecto:</span> {evc.project}
+                <span className="font-semibold mr-1">Proyecto:</span>{" "}
+                {evc.project}
               </p>
               {/* Si deseas mostrar el líder técnico o funcional */}
               {evc.technical_leader && (

@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, f
 from sqlalchemy.orm import relationship
 from app.database import Base
 
+
 class Entorno(Base):
     __tablename__ = "entorno"
 
@@ -9,7 +10,9 @@ class Entorno(Base):
     name = Column(String(60), nullable=False)
     status = Column(Boolean, default=True)
     creation_date = Column(DateTime, nullable=False, default=func.now())
-    updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
+    updated_at = Column(
+        DateTime, nullable=False, default=func.now(), onupdate=func.now()
+    )
 
     technical_leader_id = Column(Integer, ForeignKey("technical_leader.id"))
     functional_leader_id = Column(Integer, ForeignKey("functional_leader.id"))

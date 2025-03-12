@@ -833,8 +833,7 @@ export default function ProveedoresPage() {
         <div className="bg-white p-4 rounded-lg shadow-md">
           <h2 className="text-lg font-semibold mb-2">Historial de Contratos</h2>
           <p className="text-sm text-gray-600">
-            Información de contratos, fechas,
-            renovaciones, etc.
+            Información de contratos, fechas, renovaciones, etc.
           </p>
         </div>
       </div>

@@ -16,15 +16,18 @@ from typing import List
 
 router = APIRouter(prefix="/providers", tags=["Providers"])
 
+
 @router.get("/distinct-companies", response_model=List[str])
 def get_distinct_companies(db: Session = Depends(get_db)):
     companies = db.query(Provider.company).distinct().all()
     return [c[0] for c in companies if c[0]]
 
+
 @router.get("/distinct-countries", response_model=List[str])
 def get_distinct_countries(db: Session = Depends(get_db)):
     countries = db.query(Provider.country).distinct().all()
     return [c[0] for c in countries if c[0]]
+
 
 @router.get("/filter", response_model=List[ProviderResponse])
 def filter_providers(
@@ -44,6 +47,7 @@ def filter_providers(
         query = query.filter(Provider.line.ilike(f"%{line}%"))
     query = query.filter(Provider.cost_usd >= cost_min, Provider.cost_usd <= cost_max)
     return query.all()
+
 
 @router.get("/", response_model=List[ProviderResponse])
 def list_providers(db: Session = Depends(get_db)):

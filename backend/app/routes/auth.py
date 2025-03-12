@@ -17,6 +17,7 @@ router = APIRouter()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
+
 def get_user_by_email(db: Session, email: str):
     return db.query(User).filter(User.email == email).first()
 
@@ -56,6 +57,7 @@ async def get_current_user(
 
     return user
 
+
 @router.post("/register", response_model=UserResponse)
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db_user = get_user_by_email(db, user.email)
@@ -75,17 +77,13 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    
-    return UserResponse(
-        id=db_user.id,
-        email=db_user.email,
-        username=db_user.username
-    )
+
+    return UserResponse(id=db_user.id, email=db_user.email, username=db_user.username)
+
 
 @router.post("/token", response_model=Token)
 async def login_for_access_token(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db)
+    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
 ):
     try:
         user = authenticate_user(db, form_data.username, form_data.password)
@@ -100,15 +98,11 @@ async def login_for_access_token(
         access_token = create_access_token(
             data={"sub": user.email}, expires_delta=access_token_expires
         )
-        
+
         return {
             "access_token": access_token,
             "token_type": "bearer",
-            "user": {
-                "id": user.id,
-                "email": user.email,
-                "username": user.username
-            }
+            "user": {"id": user.id, "email": user.email, "username": user.username},
         }
     except Exception as e:
         print(f"Login error: {str(e)}")  # Add this for debugging
@@ -119,7 +113,5 @@ async def login_for_access_token(
 async def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get information about the currently authenticated user."""
     return UserResponse(
-        id=current_user.id,
-        email=current_user.email,
-        username=current_user.username
+        id=current_user.id, email=current_user.email, username=current_user.username
     )

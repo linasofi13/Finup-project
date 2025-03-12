@@ -1,8 +1,8 @@
-import axios from 'axios';
+import axios from "axios";
 
 // Create an axios instance with the proper base URL
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000',
+  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000",
 });
 
 export interface LoginCredentials {
@@ -26,29 +26,29 @@ export const authService = {
   login: async (credentials: LoginCredentials) => {
     // Create form data instead of JSON
     const formData = new URLSearchParams();
-    formData.append('username', credentials.email); // Map email to username
-    formData.append('password', credentials.password);
-    
-    const response = await api.post('/auth/login', formData.toString(), {
+    formData.append("username", credentials.email); // Map email to username
+    formData.append("password", credentials.password);
+
+    const response = await api.post("/auth/login", formData.toString(), {
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        "Content-Type": "application/x-www-form-urlencoded",
       },
     });
-    
+
     return response.data;
   },
-  
+
   // Rest of your code is fine
   register: async (data: RegisterData) => {
-    const response = await api.post('/auth/register', data);
+    const response = await api.post("/auth/register", data);
     return response.data;
   },
-  
+
   validateToken: async () => {
     // Cambiando la ruta a /api/auth/validate que es la correcta
-    const response = await axios.get('/api/auth/validate');
+    const response = await axios.get("/api/auth/validate");
     if (!response.data) {
-      throw new Error('No se pudo validar el token');
+      throw new Error("No se pudo validar el token");
     }
     return response.data;
   },
@@ -56,5 +56,5 @@ export const authService = {
   logout: async () => {
     // Cierra sesión en el cliente (no requiere llamada al backend)
     return Promise.resolve();
-  }
+  },
 };

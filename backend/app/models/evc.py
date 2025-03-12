@@ -3,6 +3,7 @@ from sqlalchemy import Column, Integer, String, Float, DateTime, func, ForeignKe
 from sqlalchemy.orm import relationship
 from app.database import Base
 
+
 class EVC(Base):
     __tablename__ = "evc"  # Mantenemos solo un tablename
 
@@ -10,7 +11,9 @@ class EVC(Base):
     name = Column(String(60), nullable=False)
     project = Column(String(60), nullable=False)
     creation_date = Column(DateTime, nullable=False, default=func.now())
-    updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
+    updated_at = Column(
+        DateTime, nullable=False, default=func.now(), onupdate=func.now()
+    )
 
     technical_leader_id = Column(Integer, ForeignKey("technical_leader.id"))
     functional_leader_id = Column(Integer, ForeignKey("functional_leader.id"))

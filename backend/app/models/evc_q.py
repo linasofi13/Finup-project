@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, ForeignKey, DateTime, func
 from sqlalchemy.orm import relationship
 from app.database import Base
 
+
 class EVC_Q(Base):
     __tablename__ = "evc_q"
 

@@ -17,7 +17,10 @@ function AppContent({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex">
       {user && (
-        <Sidebar isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+        <Sidebar
+          isOpen={isSidebarOpen}
+          toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+        />
       )}
       <div
         className="flex flex-col flex-grow min-h-screen transition-all duration-300"
@@ -31,7 +34,11 @@ function AppContent({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="es">
       <body>

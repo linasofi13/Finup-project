@@ -16,4 +16,4 @@ class EVC_Q(Base):
     evc=relationship("EVC", back_populates="evc_qs")
     
     #Relationship with evc_financial
-    # evc_financials=relationship("EVC_Financial", back_populates="evc_q")
+    evc_financials=relationship("EVC_Financial", back_populates="evc_q")

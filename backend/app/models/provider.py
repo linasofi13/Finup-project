@@ -9,7 +9,7 @@ class Provider(Base):
     id=Column(Integer, primary_key=True, index=True)
     name=Column(String(60), nullable=False)
     category_role_id=Column(Integer, ForeignKey("category_role.id"))
-    #Relationship with CategoryRole
-    category_role=relationship("CategoryRole", back_populates="roles")
+    #Relationship with CategoryProvider
+    category_provider=relationship("CategoryProvider", back_populates="providers")
     #Relationship with RoleProvider
     role_providers=relationship("RoleProvider", back_populates="provider")

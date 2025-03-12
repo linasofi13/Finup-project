@@ -11,7 +11,6 @@ class FunctionalLeader(Base):
     email=Column(String(80), nullable=False)
     entry_date=Column(DateTime, nullable=False, default=func.now())
     
-    # Relationship with Entorno
+    # Relationship with Entorno and EVC
     entornos=relationship("Entorno", back_populates="functional_leader")
-    #Relationship with EVC
     evcs=relationship("EVC", back_populates="functional_leader")

@@ -10,9 +10,15 @@ def create_functional_leader(
     db_session.refresh(functional_leader)
     return functional_leader
 
-def get_functional_leader_by_id(db_session: Session, functional_leader_id: int) -> FunctionalLeader:
-    return db_session.query(FunctionalLeader).filter(FunctionalLeader.id == functional_leader_id).first()
 
+def get_functional_leader_by_id(
+    db_session: Session, functional_leader_id: int
+) -> FunctionalLeader:
+    return (
+        db_session.query(FunctionalLeader)
+        .filter(FunctionalLeader.id == functional_leader_id)
+        .first()
+    )
 
 
 def get_functional_leader_by_id(

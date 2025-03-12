@@ -1,6 +1,17 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Date, func, Float, Double
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    ForeignKey,
+    DateTime,
+    Date,
+    func,
+    Float,
+    Double,
+)
 from sqlalchemy.orm import relationship
 from app.database import Base
+
 
 class EVC_Q(Base):
     __tablename__ = "evc_q"

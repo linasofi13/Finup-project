@@ -56,3 +56,4 @@ def test_get_functional_leader_by_id(sample_functional_leader, db_session: Sessi
     assert functional_leader.id == sample_functional_leader.id
     assert functional_leader.name == "Test FunctionalLeader"
     assert functional_leader.email == "somemail@mail.com"
+

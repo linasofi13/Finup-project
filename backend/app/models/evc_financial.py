@@ -1,4 +1,14 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Date, func, Float, Double
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    ForeignKey,
+    DateTime,
+    Date,
+    func,
+    Float,
+    Double,
+)
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -13,5 +23,4 @@ class EVC_Financial(Base):
     #Relationship with EVC_Q
     evc_q=relationship("EVC_Q", back_populates="evc_financials")
     role_provider=relationship("RoleProvider", back_populates="evc_financials")
-    
     

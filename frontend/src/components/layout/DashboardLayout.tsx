@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import Header from './Header';
+import Sidebar from './Sidebar';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -13,6 +14,7 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children, title }: DashboardLayoutProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -29,19 +31,17 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
   }
 
   if (!user) {
-    return null; // Will redirect in the useEffect
+    return null;
   }
 
   return (
-    <div className="min-h-screen bg-bancolombia-gray">
-      <div className="py-10">
-        <header>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h1 className="text-3xl font-bold leading-tight text-bancolombia-text">{title}</h1>
-          </div>
-        </header>
-        <main>
-          <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 py-6">
+    <div className="flex h-screen bg-gray-100">
+      <Sidebar isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+      <div className="flex-1 flex flex-col">
+        <Header isSidebarOpen={isSidebarOpen} />
+        <main className="flex-1 overflow-y-auto p-6 pt-20">
+          <div className="max-w-7xl mx-auto">
+            <h1 className="text-3xl font-bold text-gray-900 mb-6">{title}</h1>
             {children}
           </div>
         </main>

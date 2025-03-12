@@ -1,10 +1,11 @@
-"use client"; // 🚀 Necesario para usar useState en Next.js
+"use client";
 
-import clsx from "clsx"; // Importa clsx para manejar clases condicionales
+import clsx from "clsx";
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
+import { useAuth } from "@/hooks/useAuth";
 
 // Carga diferida de los iconos para evitar errores en SSR
 const FaChartPie = dynamic(() => import("react-icons/fa").then((mod) => mod.FaChartPie), { ssr: false });
@@ -17,24 +18,32 @@ const FaSignOutAlt = dynamic(() => import("react-icons/fa").then((mod) => mod.Fa
 const FaBars = dynamic(() => import("react-icons/fa").then((mod) => mod.FaBars), { ssr: false });
 const FaHome = dynamic(() => import("react-icons/fa").then((mod) => mod.FaHome), { ssr: false });
 
-const Sidebar = () => {
-  const [isOpen, setIsOpen] = useState(true);
+interface SidebarProps {
+  isOpen: boolean;
+  toggleSidebar: () => void;
+}
+
+const Sidebar = ({ isOpen, toggleSidebar }: SidebarProps) => {
   const [mounted, setMounted] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // Si no hay usuario autenticado, no renderizar la barra lateral
+  if (!user) return null;
+
   return (
     <div
-  className={clsx(
-    "h-screen fixed left-0 top-0 bg-white shadow-lg p-5 flex flex-col transition-all duration-300 overflow-y-auto z-50",
-    { "w-64": mounted && isOpen, "w-20": mounted && !isOpen }
-  )}
->
+      className={clsx(
+        "h-screen fixed left-0 top-0 bg-white shadow-lg p-5 flex flex-col transition-all duration-300 overflow-y-auto z-50",
+        { "w-64": mounted && isOpen, "w-20": mounted && !isOpen }
+      )}
+    >
       {/* Botón de colapsar */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={toggleSidebar}
         className="mb-5 flex items-center text-gray-700 hover:text-primary transition-all"
       >
         <FaBars className="w-6 h-6" />

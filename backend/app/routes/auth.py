@@ -13,10 +13,9 @@ from app.core.security import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
 )
 
-
 router = APIRouter()
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 def get_user_by_email(db: Session, email: str):
     return db.query(User).filter(User.email == email).first()
@@ -53,7 +52,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     
     return user
 
-@router.post("/register", response_model=UserSchema)
+@router.post("/register", response_model=UserResponse)
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db_user = get_user_by_email(db, user.email)
     if db_user:
@@ -73,9 +72,13 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_user)
     
-    return db_user
+    return UserResponse(
+        id=db_user.id,
+        email=db_user.email,
+        username=db_user.username
+    )
 
-@router.post("/login", response_model=Token)
+@router.post("/token", response_model=Token)
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
@@ -90,11 +93,21 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
         data={"sub": user.email}, expires_delta=access_token_expires
     )
     
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "username": user.username
+        }
+    }
 
 @router.get("/me", response_model=UserResponse)
 async def get_current_user_info(current_user: User = Depends(get_current_user)):
-    """
-    Get information about the currently authenticated user.
-    """
-    return current_user
+    """Get information about the currently authenticated user."""
+    return UserResponse(
+        id=current_user.id,
+        email=current_user.email,
+        username=current_user.username
+    )

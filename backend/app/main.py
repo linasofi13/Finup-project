@@ -33,6 +33,8 @@ app.include_router(
 )  # Include the providers router
 
 
+
+
 @app.get("/")
 def read_root():
     return {"message": "Welcome to Finup API"}

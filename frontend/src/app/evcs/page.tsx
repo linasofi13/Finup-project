@@ -8,31 +8,32 @@ import {
   FaPlus,
   FaEye,
   FaTimes,
-  FaDollarSign,
   FaExclamationTriangle,
   FaProjectDiagram,
   FaGlobe,
-  FaFileAlt,
 } from "react-icons/fa";
 import axios from "axios";
 
 export default function EvcsPage() {
-  const [evcs, setEvcs] = useState([]); // Se cargarán desde el backend
+  // ======================
+  // Estados principales
+  // ======================
+  const [evcs, setEvcs] = useState([]); // Lista de EVCs obtenidas del backend
   const [showForm, setShowForm] = useState(false);
+  const [alert, setAlert] = useState("");
 
-  // Datos del formulario de creación de EVC
+  // ======================
+  // Modelo EVC actualizado
+  // ======================
   const [newEvc, setNewEvc] = useState({
-    name: "",
-    project: "",
-    environment: "",
-    q1_budget: 0,
-    q2_budget: 0,
-    q3_budget: 0,
-    q4_budget: 0,
-    description: "",
+    name: "",                // EVC.name
+    project: "",             // EVC.project
+    technical_leader_id: "", // EVC.technical_leader_id (FK)
+    functional_leader_id: "",// EVC.functional_leader_id (FK)
+    entorno_id: "",          // EVC.entorno_id (FK)
   });
 
-  // Número de roles a asignar y su información
+  // Roles y proveedores (sigue la misma lógica si aún la necesitas)
   const [roleCount, setRoleCount] = useState(1);
   const [roles, setRoles] = useState([
     {
@@ -46,13 +47,32 @@ export default function EvcsPage() {
     },
   ]);
 
-  // Estados para las listas de empresas y países disponibles (se obtienen del backend)
+  // ======================
+  // Listas para selects
+  // ======================
   const [availableCompanies, setAvailableCompanies] = useState([]);
   const [availableCountries, setAvailableCountries] = useState([]);
 
-  const [alert, setAlert] = useState("");
+  // Nuevos: líderes y entornos
+  const [availableTechnicalLeaders, setAvailableTechnicalLeaders] = useState([]);
+  const [availableFunctionalLeaders, setAvailableFunctionalLeaders] = useState([]);
+  const [availableEntornos, setAvailableEntornos] = useState([]);
 
-  // Manejo de campos principales de la EVC
+  // ======================
+  // Efectos iniciales
+  // ======================
+  useEffect(() => {
+    fetchEvcs();
+    fetchAvailableCompanies();
+    fetchAvailableCountries();
+    fetchAvailableTechnicalLeaders();
+    fetchAvailableFunctionalLeaders();
+    fetchAvailableEntornos();
+  }, []);
+
+  // ======================
+  // Handlers EVC
+  // ======================
   const handleEvcChange = (e) => {
     const { name, value } = e.target;
     setNewEvc((prev) => ({
@@ -61,29 +81,9 @@ export default function EvcsPage() {
     }));
   };
 
-  const handleBudgetChange = (e, quarter) => {
-    const value = e.target.value === "" ? "" : parseFloat(e.target.value);
-    setNewEvc((prev) => ({
-      ...prev,
-      [quarter]: value,
-    }));
-  };
-
-  // Al hacer foco, si el valor es 0 se limpia
-  const handleBudgetFocus = (e, quarter) => {
-    if (e.target.value === "0" || e.target.value === 0) {
-      e.target.value = "";
-    }
-  };
-
-  // Si se queda vacío, restaura 0 al perder el foco
-  const handleBudgetBlur = (e, quarter) => {
-    if (e.target.value === "") {
-      e.target.value = "0";
-    }
-  };
-
-  // Ajusta el número de roles y el array de roles dinámicos
+  // ======================
+  // Handlers Roles
+  // ======================
   const handleRoleCountChange = (e) => {
     const count = parseInt(e.target.value, 10);
     setRoleCount(count);
@@ -106,26 +106,90 @@ export default function EvcsPage() {
     setRoles(newRolesArray);
   };
 
-  // Actualiza un campo de un rol específico
   const handleRoleFieldChange = (roleId, field, value) => {
     setRoles((prev) =>
       prev.map((r) => (r.id === roleId ? { ...r, [field]: value } : r))
     );
   };
 
-  // Función para filtrar proveedores para un rol dado
+  // ======================
+  // Fetch data del backend
+  // ======================
+  const fetchEvcs = async () => {
+    try {
+      const response = await axios.get("http://127.0.0.1:8000/evcs/evcs/");
+      setEvcs(response.data);
+    } catch (error) {
+      console.error("Error al cargar EVCs:", error);
+    }
+  };
+
+  const fetchAvailableCompanies = async () => {
+    try {
+      const resp = await axios.get(
+        "http://127.0.0.1:8000/providers/providers/distinct-companies"
+      );
+      setAvailableCompanies(resp.data);
+    } catch (error) {
+      console.error("Error al cargar empresas:", error);
+    }
+  };
+
+  const fetchAvailableCountries = async () => {
+    try {
+      const resp = await axios.get(
+        "http://127.0.0.1:8000/providers/providers/distinct-countries"
+      );
+      setAvailableCountries(resp.data);
+    } catch (error) {
+      console.error("Error al cargar países:", error);
+    }
+  };
+
+  // Nuevos: fetch de líderes y entornos
+  const fetchAvailableTechnicalLeaders = async () => {
+    try {
+      const resp = await axios.get("http://127.0.0.1:8000/users/technical-leaders");
+      setAvailableTechnicalLeaders(resp.data);
+    } catch (error) {
+      console.error("Error al cargar líderes técnicos:", error);
+    }
+  };
+
+  const fetchAvailableFunctionalLeaders = async () => {
+    try {
+      const resp = await axios.get("http://127.0.0.1:8000/users/functional-leaders");
+      setAvailableFunctionalLeaders(resp.data);
+    } catch (error) {
+      console.error("Error al cargar líderes funcionales:", error);
+    }
+  };
+
+  const fetchAvailableEntornos = async () => {
+    try {
+      const resp = await axios.get("http://127.0.0.1:8000/entornos/");
+      setAvailableEntornos(resp.data);
+    } catch (error) {
+      console.error("Error al cargar entornos:", error);
+    }
+  };
+
+  // Filtrar proveedores para un rol dado
   const fetchFilteredProviders = async (roleId) => {
     const targetRole = roles.find((r) => r.id === roleId);
     if (!targetRole) return;
     try {
-      const resp = await axios.get("http://127.0.0.1:8000/providers/providers/filter", {
-        params: {
-          company: targetRole.companyFilter || undefined,
-          country: targetRole.countryFilter || undefined,
-          cost_min: 0,
-          cost_max: targetRole.costMax,
-        },
-      });
+      const resp = await axios.get(
+        "http://127.0.0.1:8000/providers/providers/filter",
+        {
+          params: {
+            company: targetRole.companyFilter || undefined,
+            country: targetRole.countryFilter || undefined,
+            cost_min: 0,
+            cost_max: targetRole.costMax,
+          },
+        }
+      );
       const providers = resp.data;
       setRoles((prev) =>
         prev.map((r) =>
@@ -137,75 +201,39 @@ export default function EvcsPage() {
     }
   };
 
-  // Cargar las EVCs desde el backend
-  const fetchEvcs = async () => {
-    try {
-      const response = await axios.get("http://127.0.0.1:8000/evcs/evcs/");
-      setEvcs(response.data);
-    } catch (error) {
-      console.error("Error al cargar EVCs:", error);
-    }
-  };
-
-  // Cargar las empresas disponibles desde el backend
-  const fetchAvailableCompanies = async () => {
-    try {
-      const resp = await axios.get("http://127.0.0.1:8000/providers/providers/distinct-companies");
-      setAvailableCompanies(resp.data);
-    } catch (error) {
-      console.error("Error al cargar empresas:", error);
-    }
-  };
-
-  // Cargar los países disponibles desde el backend
-  const fetchAvailableCountries = async () => {
-    try {
-      const resp = await axios.get("http://127.0.0.1:8000/providers/providers/distinct-countries");
-      setAvailableCountries(resp.data);
-    } catch (error) {
-      console.error("Error al cargar países:", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchEvcs();
-    fetchAvailableCompanies();
-    fetchAvailableCountries();
-  }, []);
-
-  // Crear EVC enviando todos los datos, incluyendo el array "providers"
+  // ======================
+  // Crear EVC
+  // ======================
   const createEvc = async () => {
+    // Roles -> providers
     const providersArray = roles
       .filter((r) => r.providerId)
       .map((r) => ({
         provider_id: r.providerId,
         role_name: r.roleName || "Sin nombre de rol",
       }));
+
     try {
       const response = await axios.post("http://127.0.0.1:8000/evcs/evcs/", {
         name: newEvc.name,
         project: newEvc.project,
-        environment: newEvc.environment,
-        q1_budget: parseFloat(newEvc.q1_budget) || 0,
-        q2_budget: parseFloat(newEvc.q2_budget) || 0,
-        q3_budget: parseFloat(newEvc.q3_budget) || 0,
-        q4_budget: parseFloat(newEvc.q4_budget) || 0,
-        description: newEvc.description,
-        providers: providersArray,
+        technical_leader_id: parseInt(newEvc.technical_leader_id, 10) || null,
+        functional_leader_id: parseInt(newEvc.functional_leader_id, 10) || null,
+        entorno_id: parseInt(newEvc.entorno_id, 10) || null,
+        providers: providersArray, // Relación con EVCProvider
       });
+
       const createdEvc = response.data;
       console.log("EVC creada:", createdEvc);
       fetchEvcs();
       setShowForm(false);
+      setAlert("");
       setNewEvc({
         name: "",
         project: "",
-        environment: "",
-        q1_budget: 0,
-        q2_budget: 0,
-        q3_budget: 0,
-        q4_budget: 0,
-        description: "",
+        technical_leader_id: "",
+        functional_leader_id: "",
+        entorno_id: "",
       });
       setRoleCount(1);
       setRoles([
@@ -225,6 +253,9 @@ export default function EvcsPage() {
     }
   };
 
+  // ======================
+  // Eliminar EVC
+  // ======================
   const deleteEvc = async (evcId) => {
     try {
       await axios.delete(`http://127.0.0.1:8000/evcs/evcs/${evcId}`);
@@ -234,6 +265,9 @@ export default function EvcsPage() {
     }
   };
 
+  // ======================
+  // Render
+  // ======================
   return (
     <div className="p-6 mt-20 bg-white shadow-md rounded-lg flex flex-col">
       {/* Panel de acciones */}
@@ -271,116 +305,79 @@ export default function EvcsPage() {
 
           {/* Campos principales */}
           <div className="grid grid-cols-2 gap-4">
+            {/* name */}
             <input
               type="text"
               name="name"
-              placeholder="Nombre"
+              placeholder="Nombre de la EVC"
               className="p-2 border rounded"
               value={newEvc.name}
               onChange={handleEvcChange}
             />
+
+            {/* project */}
             <input
               type="text"
               name="project"
-              placeholder="Proyecto"
+              placeholder="Proyecto asociado"
               className="p-2 border rounded"
               value={newEvc.project}
               onChange={handleEvcChange}
             />
-            <select
-              name="environment"
-              className="p-2 border rounded"
-              value={newEvc.environment}
-              onChange={handleEvcChange}
-            >
-              <option value="">Seleccionar Entorno</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-            </select>
-          </div>
 
-          {/* Presupuestos */}
-          <div className="mt-4">
-            <label className="font-semibold block">Presupuestos</label>
-            <div className="grid grid-cols-2 gap-4 mt-2">
-              <div>
-                <label className="block">Presupuesto Q1</label>
-                <div className="flex items-center border rounded px-2">
-                  <FaDollarSign className="mr-1" />
-                  <input
-                    type="number"
-                    name="q1_budget"
-                    placeholder="Presupuesto Q1"
-                    className="p-1 w-full border-none"
-                    value={newEvc.q1_budget}
-                    onFocus={(e) => handleBudgetFocus(e, "q1_budget")}
-                    onBlur={(e) => handleBudgetBlur(e, "q1_budget")}
-                    onChange={(e) => handleBudgetChange(e, "q1_budget")}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block">Presupuesto Q2</label>
-                <div className="flex items-center border rounded px-2">
-                  <FaDollarSign className="mr-1" />
-                  <input
-                    type="number"
-                    name="q2_budget"
-                    placeholder="Presupuesto Q2"
-                    className="p-1 w-full border-none"
-                    value={newEvc.q2_budget}
-                    onFocus={(e) => handleBudgetFocus(e, "q2_budget")}
-                    onBlur={(e) => handleBudgetBlur(e, "q2_budget")}
-                    onChange={(e) => handleBudgetChange(e, "q2_budget")}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block">Presupuesto Q3</label>
-                <div className="flex items-center border rounded px-2">
-                  <FaDollarSign className="mr-1" />
-                  <input
-                    type="number"
-                    name="q3_budget"
-                    placeholder="Presupuesto Q3"
-                    className="p-1 w-full border-none"
-                    value={newEvc.q3_budget}
-                    onFocus={(e) => handleBudgetFocus(e, "q3_budget")}
-                    onBlur={(e) => handleBudgetBlur(e, "q3_budget")}
-                    onChange={(e) => handleBudgetChange(e, "q3_budget")}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block">Presupuesto Q4</label>
-                <div className="flex items-center border rounded px-2">
-                  <FaDollarSign className="mr-1" />
-                  <input
-                    type="number"
-                    name="q4_budget"
-                    placeholder="Presupuesto Q4"
-                    className="p-1 w-full border-none"
-                    value={newEvc.q4_budget}
-                    onFocus={(e) => handleBudgetFocus(e, "q4_budget")}
-                    onBlur={(e) => handleBudgetBlur(e, "q4_budget")}
-                    onChange={(e) => handleBudgetChange(e, "q4_budget")}
-                  />
-                </div>
-              </div>
+            {/* technical_leader_id */}
+            <div>
+              <label className="block font-semibold">Líder Técnico</label>
+              <select
+                name="technical_leader_id"
+                className="p-2 border rounded w-full"
+                value={newEvc.technical_leader_id}
+                onChange={handleEvcChange}
+              >
+                <option value="">-- Seleccionar --</option>
+                {availableTechnicalLeaders.map((leader) => (
+                  <option key={leader.id} value={leader.id}>
+                    {leader.name}
+                  </option>
+                ))}
+              </select>
             </div>
-          </div>
 
-          {/* Descripción */}
-          <div className="mt-2">
-            <label className="font-semibold block">Descripción</label>
-            <textarea
-              name="description"
-              className="p-2 border rounded w-full"
-              value={newEvc.description}
-              onChange={handleEvcChange}
-              placeholder="Comentarios o detalles adicionales"
-            />
+            {/* functional_leader_id */}
+            <div>
+              <label className="block font-semibold">Líder Funcional</label>
+              <select
+                name="functional_leader_id"
+                className="p-2 border rounded w-full"
+                value={newEvc.functional_leader_id}
+                onChange={handleEvcChange}
+              >
+                <option value="">-- Seleccionar --</option>
+                {availableFunctionalLeaders.map((leader) => (
+                  <option key={leader.id} value={leader.id}>
+                    {leader.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* entorno_id */}
+            <div>
+              <label className="block font-semibold">Entorno</label>
+              <select
+                name="entorno_id"
+                className="p-2 border rounded w-full"
+                value={newEvc.entorno_id}
+                onChange={handleEvcChange}
+              >
+                <option value="">-- Seleccionar --</option>
+                {availableEntornos.map((ent) => (
+                  <option key={ent.id} value={ent.id}>
+                    {ent.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Número de roles */}
@@ -402,7 +399,9 @@ export default function EvcsPage() {
           {/* Roles dinámicos */}
           {roles.map((r) => (
             <div key={r.id} className="border p-4 rounded-lg mt-4 bg-white">
-              <h3 className="font-semibold">Rol #{r.id}</h3>
+              <h3 className="font-semibold mb-2">Rol #{r.id}</h3>
+
+              {/* roleName */}
               <div className="mt-2">
                 <label>Nombre del Rol</label>
                 <input
@@ -415,6 +414,8 @@ export default function EvcsPage() {
                   }
                 />
               </div>
+
+              {/* Filtros para empresa, país y costo */}
               <div className="grid grid-cols-3 gap-4 mt-2">
                 <div>
                   <label>Empresa</label>
@@ -462,19 +463,27 @@ export default function EvcsPage() {
                   />
                 </div>
               </div>
+
+              {/* Botón para filtrar proveedores */}
               <button
                 className="px-4 py-2 bg-yellow-500 text-white rounded-md mt-2 hover:bg-yellow-600"
                 onClick={() => fetchFilteredProviders(r.id)}
               >
                 Filtrar proveedores
               </button>
+
+              {/* Lista de proveedores filtrados */}
               {r.filteredProviders.length > 0 && (
                 <div className="mt-2">
                   <label>Escoger proveedor</label>
                   <select
                     className="p-2 border rounded w-full"
                     onChange={(e) =>
-                      handleRoleFieldChange(r.id, "providerId", parseInt(e.target.value, 10))
+                      handleRoleFieldChange(
+                        r.id,
+                        "providerId",
+                        parseInt(e.target.value, 10)
+                      )
                     }
                   >
                     <option value="">--Seleccione--</option>
@@ -489,6 +498,7 @@ export default function EvcsPage() {
             </div>
           ))}
 
+          {/* Alertas de error */}
           {alert && (
             <div className="mt-2 bg-yellow-100 text-yellow-800 p-2 rounded-md flex items-center">
               <FaExclamationTriangle className="mr-2" />
@@ -496,6 +506,7 @@ export default function EvcsPage() {
             </div>
           )}
 
+          {/* Botones de acción */}
           <div className="flex justify-end space-x-4 mt-4">
             <button
               type="button"
@@ -520,53 +531,63 @@ export default function EvcsPage() {
         {evcs.map((evc) => (
           <div
             key={evc.id}
-            className="p-4 rounded-lg bg-blue-200 text-gray-800 shadow-md flex flex-col hover:shadow-xl hover:scale-105 transition transform duration-300"
+            className="p-6 rounded-xl shadow-md flex flex-col bg-gradient-to-tr from-purple-500 to-purple-700 text-white hover:shadow-xl hover:scale-105 transition-transform duration-300"
           >
-            <div className="flex justify-between items-center mb-2">
-              <h2 className="text-xl font-bold flex items-center">
+            {/* Encabezado */}
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-2xl font-bold flex items-center">
                 <FaProjectDiagram className="mr-2" /> {evc.name}
               </h2>
-              <span className="px-2 py-1 bg-green-500 rounded-full text-sm">
-                {evc.status}
+              <span className="px-3 py-1 bg-green-400 rounded-full text-sm font-semibold">
+                {/* Ajusta si tienes un campo status, si no, remueve */}
+                {evc.status || "En curso"}
               </span>
             </div>
-            <div className="mb-2">
-              <p className="flex items-center text-sm">
-                <FaGlobe className="mr-1" />{" "}
+
+            {/* Datos principales */}
+            <div className="mb-3 text-lg">
+              <p className="flex items-center">
+                <FaGlobe className="mr-2 text-white/80" />
                 <span className="font-semibold mr-1">Proyecto:</span> {evc.project}
               </p>
-              <p className="flex items-center text-sm">
-                <FaGlobe className="mr-1" />{" "}
-                <span className="font-semibold mr-1">Entorno:</span> {evc.environment}
+              {/* Si deseas mostrar el líder técnico o funcional */}
+              {evc.technical_leader && (
+                <p className="flex items-center">
+                  <span className="font-semibold mr-1">Líder Técnico:</span>{" "}
+                  {evc.technical_leader.name}
+                </p>
+              )}
+              {evc.functional_leader && (
+                <p className="flex items-center">
+                  <span className="font-semibold mr-1">Líder Funcional:</span>{" "}
+                  {evc.functional_leader.name}
+                </p>
+              )}
+              {evc.entorno && (
+                <p className="flex items-center">
+                  <span className="font-semibold mr-1">Entorno:</span>{" "}
+                  {evc.entorno.nombre}
+                </p>
+              )}
+            </div>
+
+            {/* Fechas de creación y actualización */}
+            <div className="mb-3 text-base">
+              <p>
+                <span className="font-semibold">Creado:</span>{" "}
+                {new Date(evc.creation_date).toLocaleDateString()}
+              </p>
+              <p>
+                <span className="font-semibold">Actualizado:</span>{" "}
+                {new Date(evc.updated_at).toLocaleDateString()}
               </p>
             </div>
-            <div className="mb-2">
-              <h3 className="font-semibold text-sm mb-1">Presupuestos</h3>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <p>
-                  <span className="font-semibold">Q1:</span> ${evc.q1_budget}
-                </p>
-                <p>
-                  <span className="font-semibold">Q2:</span> ${evc.q2_budget}
-                </p>
-                <p>
-                  <span className="font-semibold">Q3:</span> ${evc.q3_budget}
-                </p>
-                <p>
-                  <span className="font-semibold">Q4:</span> ${evc.q4_budget}
-                </p>
-              </div>
-            </div>
-            <div className="mb-2">
-              <h3 className="font-semibold text-sm mb-1">
-                <FaFileAlt className="inline mr-1" /> Descripción
-              </h3>
-              <p className="text-sm">{evc.description}</p>
-            </div>
-            <div className="flex justify-end items-center mt-auto space-x-2">
-              <FaEye className="text-gray-800 cursor-pointer hover:text-gray-600" />
+
+            {/* Acciones */}
+            <div className="flex justify-end items-center mt-auto space-x-4">
+              <FaEye className="cursor-pointer hover:text-white/70 text-xl" />
               <FaTrash
-                className="text-red-500 cursor-pointer hover:text-red-700"
+                className="cursor-pointer hover:text-red-300 text-xl"
                 onClick={() => deleteEvc(evc.id)}
               />
             </div>
@@ -576,16 +597,3 @@ export default function EvcsPage() {
     </div>
   );
 }
-
-// Manejadores para limpiar o restaurar los presupuestos al hacer foco y al salir
-const handleBudgetFocus = (e, quarter) => {
-  if (e.target.value === "0" || e.target.value === 0) {
-    e.target.value = "";
-  }
-};
-
-const handleBudgetBlur = (e, quarter) => {
-  if (e.target.value === "") {
-    e.target.value = "0";
-  }
-};

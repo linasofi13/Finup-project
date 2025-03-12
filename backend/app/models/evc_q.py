@@ -10,5 +10,5 @@ class EVC_Q(Base):
     q = Column(Integer, nullable=False)
     evc_id = Column(Integer, ForeignKey("evc.id"))
 
-    # Relationship with EVC
+    # Relationships
     evc = relationship("EVC", back_populates="evc_qs")

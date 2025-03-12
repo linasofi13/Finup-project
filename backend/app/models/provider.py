@@ -1,4 +1,3 @@
-# app/models/provider.py
 from sqlalchemy import Column, Integer, String, Float
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -16,5 +15,5 @@ class Provider(Base):
     line = Column(String)
     email = Column(String, unique=True, index=True)
 
-    # Relación con la tabla intermedia
+    # Relationship with EVCProvider
     evc_providers = relationship("EVCProvider", back_populates="provider")

@@ -1,10 +1,21 @@
 from app.database import Base
-from app.models.user import User
 from app.models.evc import EVC
 from app.models.evc_q import EVC_Q
-from app.models.functional_leader import FunctionalLeader
 from app.models.technical_leader import TechnicalLeader
+from app.models.functional_leader import FunctionalLeader
 from app.models.entorno import Entorno
+from app.models.provider import Provider
+from app.models.evc_provider import EVCProvider
+from app.models.evc_financial import EVC_Financial
 
-# Export Base and all models
-__all__ = ['Base', 'User', 'EVC', 'EVC_Q', 'FunctionalLeader', 'TechnicalLeader', 'Entorno']
+# This ensures all models are registered with SQLAlchemy
+__all__ = [
+    'EVC',
+    'EVC_Q',
+    'TechnicalLeader',
+    'FunctionalLeader',
+    'Entorno',
+    'Provider',
+    'EVCProvider',
+    'EVC_Financial'
+]

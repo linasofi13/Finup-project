@@ -1,10 +1,10 @@
-'use client'; 
+"use client"; 
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import Card from '@/components/ui/Card';
-import Button from '@/components/ui/Button';
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
 import { FaFileUpload, FaChartLine, FaChartPie, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 export default function Home() {
@@ -49,7 +49,10 @@ export default function Home() {
                   <span className="block">presupuesto en EVC</span>
                 </h1>
                 <p className="mt-3 text-base text-gray-600 sm:mt-5 sm:text-xl lg:text-lg xl:text-xl">
-                  Nuestra plataforma automatiza la administración de proveedores, la asignación de recursos y el análisis financiero, reduciendo errores y optimizando la toma de decisiones.
+                  Nuestra plataforma automatiza la administración de
+                  proveedores, la asignación de recursos y el análisis
+                  financiero, reduciendo errores y optimizando la toma de
+                  decisiones.
                 </p>
                 <div className="mt-8 sm:max-w-lg sm:mx-auto sm:text-center lg:text-left lg:mx-0">
                   <div className="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start">
@@ -143,7 +146,8 @@ export default function Home() {
                 Digitaliza y optimiza tu gestión financiera
               </p>
               <p className="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
-                Facilita la administración de proveedores, la asignación presupuestaria y el control de costos en tiempo real.
+                Facilita la administración de proveedores, la asignación
+                presupuestaria y el control de costos en tiempo real.
               </p>
             </div>
 

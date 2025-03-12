@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -16,8 +16,8 @@ interface FormData {
 
 const schema = yup
   .object({
-    email: yup.string().email('Email inválido').required('Email es requerido'),
-    password: yup.string().required('Contraseña es requerida'),
+    email: yup.string().email("Email inválido").required("Email es requerido"),
+    password: yup.string().required("Contraseña es requerida"),
   })
   .required();
 
@@ -61,7 +61,7 @@ export default function LoginPage() {
       setError(
         Array.isArray(errorMessage)
           ? errorMessage[0].msg
-          : errorMessage || authError || 'Error al iniciar sesión'
+          : errorMessage || authError || "Error al iniciar sesión",
       );
     } finally {
       setIsLoading(false);

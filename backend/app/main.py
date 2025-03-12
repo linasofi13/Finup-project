@@ -2,7 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes import auth, users, evcs, providers  # Import the new routers
-from app.database import engine, Base
+from app.database import engine, Base, SessionLocal
+
+from app import models
+
+models.Base.metadata.create_all(bind=engine)
 
 # Crear las tablas en la base de datos
 Base.metadata.create_all(bind=engine)
@@ -21,8 +25,13 @@ app.add_middleware(
 # Incluir rutas
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 app.include_router(users.router, prefix="/users", tags=["Users"])
-app.include_router(evcs.router, prefix="/evcs", tags=["EVCs"])  # Include the evcs router
-app.include_router(providers.router, prefix="/providers", tags=["Providers"])  # Include the providers router
+app.include_router(
+    evcs.router, prefix="/evcs", tags=["EVCs"]
+)  # Include the evcs router
+app.include_router(
+    providers.router, prefix="/providers", tags=["Providers"]
+)  # Include the providers router
+
 
 @app.get("/")
 def read_root():

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React, { createContext, useState, useEffect } from 'react';
 import Cookies from 'js-cookie';
@@ -7,7 +7,7 @@ import axios from 'axios';
 interface User {
   id: string;
   email: string;
-  username?: string;
+  name?: string;
   role?: string;
 }
 
@@ -81,7 +81,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = () => {
-    Cookies.remove('auth_token');
+    Cookies.remove("auth_token");
     setUser(null);
     window.location.href = '/login';
   };

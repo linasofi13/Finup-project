@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 import UserMenu from "@/components/ui/UserMenu";
 import { FaBell, FaSearch, FaChartLine } from "react-icons/fa";
@@ -13,13 +14,13 @@ interface HeaderProps {
 export default function Header({ isSidebarOpen }: HeaderProps) {
   const { user } = useAuth();
   const [notificacionesAbiertas, setNotificacionesAbiertas] = useState(false);
-  
+
   const toggleNotificaciones = () => {
     setNotificacionesAbiertas(!notificacionesAbiertas);
   };
 
   return (
-    <header 
+    <header
       className="bg-white shadow-md border-b border-neutral-medium transition-all duration-300 z-40 fixed top-0 left-0 w-full"
       style={{ marginLeft: isSidebarOpen ? "16rem" : "0", width: isSidebarOpen ? "calc(100% - 16rem)" : "100%" }}
     >

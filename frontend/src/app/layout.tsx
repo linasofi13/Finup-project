@@ -1,4 +1,4 @@
-'use client';
+"use client";
 import { useState } from "react";
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -6,7 +6,7 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import Sidebar from "@/components/layout/Sidebar";
-import { metadata } from "./metadata"; 
+import { metadata } from "./metadata";
 
 const inter = Inter({ subsets: ["latin"] });
 

@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 
+
 class ProviderBase(BaseModel):
     name: str
     role: str
@@ -11,8 +12,10 @@ class ProviderBase(BaseModel):
     line: str
     email: EmailStr
 
+
 class ProviderCreate(ProviderBase):
     pass  # validate provider creation
+
 
 class ProviderResponse(ProviderBase):
     id: int

@@ -1,6 +1,12 @@
-import React from 'react';
-import { Controller, Control, Path, FieldValues, FieldError } from 'react-hook-form';
-import Input from './Input';
+import React from "react";
+import {
+  Controller,
+  Control,
+  Path,
+  FieldValues,
+  FieldError,
+} from "react-hook-form";
+import Input from "./Input";
 
 interface FormFieldProps<T extends FieldValues> {
   name: Path<T>;
@@ -17,7 +23,7 @@ export default function FormField<T extends FieldValues>({
   name,
   control,
   label,
-  type = 'text',
+  type = "text",
   placeholder,
   error,
   autoComplete,

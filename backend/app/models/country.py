@@ -2,13 +2,11 @@ from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Date, func
 from sqlalchemy.orm import relationship
 from app.database import Base
 
-
-class EVC_Financial(Base):
-    __tablename__ = "evc_financial"
+class Country(Base):
+    __tablename__ = "country"
     
     id=Column(Integer, primary_key=True, index=True)
+    name=Column(String(50), nullable=False)
     
-    evc_q_id=Column(Integer, ForeignKey("evc_q.id"))
-    #Relationship with EVC_Q
-    evc_q=relationship("EVC_Q", back_populates="evc_financials")
-    
+    #Relationship with RoleProvider
+    role_providers=relationship("RoleProvider", back_populates="country")

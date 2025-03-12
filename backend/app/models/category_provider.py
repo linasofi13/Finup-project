@@ -3,12 +3,11 @@ from sqlalchemy.orm import relationship
 from app.database import Base
 
 
-class EVC_Financial(Base):
-    __tablename__ = "evc_financial"
+class CategoryProvider(Base):
+    __tablename__ = "category_provider"
     
     id=Column(Integer, primary_key=True, index=True)
+    name=Column(String(50), nullable=False)
     
-    evc_q_id=Column(Integer, ForeignKey("evc_q.id"))
-    #Relationship with EVC_Q
-    evc_q=relationship("EVC_Q", back_populates="evc_financials")
-    
+    #Relationship with Provider
+    providers=relationship("Provider", back_populates="category_provider")

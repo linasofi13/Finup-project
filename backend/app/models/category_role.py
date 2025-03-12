@@ -3,12 +3,12 @@ from sqlalchemy.orm import relationship
 from app.database import Base
 
 
-class EVC_Financial(Base):
-    __tablename__ = "evc_financial"
+class CategoryRole(Base):
+    __tablename__ = "category_role"
     
     id=Column(Integer, primary_key=True, index=True)
+    name=Column(String(50), nullable=False)
     
-    evc_q_id=Column(Integer, ForeignKey("evc_q.id"))
-    #Relationship with EVC_Q
-    evc_q=relationship("EVC_Q", back_populates="evc_financials")
+    #Relationship with Role
+    roles=relationship("Role", back_populates="category_role")
     

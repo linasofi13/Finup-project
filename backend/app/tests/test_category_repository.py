@@ -5,7 +5,7 @@ from app.repositories.category_repository import (
     get_category_by_name,
     get_category_by_id,
 )
-from app.database import SessionLocal
+from app.database import engine, Base, SessionLocal
 
 
 # Setup test database session

@@ -1,8 +1,10 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, func
+# app/models/evc.py
+from sqlalchemy import Column, Integer, String, Float, DateTime, func
 from sqlalchemy.orm import relationship
 from app.database import Base
 
 class EVC(Base):
+    __tablename__ = "evcs"
     __tablename__ = "evc"
 
     id = Column(Integer, primary_key=True, index=True)

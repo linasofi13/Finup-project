@@ -10,12 +10,12 @@ from app.models.evc_financial import EVC_Financial
 
 # This ensures all models are registered with SQLAlchemy
 __all__ = [
-    'EVC',
-    'EVC_Q',
-    'TechnicalLeader',
-    'FunctionalLeader',
-    'Entorno',
-    'Provider',
-    'EVCProvider',
-    'EVC_Financial'
+    "EVC",
+    "EVC_Q",
+    "TechnicalLeader",
+    "FunctionalLeader",
+    "Entorno",
+    "Provider",
+    "EVCProvider",
+    "EVC_Financial",
 ]

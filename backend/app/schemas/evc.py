@@ -2,9 +2,11 @@
 from pydantic import BaseModel
 from typing import List, Optional
 
+
 class EVCProviderCreate(BaseModel):
     provider_id: int
     role_name: Optional[str] = None  # Rol personalizado para este provider
+
 
 class EVCBase(BaseModel):
     name: str
@@ -16,9 +18,11 @@ class EVCBase(BaseModel):
     q4_budget: float = 0.0
     description: Optional[str] = None
 
+
 class EVCCreate(EVCBase):
     # Lista de proveedores asignados
     providers: List[EVCProviderCreate] = []
+
 
 class EVCResponse(EVCBase):
     id: int

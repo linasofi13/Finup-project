@@ -59,7 +59,7 @@ export default function DashboardPage() {
   const fetchProviders = async () => {
     try {
       const response = await axios.get(
-        "http://127.0.0.1:8000/providers/providers"
+        "http://127.0.0.1:8000/providers/providers",
       );
       setProvidersData(response.data);
     } catch (error) {
@@ -70,11 +70,11 @@ export default function DashboardPage() {
   // 2. Cálculos de Información General
   const totalProviders = providersData.length;
   const uniqueCountries = new Set(
-    providersData.map((p) => p.country || "Desconocido")
+    providersData.map((p) => p.country || "Desconocido"),
   ).size;
   const totalCost = providersData.reduce(
     (sum, p) => sum + (parseFloat(p.cost_usd) || 0),
-    0
+    0,
   );
   const avgCost =
     totalProviders > 0 ? (totalCost / totalProviders).toFixed(2) : 0;
@@ -95,7 +95,7 @@ export default function DashboardPage() {
     ([role, { total, count }]) => ({
       role,
       avgCost: count > 0 ? (total / count).toFixed(2) : 0,
-    })
+    }),
   );
 
   // 3.2 Proveedores por País (PieChart)
@@ -105,7 +105,7 @@ export default function DashboardPage() {
     return acc;
   }, {});
   const pieDataCountry = Object.entries(providersByCountryMap).map(
-    ([country, count]) => ({ name: country, value: count })
+    ([country, count]) => ({ name: country, value: count }),
   );
 
   // 3.3 Proveedores por Rango de Costo (LineChart)
@@ -160,13 +160,12 @@ export default function DashboardPage() {
     ([company, { total, count }]) => ({
       company,
       avgCost: count > 0 ? (total / count).toFixed(2) : 0,
-    })
+    }),
   );
 
   return (
     <DashboardLayout title="Dashboard - Proveedores">
       <div className="h-6"></div> {/* Espacio extra antes del contenido */}
-
       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* 1. Información General */}
         <Card title="Información General">
@@ -193,7 +192,12 @@ export default function DashboardPage() {
         {/* 2. Costo Promedio por Rol (RadarChart) */}
         <Card title="Costo Promedio por Rol">
           <ResponsiveContainer width="100%" height={400}>
-            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarDataRole}>
+            <RadarChart
+              cx="50%"
+              cy="50%"
+              outerRadius="80%"
+              data={radarDataRole}
+            >
               <PolarGrid />
               <PolarAngleAxis dataKey="role" />
               <PolarRadiusAxis />

@@ -26,7 +26,7 @@ load_dotenv()
 # else:
 #     engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
-SQLALCHEMY_DATABASE_URL = "postgresql://postgres:%40Luna1022@localhost/finup"
+SQLALCHEMY_DATABASE_URL = "postgresql://postgres:password@localhost/finup"
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

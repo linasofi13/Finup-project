@@ -11,7 +11,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from app.database import Base
-
+from app.models.evc_financial import EVC_Financial
 
 class EVC_Q(Base):
     __tablename__ = "evc_q"
@@ -24,5 +24,6 @@ class EVC_Q(Base):
 
     evc_id = Column(Integer, ForeignKey("evc.id"))
 
+    evc = relationship("EVC", back_populates="evc_qs")
     # Relationship with evc_financial
     evc_financials = relationship("EVC_Financial", back_populates="evc_q")

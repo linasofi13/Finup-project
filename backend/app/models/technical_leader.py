@@ -12,5 +12,5 @@ class TechnicalLeader(Base):
     entry_date = Column(DateTime, nullable=False, default=func.now())
 
     # Relationship with Entorno and EVC
-    entornos = relationship("Entorno", back_populates="functional_leader")
-    evcs = relationship("EVC", back_populates="functional_leader")
+    entornos = relationship("Entorno", back_populates="technical_leader")
+    evcs = relationship("EVC", back_populates="technical_leader")

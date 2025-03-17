@@ -19,4 +19,5 @@ class EVC_Financial(Base):
     id = Column(Integer, primary_key=True, index=True)
 
     evc_q_id = Column(Integer, ForeignKey("evc_q.id"))
+    evc_q = relationship("EVC_Q", back_populates="evc_financials")
     # role_provider_id=Column(Integer, ForeignKey("role_provider.id"))

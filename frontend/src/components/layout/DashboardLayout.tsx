@@ -1,23 +1,17 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
-import Header from "./Header";
-import Sidebar from "./Sidebar";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
   title: string;
 }
 
-export default function DashboardLayout({
-  children,
-  title,
-}: DashboardLayoutProps) {
+export default function DashboardLayout({ children, title }: DashboardLayoutProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -37,20 +31,13 @@ export default function DashboardLayout({
     return null;
   }
 
+  // Sólo renderiza contenido y título, 
+  // dejando que el RootLayout maneje el sidebar y el header
   return (
-    <div className="flex h-screen bg-white">
-      <Sidebar
-        isOpen={isSidebarOpen}
-        toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-      />
-      <div className="flex-1 flex flex-col">
-        <Header isSidebarOpen={isSidebarOpen} />
-        <main className="flex-1 overflow-y-auto p-6 pt-20 bg-white">
-          <div className="max-w-7xl mx-auto">
-            <h1 className="text-3xl font-bold text-gray-900 mb-6">{title}</h1>
-            {children}
-          </div>
-        </main>
+    <div className="flex-1 p-6 pt-20 bg-white">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">{title}</h1>
+        {children}
       </div>
     </div>
   );

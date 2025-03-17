@@ -8,13 +8,16 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: "#FFD700", // Standard gold/yellow color
-        "primary-light": "#FFEB99",
+        primary: "#FFE600", // Cambiado a amarillo más brillante
+        "primary-light": "#FFF159", // Color hover
         secondary: "#3B82F6", // Tailwind blue-500
         "secondary-dark": "#1D4ED8", // Tailwind blue-700
         "neutral-light": "#F3F4F6", // Tailwind gray-100
         "neutral-medium": "#D1D5DB", // Tailwind gray-300
         "neutral-dark": "#374151", // Tailwind gray-700
+        "bancolombia-yellow": "#FFE600", // Color amarillo de Bancolombia
+        "bancolombia-blue": "#0C3FFE", // Color azul de Bancolombia
+        "bancolombia-text": "#000000", // Color de texto principal
       },
       fontFamily: {
         sans: ["Inter", "Arial", "sans-serif"],

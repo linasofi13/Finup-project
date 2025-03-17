@@ -30,12 +30,16 @@ export default function Header({ isSidebarOpen }: HeaderProps) {
       <div className="w-full px-6">
         <div className="max-w-7xl mx-auto flex justify-between h-16 items-center">
           <div className="flex items-center space-x-8">
-            {/* Logo con icono */}
+            {/* Logo con SVG y texto */}
             <Link href="/" legacyBehavior>
-              <a className="text-neutral-dark text-xl font-bold flex items-center transition-transform duration-200 hover:scale-105">
-                <FaChartLine className="text-[#FFE600] mr-2 text-xl" />
-                <span className="text-[#FFE600] mr-1">Fin</span>
-                <span className="text-[#2c2a29]">Up</span>
+              <a className="text-neutral-dark flex items-center transition-transform duration-200 hover:scale-105">
+                <Image 
+                  src="/images/logoBancolombia.svg" 
+                  alt="Logo" 
+                  width={32} 
+                  height={32} 
+                  className="h-8 w-auto mr-2"
+                />
               </a>
             </Link>
 

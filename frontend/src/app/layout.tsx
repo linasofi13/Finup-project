@@ -24,7 +24,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
       )}
       <div
         className="flex flex-col flex-grow min-h-screen transition-all duration-300"
-        style={{ marginLeft: user && isSidebarOpen ? "16rem" : "0" }}
+        style={{ marginLeft: user ? (isSidebarOpen ? "16rem" : "5rem") : "0" }}
       >
         <Header isSidebarOpen={!!user && isSidebarOpen} />
         <main className="flex-grow p-6">{children}</main>

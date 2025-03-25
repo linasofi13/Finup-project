@@ -5,7 +5,7 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="bg-neutral-light border-t border-neutral-medium">
+    <footer className="bg-[#2c2a29] text-white">
       <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         {/* Sección principal del Footer */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
@@ -15,17 +15,17 @@ export default function Footer() {
               href="/"
               className="font-bold text-xl flex items-center mb-4 transition-transform duration-200 hover:scale-105"
             >
-              <span className="text-secondary mr-1">Fin</span>
-              <span className="text-neutral-dark">Up</span>
+              <span className="text-[#FFE600] mr-1">Fin</span>
+              <span className="text-white">Up</span>
             </Link>
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="text-sm text-gray-300 mb-4">
               Optimización de la gestión del talento humano y presupuesto.
             </p>
             <div className="flex space-x-4">
               {/* Facebook */}
               <a
                 href="#"
-                className="text-gray-400 hover:text-secondary transition-colors duration-300"
+                className="text-gray-300 hover:text-[#FFE600] transition-colors duration-300"
               >
                 <span className="sr-only">Facebook</span>
                 <svg
@@ -45,7 +45,7 @@ export default function Footer() {
               {/* Instagram */}
               <a
                 href="#"
-                className="text-gray-400 hover:text-secondary transition-colors duration-300"
+                className="text-gray-300 hover:text-[#FFE600] transition-colors duration-300"
               >
                 <span className="sr-only">Instagram</span>
                 <svg
@@ -65,7 +65,7 @@ export default function Footer() {
               {/* Twitter */}
               <a
                 href="#"
-                className="text-gray-400 hover:text-secondary transition-colors duration-300"
+                className="text-gray-300 hover:text-[#FFE600] transition-colors duration-300"
               >
                 <span className="sr-only">Twitter</span>
                 <svg
@@ -82,14 +82,14 @@ export default function Footer() {
 
           {/* Enlaces de navegación */}
           <div>
-            <h3 className="text-sm font-semibold text-neutral-dark uppercase tracking-wider mb-4">
+            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4 font-bold">
               Características
             </h3>
             <ul className="space-y-3">
               <li>
                 <a
                   href="#"
-                  className="text-gray-500 hover:text-secondary transition-colors duration-300"
+                  className="text-gray-300 hover:text-[#FFE600] transition-colors duration-300"
                 >
                   Precios
                 </a>
@@ -97,7 +97,7 @@ export default function Footer() {
               <li>
                 <a
                   href="#"
-                  className="text-gray-500 hover:text-secondary transition-colors duration-300"
+                  className="text-gray-300 hover:text-[#FFE600] transition-colors duration-300"
                 >
                   Testimonios
                 </a>
@@ -105,7 +105,7 @@ export default function Footer() {
               <li>
                 <a
                   href="#"
-                  className="text-gray-500 hover:text-secondary transition-colors duration-300"
+                  className="text-gray-300 hover:text-[#FFE600] transition-colors duration-300"
                 >
                   Guías
                 </a>
@@ -114,14 +114,14 @@ export default function Footer() {
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-neutral-dark uppercase tracking-wider mb-4">
+            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4 font-bold">
               Sobre nosotros
             </h3>
             <ul className="space-y-3">
               <li>
                 <a
                   href="#"
-                  className="text-gray-500 hover:text-secondary transition-colors duration-300"
+                  className="text-gray-300 hover:text-[#FFE600] transition-colors duration-300"
                 >
                   Blog
                 </a>
@@ -129,7 +129,7 @@ export default function Footer() {
               <li>
                 <a
                   href="#"
-                  className="text-gray-500 hover:text-secondary transition-colors duration-300"
+                  className="text-gray-300 hover:text-[#FFE600] transition-colors duration-300"
                 >
                   Empleo
                 </a>
@@ -137,7 +137,7 @@ export default function Footer() {
               <li>
                 <a
                   href="#"
-                  className="text-gray-500 hover:text-secondary transition-colors duration-300"
+                  className="text-gray-300 hover:text-[#FFE600] transition-colors duration-300"
                 >
                   Prensa
                 </a>
@@ -146,14 +146,14 @@ export default function Footer() {
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-neutral-dark uppercase tracking-wider mb-4">
+            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4 font-bold">
               Privacidad
             </h3>
             <ul className="space-y-3">
               <li>
                 <a
                   href="#"
-                  className="text-gray-500 hover:text-secondary transition-colors duration-300"
+                  className="text-gray-300 hover:text-[#FFE600] transition-colors duration-300"
                 >
                   Términos
                 </a>
@@ -161,7 +161,7 @@ export default function Footer() {
               <li>
                 <a
                   href="#"
-                  className="text-gray-500 hover:text-secondary transition-colors duration-300"
+                  className="text-gray-300 hover:text-[#FFE600] transition-colors duration-300"
                 >
                   Cookies
                 </a>
@@ -171,9 +171,10 @@ export default function Footer() {
         </div>
 
         {/* Línea de cierre */}
-        <div className="border-t border-neutral-medium pt-8">
-          <p className="text-sm text-gray-500 text-center">
-            © {new Date().getFullYear()} FinUp. Todos los derechos reservados.
+        <div className="border-t border-gray-700 pt-8">
+          <p className="text-sm text-gray-300 text-center">
+            © {new Date().getFullYear()} Bancoders. Todos los derechos
+            reservados.
           </p>
         </div>
       </div>

@@ -1,10 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
+import axios from "axios";
 import {
   BarChart,
   Bar,
@@ -12,6 +13,13 @@ import {
   Line,
   PieChart,
   Pie,
+  RadarChart,
+  Radar,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  ScatterChart,
+  Scatter,
   Cell,
   XAxis,
   YAxis,
@@ -21,107 +29,227 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const barData = [
-  { name: "Enero", asignado: 12000, gastado: 10000 },
-  { name: "Febrero", asignado: 15000, gastado: 12000 },
-  { name: "Marzo", asignado: 18000, gastado: 16000 },
-  { name: "Abril", asignado: 20000, gastado: 17000 },
-  { name: "Mayo", asignado: 22000, gastado: 20000 },
-  { name: "Junio", asignado: 24000, gastado: 21000 },
+// Paletas de colores para los gráficos
+const PIE_COLORS = [
+  "#0088FE",
+  "#00C49F",
+  "#FFBB28",
+  "#FF8042",
+  "#AA336A",
+  "#FF66C4",
 ];
-
-const lineData = [
-  { name: "Enero", esteMes: 3000, mesAnterior: 2800 },
-  { name: "Febrero", esteMes: 3500, mesAnterior: 3300 },
-  { name: "Marzo", esteMes: 4000, mesAnterior: 3900 },
-  { name: "Abril", esteMes: 4500, mesAnterior: 4200 },
-  { name: "Mayo", esteMes: 4800, mesAnterior: 4600 },
-  { name: "Junio", esteMes: 5000, mesAnterior: 4900 },
+const BAR_COLORS = [
+  "#0088FE",
+  "#FF8042",
+  "#00C49F",
+  "#FFBB28",
+  "#AA336A",
+  "#FF66C4",
 ];
-
-const pieData = [
-  { name: "Pragma", value: 52.1 },
-  { name: "Foonkie", value: 22.8 },
-  { name: "MAS Global Consulting", value: 13.9 },
-  { name: "TEAM International", value: 11.2 },
-];
-
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const [providersData, setProvidersData] = useState([]);
+
+  useEffect(() => {
+    fetchProviders();
+  }, []);
+
+  // 1. Obtener proveedores desde el backend
+  const fetchProviders = async () => {
+    try {
+      const response = await axios.get(
+        "http://127.0.0.1:8000/providers/providers",
+      );
+      setProvidersData(response.data);
+    } catch (error) {
+      console.error("Error fetching providers:", error);
+    }
+  };
+
+  // 2. Cálculos de Información General
+  const totalProviders = providersData.length;
+  const uniqueCountries = new Set(
+    providersData.map((p) => p.country || "Desconocido"),
+  ).size;
+  const totalCost = providersData.reduce(
+    (sum, p) => sum + (parseFloat(p.cost_usd) || 0),
+    0,
+  );
+  const avgCost =
+    totalProviders > 0 ? (totalCost / totalProviders).toFixed(2) : 0;
+
+  // 3. Gráficos
+
+  // 3.1 Costo promedio por Rol (RadarChart)
+  const costByRoleMap = providersData.reduce((acc, provider) => {
+    const role = provider.role || "N/A";
+    if (!acc[role]) {
+      acc[role] = { total: 0, count: 0 };
+    }
+    acc[role].total += parseFloat(provider.cost_usd) || 0;
+    acc[role].count++;
+    return acc;
+  }, {});
+  const radarDataRole = Object.entries(costByRoleMap).map(
+    ([role, { total, count }]) => ({
+      role,
+      avgCost: count > 0 ? (total / count).toFixed(2) : 0,
+    }),
+  );
+
+  // 3.2 Proveedores por País (PieChart)
+  const providersByCountryMap = providersData.reduce((acc, provider) => {
+    const country = provider.country || "Desconocido";
+    acc[country] = (acc[country] || 0) + 1;
+    return acc;
+  }, {});
+  const pieDataCountry = Object.entries(providersByCountryMap).map(
+    ([country, count]) => ({ name: country, value: count }),
+  );
+
+  // 3.3 Proveedores por Rango de Costo (LineChart)
+  const costRanges = [
+    { label: "0-100", min: 0, max: 100 },
+    { label: "101-500", min: 101, max: 500 },
+    { label: "501-1000", min: 501, max: 1000 },
+    { label: "1001-5000", min: 1001, max: 5000 },
+    { label: "5001+", min: 5001, max: Infinity },
+  ];
+  const lineDataCostRanges = costRanges.map((range) => {
+    const count = providersData.filter((provider) => {
+      const cost = parseFloat(provider.cost_usd) || 0;
+      return cost >= range.min && cost <= range.max;
+    }).length;
+    return { range: range.label, count };
+  });
+
+  // 3.4 Proveedores por Categoría (PieChart)
+  const categoryMap = providersData.reduce((acc, provider) => {
+    const cat = provider.category || "Sin categoría";
+    acc[cat] = (acc[cat] || 0) + 1;
+    return acc;
+  }, {});
+  const pieDataCategory = Object.entries(categoryMap).map(([cat, count]) => ({
+    name: cat,
+    value: count,
+  }));
+
+  // 3.5 Proveedores por Línea (PieChart)
+  const lineMap = providersData.reduce((acc, provider) => {
+    const ln = provider.line || "Sin línea";
+    acc[ln] = (acc[ln] || 0) + 1;
+    return acc;
+  }, {});
+  const pieDataLine = Object.entries(lineMap).map(([line, count]) => ({
+    name: line,
+    value: count,
+  }));
+
+  // 3.6 Costo promedio por Empresa (ScatterChart)
+  const costByCompanyMap = providersData.reduce((acc, provider) => {
+    const comp = provider.company || "Desconocido";
+    if (!acc[comp]) {
+      acc[comp] = { total: 0, count: 0 };
+    }
+    acc[comp].total += parseFloat(provider.cost_usd) || 0;
+    acc[comp].count++;
+    return acc;
+  }, {});
+  const scatterDataCompany = Object.entries(costByCompanyMap).map(
+    ([company, { total, count }]) => ({
+      company,
+      avgCost: count > 0 ? (total / count).toFixed(2) : 0,
+    }),
+  );
 
   return (
-    <DashboardLayout title="Dashboard">
-      <div className="h-6"></div> {/* Agrega espacio antes del contenido */}
+    <DashboardLayout title="Dashboard - Proveedores">
+      <div className="h-6"></div> {/* Espacio extra antes del contenido */}
       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Información General */}
+        {/* 1. Información General */}
         <Card title="Información General">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-4 bg-red-100 rounded-md text-center">
-              <p className="text-xl font-bold">$33,500</p>
-              <p className="text-sm">Presupuesto Asignado</p>
+              <p className="text-xl font-bold">{totalProviders}</p>
+              <p className="text-sm">Total de Proveedores</p>
             </div>
             <div className="p-4 bg-blue-100 rounded-md text-center">
-              <p className="text-xl font-bold">310</p>
-              <p className="text-sm">Asignaciones</p>
+              <p className="text-xl font-bold">{uniqueCountries}</p>
+              <p className="text-sm">Países</p>
             </div>
             <div className="p-4 bg-green-100 rounded-md text-center">
-              <p className="text-xl font-bold">$155,634</p>
-              <p className="text-sm">Saldo Disponible</p>
+              <p className="text-xl font-bold">${totalCost.toFixed(2)}</p>
+              <p className="text-sm">Costo Total</p>
             </div>
             <div className="p-4 bg-purple-100 rounded-md text-center">
-              <p className="text-xl font-bold">27</p>
-              <p className="text-sm">EVC’s activos</p>
+              <p className="text-xl font-bold">${avgCost}</p>
+              <p className="text-sm">Costo Promedio</p>
             </div>
           </div>
         </Card>
 
-        {/* Gráficos */}
-        <Card title="Asignado vs Gastado">
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={barData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
+        {/* 2. Costo Promedio por Rol (RadarChart) */}
+        <Card title="Costo Promedio por Rol">
+          <ResponsiveContainer width="100%" height={400}>
+            <RadarChart
+              cx="50%"
+              cy="50%"
+              outerRadius="80%"
+              data={radarDataRole}
+            >
+              <PolarGrid />
+              <PolarAngleAxis dataKey="role" />
+              <PolarRadiusAxis />
+              <Radar
+                name="Costo Promedio"
+                dataKey="avgCost"
+                stroke="#8884d8"
+                fill="#8884d8"
+                fillOpacity={0.6}
+              />
               <Legend />
-              <Bar dataKey="asignado" fill="#0088FE" />
-              <Bar dataKey="gastado" fill="#FF8042" />
-            </BarChart>
+              <Tooltip />
+            </RadarChart>
           </ResponsiveContainer>
         </Card>
 
-        <Card title="Asignación Presupuestal">
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={lineData}>
+        {/* 3. Proveedores por Rango de Costo (LineChart) */}
+        <Card title="Proveedores por Rango de Costo">
+          <ResponsiveContainer width="100%" height={400}>
+            <LineChart data={lineDataCostRanges}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
+              <XAxis dataKey="range" />
               <YAxis />
               <Tooltip />
               <Legend />
-              <Line type="monotone" dataKey="esteMes" stroke="#00C49F" />
-              <Line type="monotone" dataKey="mesAnterior" stroke="#FFBB28" />
+              <Line
+                type="monotone"
+                dataKey="count"
+                name="Cantidad"
+                stroke="#00C49F"
+              />
             </LineChart>
           </ResponsiveContainer>
         </Card>
 
-        <Card title="Presupuesto Asignado por Proveedor">
-          <ResponsiveContainer width="100%" height={250}>
+        {/* 4. Proveedores por País (PieChart) */}
+        <Card title="Proveedores por País">
+          <ResponsiveContainer width="100%" height={400}>
             <PieChart>
               <Pie
-                data={pieData}
+                data={pieDataCountry}
                 cx="50%"
                 cy="50%"
-                outerRadius={80}
-                fill="#8884d8"
+                outerRadius={120}
                 dataKey="value"
+                nameKey="name"
                 label
               >
-                {pieData.map((entry, index) => (
+                {pieDataCountry.map((entry, index) => (
                   <Cell
-                    key={`cell-${index}`}
-                    fill={COLORS[index % COLORS.length]}
+                    key={`cell-country-${index}`}
+                    fill={PIE_COLORS[index % PIE_COLORS.length]}
                   />
                 ))}
               </Pie>
@@ -131,16 +259,81 @@ export default function DashboardPage() {
           </ResponsiveContainer>
         </Card>
 
-        <Card title="Acciones rápidas">
+        {/* 5. Proveedores por Categoría (PieChart) */}
+        <Card title="Proveedores por Categoría">
+          <ResponsiveContainer width="100%" height={400}>
+            <PieChart>
+              <Pie
+                data={pieDataCategory}
+                cx="50%"
+                cy="50%"
+                outerRadius={120}
+                dataKey="value"
+                nameKey="name"
+                label
+              >
+                {pieDataCategory.map((entry, index) => (
+                  <Cell
+                    key={`cell-cat-${index}`}
+                    fill={PIE_COLORS[index % PIE_COLORS.length]}
+                  />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </Card>
+
+        {/* 6. Proveedores por Línea (PieChart) */}
+        <Card title="Proveedores por Línea">
+          <ResponsiveContainer width="100%" height={400}>
+            <PieChart>
+              <Pie
+                data={pieDataLine}
+                cx="50%"
+                cy="50%"
+                outerRadius={120}
+                dataKey="value"
+                nameKey="name"
+                label
+              >
+                {pieDataLine.map((entry, index) => (
+                  <Cell
+                    key={`cell-line-${index}`}
+                    fill={PIE_COLORS[index % PIE_COLORS.length]}
+                  />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </Card>
+
+        {/* 7. Costo Promedio por Empresa (ScatterChart) */}
+        <Card title="Costo Promedio por Empresa">
+          <ResponsiveContainer width="100%" height={400}>
+            <ScatterChart>
+              <CartesianGrid />
+              <XAxis type="category" dataKey="company" name="Empresa" />
+              <YAxis dataKey="avgCost" name="Costo Promedio" />
+              <Tooltip cursor={{ strokeDasharray: "3 3" }} />
+              <Legend />
+              <Scatter
+                data={scatterDataCompany}
+                fill="#FF8042"
+                name="Costo Promedio"
+              />
+            </ScatterChart>
+          </ResponsiveContainer>
+        </Card>
+
+        {/* 8. Acciones Rápidas */}
+        <Card title="Acciones Rápidas">
           <div className="space-y-4">
             <Button variant="primary" className="w-full">
-              Ver gráficos
-            </Button>
-            <Button variant="secondary" className="w-full">
-              Configurar alertas
-            </Button>
-            <Button variant="secondary" className="w-full">
-              Soporte
+              Ir a Proveedores
             </Button>
           </div>
         </Card>

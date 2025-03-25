@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, func
+from sqlalchemy import Column, Integer, String, DateTime, func
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -10,7 +10,6 @@ class TechnicalLeader(Base):
     name = Column(String(80), nullable=False)
     email = Column(String(80), nullable=False)
     entry_date = Column(DateTime, nullable=False, default=func.now())
-
-    # Relationship with Entorno and EVC
-    entornos = relationship("Entorno", back_populates="technical_leader")
+    # Relationships
     evcs = relationship("EVC", back_populates="technical_leader")
+    entornos = relationship("Entorno", back_populates="technical_leader")

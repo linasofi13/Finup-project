@@ -1,42 +1,37 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
-import querystring from "querystring";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { email, password } = body;
 
-    // Call your FastAPI backend
-    const backendUrl = process.env.BACKEND_URL;
-    console.log(`Attempting to login at: ${backendUrl}/auth/login`);
+    const formData = new URLSearchParams();
+    formData.append("username", email);
+    formData.append("password", password);
 
-    // Convert to form data format that OAuth2PasswordRequestForm expects
-    const formData = querystring.stringify({
-      username: email, // FastAPI OAuth2 expects username, not email
-      password: password,
-    });
+    const backendUrl =
+      process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+    console.log(`Attempting login at: ${backendUrl}/auth/token`);
 
-    const response = await axios.post(`${backendUrl}/auth/login`, formData, {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
+    const response = await axios.post(
+      `${backendUrl}/auth/token`,
+      formData.toString(),
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
       },
-    });
-
-    console.log("Login successful:", response.data);
+    );
 
     return NextResponse.json({
-      token: response.data.access_token,
-      user: {
-        id: "1", // You might need to fetch user details in a separate call
-        email: email,
-        name: email.split("@")[0], // Temporary, you should get this from user info
-      },
+      access_token: response.data.access_token,
+      user: response.data.user,
     });
   } catch (error: any) {
-    console.error("Login error:", error.response?.data);
+    console.error("Login error:", error.response?.data || error.message);
     return NextResponse.json(
-      { detail: error.response?.data?.detail || "Error al iniciar sesión" },
+      { message: error.response?.data?.detail || "Authentication error" },
       { status: error.response?.status || 500 },
     );
   }

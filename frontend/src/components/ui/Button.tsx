@@ -26,9 +26,10 @@ export default function Button({
   const baseClasses =
     "font-medium rounded-md focus:outline-none transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-md focus:ring-2 focus:ring-offset-2 focus:ring-primary";
 
+  // Actualizamos el color primary al hex #ffdc24
   const variantClasses = {
     primary:
-      "bg-primary text-neutral-dark hover:bg-primary-light border-2 border-primary hover:border-primary-light hover:shadow-lg",
+      "bg-[#ffdc24] text-neutral-dark border-2 border-[#ffdc24] hover:shadow-lg", // Color actualizado a #ffdc24
     secondary:
       "bg-secondary text-white hover:bg-secondary-dark border-2 border-secondary hover:border-secondary-dark hover:shadow-lg",
     danger:

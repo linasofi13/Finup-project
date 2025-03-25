@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FaTrash,
   FaFilter,
@@ -8,111 +8,277 @@ import {
   FaPlus,
   FaEye,
   FaTimes,
-  FaDollarSign,
   FaExclamationTriangle,
+  FaProjectDiagram,
+  FaGlobe,
 } from "react-icons/fa";
-
-const initialEvcs = [
-  {
-    id: 1,
-    nombre: "EVC1",
-    proyecto: "Proyecto 1",
-    entorno: "Entorno 1",
-    creado: "01/11/2025",
-    actualizado: "01/12/2025",
-    actual: 1,
-    asignado: 80,
-    gastado: 56,
-    progreso: 75,
-    estado: "En curso",
-    color: "bg-purple-600",
-  },
-  {
-    id: 2,
-    nombre: "EVC2",
-    proyecto: "Proyecto 2",
-    entorno: "Entorno 2",
-    creado: "01/11/2025",
-    actualizado: "01/12/2025",
-    actual: 1,
-    asignado: 80,
-    gastado: 56,
-    progreso: 75,
-    estado: "En curso",
-    color: "bg-purple-700",
-  },
-  {
-    id: 3,
-    nombre: "EVC3",
-    proyecto: "Proyecto 3",
-    entorno: "Entorno 3",
-    creado: "01/11/2025",
-    actualizado: "01/12/2025",
-    actual: 1,
-    asignado: 80,
-    gastado: 56,
-    progreso: 75,
-    estado: "En curso",
-    color: "bg-green-700",
-  },
-];
+import axios from "axios";
 
 export default function EvcsPage() {
-  const [evcs, setEvcs] = useState(initialEvcs);
-  const [mostrarFormulario, setMostrarFormulario] = useState(false);
-  const [nuevoEvc, setNuevoEvc] = useState({
-    nombre: "",
-    proyecto: "",
-    entorno: "",
-    presupuesto: "",
-    roles: 1,
-    asignacion: "",
-    comentarios: "",
+  // ======================
+  // Estados principales
+  // ======================
+  const [evcs, setEvcs] = useState([]); // Lista de EVCs obtenidas del backend
+  const [showForm, setShowForm] = useState(false);
+  const [alert, setAlert] = useState("");
+
+  // ======================
+  // Modelo EVC actualizado
+  // ======================
+  const [newEvc, setNewEvc] = useState({
+    name: "", // EVC.name
+    project: "", // EVC.project
+    technical_leader_id: "", // EVC.technical_leader_id (FK)
+    functional_leader_id: "", // EVC.functional_leader_id (FK)
+    entorno_id: "", // EVC.entorno_id (FK)
   });
-  const [roles, setRoles] = useState([1]); // Default to 1 role
-  const [alerta, setAlerta] = useState("");
 
-  const entornos = ["Entorno 1", "Entorno 2", "Entorno 3"];
-  const empresas = ["Epam", "Pragma", "Devlab"];
-  const paises = ["México", "Colombia", "Panamá"];
+  // Roles y proveedores (sigue la misma lógica si aún la necesitas)
+  const [roleCount, setRoleCount] = useState(1);
+  const [roles, setRoles] = useState([
+    {
+      id: 1,
+      roleName: "",
+      providerId: null,
+      companyFilter: "",
+      countryFilter: "",
+      costMax: 7000,
+      filteredProviders: [],
+    },
+  ]);
 
-  const manejarCambio = (e) => {
-    setNuevoEvc({ ...nuevoEvc, [e.target.name]: e.target.value });
+  // ======================
+  // Listas para selects
+  // ======================
+  const [availableCompanies, setAvailableCompanies] = useState([]);
+  const [availableCountries, setAvailableCountries] = useState([]);
+
+  // Nuevos: líderes y entornos
+  const [availableTechnicalLeaders, setAvailableTechnicalLeaders] = useState(
+    [],
+  );
+  const [availableFunctionalLeaders, setAvailableFunctionalLeaders] = useState(
+    [],
+  );
+  const [availableEntornos, setAvailableEntornos] = useState([]);
+
+  // ======================
+  // Efectos iniciales
+  // ======================
+  useEffect(() => {
+    fetchEvcs();
+    fetchAvailableCompanies();
+    fetchAvailableCountries();
+    fetchAvailableTechnicalLeaders();
+    fetchAvailableFunctionalLeaders();
+    fetchAvailableEntornos();
+  }, []);
+
+  // ======================
+  // Handlers EVC
+  // ======================
+  const handleEvcChange = (e) => {
+    const { name, value } = e.target;
+    setNewEvc((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  const handleRolesChange = (e) => {
-    const numeroRoles = parseInt(e.target.value, 10);
-    setRoles(Array.from({ length: numeroRoles }, (_, index) => index + 1)); // Dynamically add roles
-    setNuevoEvc({ ...nuevoEvc, roles: numeroRoles });
+  // ======================
+  // Handlers Roles
+  // ======================
+  const handleRoleCountChange = (e) => {
+    const count = parseInt(e.target.value, 10);
+    setRoleCount(count);
+    const newRolesArray = [];
+    for (let i = 1; i <= count; i++) {
+      if (roles[i - 1]) {
+        newRolesArray.push(roles[i - 1]);
+      } else {
+        newRolesArray.push({
+          id: i,
+          roleName: "",
+          providerId: null,
+          companyFilter: "",
+          countryFilter: "",
+          costMax: 7000,
+          filteredProviders: [],
+        });
+      }
+    }
+    setRoles(newRolesArray);
   };
 
-  const handleEmpresaChange = (e, rol) => {
-    const empresa = e.target.value;
-    if (empresa === "Epam") {
-      setAlerta("¡La empresa seleccionada ya tiene el 80% de la asignación!");
-    } else {
-      setAlerta("");
+  const handleRoleFieldChange = (roleId, field, value) => {
+    setRoles((prev) =>
+      prev.map((r) => (r.id === roleId ? { ...r, [field]: value } : r)),
+    );
+  };
+
+  // ======================
+  // Fetch data del backend
+  // ======================
+  const fetchEvcs = async () => {
+    try {
+      const response = await axios.get("http://127.0.0.1:8000/evcs/evcs/");
+      setEvcs(response.data);
+    } catch (error) {
+      console.error("Error al cargar EVCs:", error);
     }
   };
 
-  const agregarEvc = () => {
-    if (nuevoEvc.nombre && nuevoEvc.proyecto) {
-      setEvcs([
-        ...evcs,
+  const fetchAvailableCompanies = async () => {
+    try {
+      const resp = await axios.get(
+        "http://127.0.0.1:8000/providers/providers/distinct-companies",
+      );
+      setAvailableCompanies(resp.data);
+    } catch (error) {
+      console.error("Error al cargar empresas:", error);
+    }
+  };
+
+  const fetchAvailableCountries = async () => {
+    try {
+      const resp = await axios.get(
+        "http://127.0.0.1:8000/providers/providers/distinct-countries",
+      );
+      setAvailableCountries(resp.data);
+    } catch (error) {
+      console.error("Error al cargar países:", error);
+    }
+  };
+
+  // Nuevos: fetch de líderes y entornos
+  const fetchAvailableTechnicalLeaders = async () => {
+    try {
+      const resp = await axios.get(
+        "http://127.0.0.1:8000/users/technical-leaders",
+      );
+      setAvailableTechnicalLeaders(resp.data);
+    } catch (error) {
+      console.error("Error al cargar líderes técnicos:", error);
+    }
+  };
+
+  const fetchAvailableFunctionalLeaders = async () => {
+    try {
+      const resp = await axios.get(
+        "http://127.0.0.1:8000/users/functional-leaders",
+      );
+      setAvailableFunctionalLeaders(resp.data);
+    } catch (error) {
+      console.error("Error al cargar líderes funcionales:", error);
+    }
+  };
+
+  const fetchAvailableEntornos = async () => {
+    try {
+      const resp = await axios.get("http://127.0.0.1:8000/entornos/");
+      setAvailableEntornos(resp.data);
+    } catch (error) {
+      console.error("Error al cargar entornos:", error);
+    }
+  };
+
+  // Filtrar proveedores para un rol dado
+  const fetchFilteredProviders = async (roleId) => {
+    const targetRole = roles.find((r) => r.id === roleId);
+    if (!targetRole) return;
+    try {
+      const resp = await axios.get(
+        "http://127.0.0.1:8000/providers/providers/filter",
         {
-          ...nuevoEvc,
-          id: evcs.length + 1,
-          color: "bg-blue-600",
-          estado: "En curso",
+          params: {
+            company: targetRole.companyFilter || undefined,
+            country: targetRole.countryFilter || undefined,
+            cost_min: 0,
+            cost_max: targetRole.costMax,
+          },
+        },
+      );
+      const providers = resp.data;
+      setRoles((prev) =>
+        prev.map((r) =>
+          r.id === roleId ? { ...r, filteredProviders: providers } : r,
+        ),
+      );
+    } catch (error) {
+      console.error("Error al filtrar proveedores:", error);
+    }
+  };
+
+  // ======================
+  // Crear EVC
+  // ======================
+  const createEvc = async () => {
+    // Roles -> providers
+    const providersArray = roles
+      .filter((r) => r.providerId)
+      .map((r) => ({
+        provider_id: r.providerId,
+        role_name: r.roleName || "Sin nombre de rol",
+      }));
+
+    try {
+      const response = await axios.post("http://127.0.0.1:8000/evcs/evcs/", {
+        name: newEvc.name,
+        project: newEvc.project,
+        technical_leader_id: parseInt(newEvc.technical_leader_id, 10) || null,
+        functional_leader_id: parseInt(newEvc.functional_leader_id, 10) || null,
+        entorno_id: parseInt(newEvc.entorno_id, 10) || null,
+        providers: providersArray, // Relación con EVCProvider
+      });
+
+      const createdEvc = response.data;
+      console.log("EVC creada:", createdEvc);
+      fetchEvcs();
+      setShowForm(false);
+      setAlert("");
+      setNewEvc({
+        name: "",
+        project: "",
+        technical_leader_id: "",
+        functional_leader_id: "",
+        entorno_id: "",
+      });
+      setRoleCount(1);
+      setRoles([
+        {
+          id: 1,
+          roleName: "",
+          providerId: null,
+          companyFilter: "",
+          countryFilter: "",
+          costMax: 7000,
+          filteredProviders: [],
         },
       ]);
-      setMostrarFormulario(false);
+    } catch (error) {
+      console.error("Error creando EVC:", error);
+      setAlert("Error al crear la EVC");
     }
   };
 
+  // ======================
+  // Eliminar EVC
+  // ======================
+  const deleteEvc = async (evcId) => {
+    try {
+      await axios.delete(`http://127.0.0.1:8000/evcs/evcs/${evcId}`);
+      setEvcs((prev) => prev.filter((e) => e.id !== evcId));
+    } catch (error) {
+      console.error("Error eliminando EVC:", error);
+    }
+  };
+
+  // ======================
+  // Render
+  // ======================
   return (
     <div className="p-6 mt-20 bg-white shadow-md rounded-lg flex flex-col">
-      {/* Panel superior de acciones */}
+      {/* Panel de acciones */}
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-3xl font-bold">EVCs</h1>
         <div className="flex space-x-2">
@@ -126,7 +292,7 @@ export default function EvcsPage() {
             <FaDownload className="mr-2" /> Exportar
           </button>
           <button
-            onClick={() => setMostrarFormulario(true)}
+            onClick={() => setShowForm(true)}
             className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
           >
             <FaPlus className="mr-2" /> Crear EVC
@@ -134,192 +300,241 @@ export default function EvcsPage() {
         </div>
       </div>
 
-      {/* Formulario para Crear EVC */}
-      {mostrarFormulario && (
+      {/* Formulario para crear EVC */}
+      {showForm && (
         <div className="p-6 bg-gray-100 rounded-lg shadow-md mb-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">Crear EVC</h2>
             <FaTimes
               className="text-red-500 cursor-pointer"
-              onClick={() => setMostrarFormulario(false)}
+              onClick={() => setShowForm(false)}
             />
           </div>
 
-          {/* Form Fields */}
+          {/* Campos principales */}
           <div className="grid grid-cols-2 gap-4">
+            {/* name */}
             <input
               type="text"
-              name="nombre"
-              placeholder="Nombre"
+              name="name"
+              placeholder="Nombre de la EVC"
               className="p-2 border rounded"
-              value={nuevoEvc.nombre}
-              onChange={manejarCambio}
+              value={newEvc.name}
+              onChange={handleEvcChange}
             />
+
+            {/* project */}
             <input
               type="text"
-              name="proyecto"
-              placeholder="Proyecto"
+              name="project"
+              placeholder="Proyecto asociado"
               className="p-2 border rounded"
-              value={nuevoEvc.proyecto}
-              onChange={manejarCambio}
+              value={newEvc.project}
+              onChange={handleEvcChange}
             />
-            <select
-              name="entorno"
-              className="p-2 border rounded"
-              value={nuevoEvc.entorno}
-              onChange={manejarCambio}
-            >
-              <option value="">Seleccionar Entorno</option>
-              {entornos.map((entorno, index) => (
-                <option key={index} value={entorno}>
-                  {entorno}
-                </option>
-              ))}
-            </select>
-            <div className="flex items-center border rounded">
-              <FaDollarSign className="ml-2" />
-              <input
-                type="number"
-                name="presupuesto"
-                placeholder="Presupuesto"
-                className="p-2 w-full border-none"
-                value={nuevoEvc.presupuesto}
-                onChange={manejarCambio}
-              />
+
+            {/* technical_leader_id */}
+            <div>
+              <label className="block font-semibold">Líder Técnico</label>
+              <select
+                name="technical_leader_id"
+                className="p-2 border rounded w-full"
+                value={newEvc.technical_leader_id}
+                onChange={handleEvcChange}
+              >
+                <option value="">-- Seleccionar --</option>
+                {availableTechnicalLeaders.map((leader) => (
+                  <option key={leader.id} value={leader.id}>
+                    {leader.name}
+                  </option>
+                ))}
+              </select>
             </div>
+
+            {/* functional_leader_id */}
+            <div>
+              <label className="block font-semibold">Líder Funcional</label>
+              <select
+                name="functional_leader_id"
+                className="p-2 border rounded w-full"
+                value={newEvc.functional_leader_id}
+                onChange={handleEvcChange}
+              >
+                <option value="">-- Seleccionar --</option>
+                {availableFunctionalLeaders.map((leader) => (
+                  <option key={leader.id} value={leader.id}>
+                    {leader.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* entorno_id */}
+            <div>
+              <label className="block font-semibold">Entorno</label>
+              <select
+                name="entorno_id"
+                className="p-2 border rounded w-full"
+                value={newEvc.entorno_id}
+                onChange={handleEvcChange}
+              >
+                <option value="">-- Seleccionar --</option>
+                {availableEntornos.map((ent) => (
+                  <option key={ent.id} value={ent.id}>
+                    {ent.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Número de roles */}
+          <div className="mt-4">
+            <label className="font-semibold">Número de Roles</label>
             <select
-              name="roles"
-              className="p-2 border rounded"
-              value={nuevoEvc.roles}
-              onChange={handleRolesChange}
+              value={roleCount}
+              onChange={handleRoleCountChange}
+              className="p-2 border rounded ml-2"
             >
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((roleCount) => (
-                <option key={roleCount} value={roleCount}>
-                  {roleCount}
+              {[1, 2, 3, 4, 5].map((count) => (
+                <option key={count} value={count}>
+                  {count}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Dynamic Role Filters */}
-          {roles.map((rol) => (
-            <div key={rol} className="border p-4 rounded-lg mt-4">
-              <h3 className="font-semibold">Rol {rol}</h3>
-              <div className="flex flex-col space-y-4 mt-2">
-                <div>
-                  <label>Filtrar por:</label>
-                  <select className="p-2 border rounded w-full">
-                    <option value="">Seleccionar</option>
-                    <option value="empresa">Empresa</option>
-                    <option value="pais">País</option>
-                  </select>
-                </div>
+          {/* Roles dinámicos */}
+          {roles.map((r) => (
+            <div key={r.id} className="border p-4 rounded-lg mt-4 bg-white">
+              <h3 className="font-semibold mb-2">Rol #{r.id}</h3>
+
+              {/* roleName */}
+              <div className="mt-2">
+                <label>Nombre del Rol</label>
+                <input
+                  type="text"
+                  className="p-2 border rounded w-full"
+                  placeholder="Ej: Desarrollador"
+                  value={r.roleName}
+                  onChange={(e) =>
+                    handleRoleFieldChange(r.id, "roleName", e.target.value)
+                  }
+                />
+              </div>
+
+              {/* Filtros para empresa, país y costo */}
+              <div className="grid grid-cols-3 gap-4 mt-2">
                 <div>
                   <label>Empresa</label>
                   <select
                     className="p-2 border rounded w-full"
-                    onChange={(e) => handleEmpresaChange(e, rol)}
+                    value={r.companyFilter}
+                    onChange={(e) =>
+                      handleRoleFieldChange(
+                        r.id,
+                        "companyFilter",
+                        e.target.value,
+                      )
+                    }
                   >
-                    <option value="">Seleccionar</option>
-                    {empresas.map((empresa) => (
-                      <option key={empresa} value={empresa}>
-                        {empresa}
+                    <option value="">Cualquiera</option>
+                    {availableCompanies.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div>
                   <label>País</label>
-                  <select className="p-2 border rounded w-full">
-                    <option value="">Seleccionar</option>
-                    {paises.map((pais) => (
-                      <option key={pais} value={pais}>
-                        {pais}
+                  <select
+                    className="p-2 border rounded w-full"
+                    value={r.countryFilter}
+                    onChange={(e) =>
+                      handleRoleFieldChange(
+                        r.id,
+                        "countryFilter",
+                        e.target.value,
+                      )
+                    }
+                  >
+                    <option value="">Cualquiera</option>
+                    {availableCountries.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label>Rango de precios</label>
+                  <label>Costo Máx (USD)</label>
                   <input
-                    type="range"
-                    min="0"
-                    max="7000"
-                    value={nuevoEvc.presupuesto}
-                    onChange={manejarCambio}
-                    name="presupuesto"
-                    className="w-full"
+                    type="number"
+                    className="p-2 border rounded w-full"
+                    value={r.costMax}
+                    onChange={(e) =>
+                      handleRoleFieldChange(r.id, "costMax", e.target.value)
+                    }
                   />
-                  <div className="flex justify-between">
-                    <span>$0</span>
-                    <span>$7000</span>
-                  </div>
                 </div>
               </div>
+
+              {/* Botón para filtrar proveedores */}
+              <button
+                className="px-4 py-2 bg-yellow-500 text-white rounded-md mt-2 hover:bg-yellow-600"
+                onClick={() => fetchFilteredProviders(r.id)}
+              >
+                Filtrar proveedores
+              </button>
+
+              {/* Lista de proveedores filtrados */}
+              {r.filteredProviders.length > 0 && (
+                <div className="mt-2">
+                  <label>Escoger proveedor</label>
+                  <select
+                    className="p-2 border rounded w-full"
+                    onChange={(e) =>
+                      handleRoleFieldChange(
+                        r.id,
+                        "providerId",
+                        parseInt(e.target.value, 10),
+                      )
+                    }
+                  >
+                    <option value="">--Seleccione--</option>
+                    {r.filteredProviders.map((prov) => (
+                      <option key={prov.id} value={prov.id}>
+                        {prov.name} ({prov.company}, ${prov.cost_usd})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           ))}
 
-          {/* Asignación y Comentarios */}
-          <div className="flex flex-col">
-            <label className="font-semibold">Porcentaje de Asignación</label>
-            <div className="flex items-center space-x-2">
-              <select
-                name="asignacion"
-                value={nuevoEvc.asignacion}
-                onChange={manejarCambio}
-                className="p-2 border rounded"
-              >
-                {[10, 20, 30, 40, 50].map((porcentaje) => (
-                  <option key={porcentaje} value={porcentaje}>
-                    {porcentaje}%
-                  </option>
-                ))}
-                <option value="custom">Personalizado</option>
-              </select>
-              {nuevoEvc.asignacion === "custom" && (
-                <input
-                  type="number"
-                  name="asignacion"
-                  value={nuevoEvc.asignacion}
-                  onChange={manejarCambio}
-                  className="p-2 border rounded"
-                  placeholder="Escribe porcentaje"
-                />
-              )}
-            </div>
-          </div>
-          <div className="flex flex-col">
-            <label className="font-semibold">Comentarios</label>
-            <textarea
-              name="comentarios"
-              className="p-2 border rounded"
-              value={nuevoEvc.comentarios}
-              onChange={manejarCambio}
-              placeholder="Comentarios adicionales"
-            />
-          </div>
-
-          {/* Alerta */}
-          {alerta && (
+          {/* Alertas de error */}
+          {alert && (
             <div className="mt-2 bg-yellow-100 text-yellow-800 p-2 rounded-md flex items-center">
               <FaExclamationTriangle className="mr-2" />
-              {alerta}
+              {alert}
             </div>
           )}
 
-          {/* Botones */}
+          {/* Botones de acción */}
           <div className="flex justify-end space-x-4 mt-4">
             <button
               type="button"
               className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
-              onClick={() => setMostrarFormulario(false)}
+              onClick={() => setShowForm(false)}
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-              onClick={agregarEvc}
+              className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+              onClick={createEvc}
             >
               Crear EVC
             </button>
@@ -327,47 +542,71 @@ export default function EvcsPage() {
         </div>
       )}
 
-      {/* Grid de EVCs */}
+      {/* Listado de EVCs (obtenidas del backend) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {evcs.map((evc) => (
           <div
             key={evc.id}
-            className={`p-4 rounded-lg text-white ${evc.color} shadow-md relative flex flex-col`}
+            className="p-6 rounded-xl shadow-md flex flex-col bg-gradient-to-tr from-purple-500 to-purple-700 text-white hover:shadow-xl hover:scale-105 transition-transform duration-300"
           >
-            <div className="flex justify-between">
-              <div>
-                <h2 className="text-xl font-bold">{evc.nombre}</h2>
-                <p className="text-sm">{evc.proyecto}</p>
-              </div>
-            </div>
-            <div className="mt-2 flex space-x-2 text-sm">
-              <span className="bg-red-500 px-2 py-1 rounded-md">
-                {evc.entorno}
-              </span>
-              <span className="bg-gray-800 px-2 py-1 rounded-md">
-                Creado: {evc.creado}
-              </span>
-              <span className="bg-gray-800 px-2 py-1 rounded-md">
-                Actualizado: {evc.actualizado}
+            {/* Encabezado */}
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-2xl font-bold flex items-center">
+                <FaProjectDiagram className="mr-2" /> {evc.name}
+              </h2>
+              <span className="px-3 py-1 bg-green-400 rounded-full text-sm font-semibold">
+                {/* Ajusta si tienes un campo status, si no, remueve */}
+                {evc.status || "En curso"}
               </span>
             </div>
-            <div className="mt-2 text-sm">
-              <p>🔢 Actual: {evc.actual}</p>
-              <p>📊 Asignado: {evc.asignado}%</p>
-              <p>💰 Gastado: {evc.gastado}%</p>
-              <p>📈 Progreso: {evc.progreso}%</p>
+
+            {/* Datos principales */}
+            <div className="mb-3 text-lg">
+              <p className="flex items-center">
+                <FaGlobe className="mr-2 text-white/80" />
+                <span className="font-semibold mr-1">Proyecto:</span>{" "}
+                {evc.project}
+              </p>
+              {/* Si deseas mostrar el líder técnico o funcional */}
+              {evc.technical_leader && (
+                <p className="flex items-center">
+                  <span className="font-semibold mr-1">Líder Técnico:</span>{" "}
+                  {evc.technical_leader.name}
+                </p>
+              )}
+              {evc.functional_leader && (
+                <p className="flex items-center">
+                  <span className="font-semibold mr-1">Líder Funcional:</span>{" "}
+                  {evc.functional_leader.name}
+                </p>
+              )}
+              {evc.entorno && (
+                <p className="flex items-center">
+                  <span className="font-semibold mr-1">Entorno:</span>{" "}
+                  {evc.entorno.nombre}
+                </p>
+              )}
             </div>
-            <div className="flex justify-between items-center mt-4">
-              <span className="px-3 py-1 bg-green-500 rounded-full text-sm">
-                {evc.estado}
-              </span>
-              <div className="flex space-x-2">
-                <FaEye className="text-white cursor-pointer hover:text-gray-300" />
-                <FaTrash
-                  className="text-red-500 cursor-pointer hover:text-red-700"
-                  onClick={() => eliminarEvc(evc.id)}
-                />
-              </div>
+
+            {/* Fechas de creación y actualización */}
+            <div className="mb-3 text-base">
+              <p>
+                <span className="font-semibold">Creado:</span>{" "}
+                {new Date(evc.creation_date).toLocaleDateString()}
+              </p>
+              <p>
+                <span className="font-semibold">Actualizado:</span>{" "}
+                {new Date(evc.updated_at).toLocaleDateString()}
+              </p>
+            </div>
+
+            {/* Acciones */}
+            <div className="flex justify-end items-center mt-auto space-x-4">
+              <FaEye className="cursor-pointer hover:text-white/70 text-xl" />
+              <FaTrash
+                className="cursor-pointer hover:text-red-300 text-xl"
+                onClick={() => deleteEvc(evc.id)}
+              />
             </div>
           </div>
         ))}

@@ -1,10 +1,11 @@
-"use client"; // 🚀 Necesario para usar useState en Next.js
+"use client";
 
-import clsx from "clsx"; // Importa clsx para manejar clases condicionales
+import clsx from "clsx";
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
+import { useAuth } from "@/hooks/useAuth";
 
 // Carga diferida de los iconos para evitar errores en SSR
 const FaChartPie = dynamic(
@@ -43,13 +44,20 @@ const FaHome = dynamic(
   { ssr: false },
 );
 
-const Sidebar = () => {
-  const [isOpen, setIsOpen] = useState(true);
+interface SidebarProps {
+  isOpen: boolean;
+  toggleSidebar: () => void;
+}
+
+const Sidebar = ({ isOpen, toggleSidebar }: SidebarProps) => {
   const [mounted, setMounted] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  if (!user) return null;
 
   return (
     <div
@@ -58,15 +66,13 @@ const Sidebar = () => {
         { "w-64": mounted && isOpen, "w-20": mounted && !isOpen },
       )}
     >
-      {/* Botón de colapsar */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={toggleSidebar}
         className="mb-5 flex items-center text-gray-700 hover:text-primary transition-all"
       >
         <FaBars className="w-6 h-6" />
       </button>
 
-      {/* Logo */}
       <div className="flex items-center mb-10">
         <Image src="/images/logo.png" alt="FinUp Logo" width={40} height={40} />
         {mounted && isOpen && (
@@ -74,66 +80,64 @@ const Sidebar = () => {
         )}
       </div>
 
-      {/* Menú de Navegación */}
       <nav className="flex flex-col space-y-4 flex-grow">
         <Link
           href="/"
           className="sidebar-link flex items-center gap-3 p-2 rounded-md hover:bg-gray-200 transition-all"
         >
-          <FaHome className="sidebar-icon" />{" "}
+          <FaHome className="sidebar-icon" />
           {mounted && isOpen && <span>Inicio</span>}
         </Link>
         <Link
           href="/dashboard"
           className="sidebar-link flex items-center gap-3 p-2 rounded-md hover:bg-gray-200 transition-all"
         >
-          <FaChartPie className="sidebar-icon" />{" "}
+          <FaChartPie className="sidebar-icon" />
           {mounted && isOpen && <span>Dashboard</span>}
         </Link>
         <Link
           href="/proveedores"
           className="sidebar-link flex items-center gap-3 p-2 rounded-md hover:bg-gray-200 transition-all"
         >
-          <FaUser className="sidebar-icon" />{" "}
+          <FaUser className="sidebar-icon" />
           {mounted && isOpen && <span>Proveedores</span>}
         </Link>
         <Link
           href="/documentos"
           className="sidebar-link flex items-center gap-3 p-2 rounded-md hover:bg-gray-200 transition-all"
         >
-          <FaFileAlt className="sidebar-icon" />{" "}
+          <FaFileAlt className="sidebar-icon" />
           {mounted && isOpen && <span>Documentos</span>}
         </Link>
         <Link
           href="/evcs"
           className="sidebar-link flex items-center gap-3 p-2 rounded-md hover:bg-gray-200 transition-all"
         >
-          <FaUsers className="sidebar-icon" />{" "}
+          <FaUsers className="sidebar-icon" />
           {mounted && isOpen && <span>EVCs</span>}
         </Link>
         <Link
           href="/asignacion-presupuestal"
           className="sidebar-link flex items-center gap-3 p-2 rounded-md hover:bg-gray-200 transition-all"
         >
-          <FaMoneyBill className="sidebar-icon" />{" "}
+          <FaMoneyBill className="sidebar-icon" />
           {mounted && isOpen && <span>Asignación Presupuestal</span>}
         </Link>
       </nav>
 
-      {/* Configuración y Cerrar Sesión */}
       <div className="mt-auto flex flex-col space-y-4">
         <Link
           href="/configuracion"
           className="sidebar-link flex items-center gap-3 p-2 rounded-md hover:bg-gray-200 transition-all"
         >
-          <FaCog className="sidebar-icon" />{" "}
+          <FaCog className="sidebar-icon" />
           {mounted && isOpen && <span>Configuración</span>}
         </Link>
         <Link
           href="/logout"
           className="sidebar-link flex items-center gap-3 p-2 rounded-md hover:bg-red-100 text-red-500 transition-all"
         >
-          <FaSignOutAlt className="sidebar-icon" />{" "}
+          <FaSignOutAlt className="sidebar-icon" />
           {mounted && isOpen && <span>Cerrar Sesión</span>}
         </Link>
       </div>

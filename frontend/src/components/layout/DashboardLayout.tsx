@@ -1,19 +1,15 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
   title: string;
 }
 
-export default function DashboardLayout({
-  children,
-  title,
-}: DashboardLayoutProps) {
+export default function DashboardLayout({ children, title }: DashboardLayoutProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
 
@@ -32,24 +28,16 @@ export default function DashboardLayout({
   }
 
   if (!user) {
-    return null; // Redirige en useEffect
+    return null;
   }
 
+  // Sólo renderiza contenido y título, 
+  // dejando que el RootLayout maneje el sidebar y el header
   return (
-    <div className="min-h-screen bg-gradient-to-b from-yellow-300 to-yellow-500 bg-cover bg-no-repeat">
-      <div className="py-14">
-        <header className="mb-6">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h1 className="text-3xl font-bold leading-tight text-gray-900">
-              {title}
-            </h1>
-          </div>
-        </header>
-        <main className="h-full">
-          <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 py-6 h-full">
-            {children}
-          </div>
-        </main>
+    <div className="flex-1 p-6 pt-20 bg-white">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">{title}</h1>
+        {children}
       </div>
     </div>
   );

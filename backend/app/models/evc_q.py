@@ -10,6 +10,8 @@ class EVC_Q(Base):
     year = Column(Integer, nullable=False)
     q = Column(Integer, nullable=False)
     evc_id = Column(Integer, ForeignKey("evc.id"))
+    # Relationship with EVC
+    evc = relationship("EVC", back_populates="evc_qs")
 
     # Relationships
     evc = relationship("EVC", back_populates="evc_qs")

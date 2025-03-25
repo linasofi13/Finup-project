@@ -7,7 +7,7 @@ from app.database import Base
 class Category(Base):
     __tablename__ = "category"
 
-    category_id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)
     name = Column(String(45), nullable=False)
 
     # Relationship to user-category

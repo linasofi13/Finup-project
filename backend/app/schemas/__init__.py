@@ -15,6 +15,6 @@ from .category import Category, CategoryCreate
 from .app_user_category import AppUserCategory, AppUserCategoryCreate
 
 FunctionalLeader.model_rebuild()
-
+TechnicalLeader.model_rebuild()
 
 

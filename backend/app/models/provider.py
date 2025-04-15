@@ -10,10 +10,6 @@ class Provider(Base):
     name = Column(String, unique=True, index=True)
     role = Column(String)
     company = Column(String)
-    country = Column(String)
-    cost_usd = Column(Float)
-    category = Column(String)
-    line = Column(String)
     email = Column(String, unique=True, index=True)
     
     category_provider_id = Column(Integer, ForeignKey("category_provider.id"))

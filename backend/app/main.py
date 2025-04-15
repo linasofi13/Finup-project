@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routes import auth, users, evcs, providers, functional_leaders, technical_leaders  # Import the new routers
+from app.routes import auth, users, evcs, providers, functional_leaders, technical_leaders, entornos# Import the new routers
 from app.database import engine, Base, SessionLocal
 
 from app import models
@@ -32,6 +32,7 @@ app.include_router(
     functional_leaders.router, prefix="/functional-leaders", tags=["Functional Leaders"]
 )
 app.include_router( technical_leaders.router, prefix="/technical-leaders", tags=["Technical Leaders"])
+app.include_router(entornos.router, prefix="/entornos", tags=["Entornos"])
 # Include the evcs router
 # app.include_router(
 #     providers.router, prefix="/providers", tags=["Providers"]

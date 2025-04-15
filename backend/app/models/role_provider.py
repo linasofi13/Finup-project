@@ -21,7 +21,7 @@ class RoleProvider(Base):
     last_update = Column(DateTime, default=func.now(), onupdate=func.now())
     price_usd = Column(Float, nullable=False)
 
-    provider_id = Column(Integer, ForeignKey("providers.id"))
+    provider_id = Column(Integer, ForeignKey("provider.id"))
     country_id = Column(Integer, ForeignKey("country.id"))
 
     # Relationship with Provider, Country, Role

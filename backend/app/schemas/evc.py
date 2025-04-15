@@ -1,31 +1,50 @@
-# app/schemas/evc.py
+from __future__ import annotations
+from datetime import datetime
+from typing import List, Optional, TYPE_CHECKING
 from pydantic import BaseModel
-from typing import List, Optional
 
-
-class EVCProviderCreate(BaseModel):
-    provider_id: int
-    role_name: Optional[str] = None  # Rol personalizado para este provider
-
+if TYPE_CHECKING:
+    from .entorno import Entorno
+    from .evc_q import EVC_Q
+    from .functional_leader import FunctionalLeader
+    from .technical_leader import TechnicalLeader
+    from .entorno import Entorno
 
 class EVCBase(BaseModel):
     name: str
-    project: Optional[str] = None
-    environment: Optional[str] = None
-    q1_budget: float = 0.0
-    q2_budget: float = 0.0
-    q3_budget: float = 0.0
-    q4_budget: float = 0.0
-    description: Optional[str] = None
-
+    description: str  # Changed from 'description' to 'project' to match the model
+    entorno_id: int
+    functional_leader_id: int
+    technical_leader_id: int
 
 class EVCCreate(EVCBase):
-    # Lista de proveedores asignados
-    providers: List[EVCProviderCreate] = []
+    status:bool = True
 
+# class EVCUpdate(BaseModel):
+#     name: Optional[str] = None
+#     project: Optional[str] = None  # Changed from 'description' to 'project'
+#     technical_leader_id: Optional[int] = None
+#     functional_leader_id: Optional[int] = None
+#     entorno_id: Optional[int] = None
+
+class EVC(EVCBase):
+    id: int
+    creation_date: datetime  # Will be auto-set by the database (func.now())
+    updated_at: datetime   # Will be auto-set and updated by the database
+    
+    # Relationships to EVC
+    technical_leader: Optional["TechnicalLeader"] = None
+    functional_leader: Optional["FunctionalLeader"] = None
+    entorno: Optional["Entorno"] = None
+    
+    #Relationships from EVC
+    
+    evc_qs: List["EVC_Q"] = []
+    class Config:
+        from_attributes = True  # This replaces orm_mode=True in Pydantic v2
 
 class EVCResponse(EVCBase):
     id: int
-
-    class Config:
-        orm_mode = True
+    status: bool
+    creation_date: datetime  # Will be auto-set by the database (func.now())
+    updated_at: datetime   # Will be auto-set and updated by the database

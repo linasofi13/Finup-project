@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routes import auth, users, evcs, providers, functional_leaders, technical_leaders, entornos# Import the new routers
+from app.routes import auth, users, evcs, providers, functional_leaders, technical_leaders, entornos  # Import the new routers
 from app.database import engine, Base, SessionLocal
 
 from app import models

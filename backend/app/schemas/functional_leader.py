@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional, List, TYPE_CHECKING
 if TYPE_CHECKING:
   from .evc import EVC
-  from .entorno import Entorno
+  from .entorno import Entorno, EntornoResponse
 # from app.schemas import EVC, Entorno
 class FunctionalLeaderBase(BaseModel):
   name: str
@@ -20,7 +20,15 @@ class FunctionalLeader(FunctionalLeaderBase):
 
   class Config:
         from_attributes = True  # This replaces orm_mode=True in Pydantic v2
+        
+class FunctionalLeaderUpdate(FunctionalLeaderBase):
+  name: Optional[str] = None
+  email: Optional[str] = None
+  class Config:
+    from_attributes = True  # This replaces orm_mode=True in Pydantic v2
 
-
+class FunctionalLeaderResponse(FunctionalLeaderBase):
+  id:int
+  entornos: Optional[List["EntornoResponse"]] = None  # Assuming EntornoResponse is defined elsewhere
 
 

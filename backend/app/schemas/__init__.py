@@ -1,6 +1,6 @@
-from .functional_leader import FunctionalLeader, FunctionalLeaderCreate
-from .technical_leader import TechnicalLeader, TechnicalLeaderCreate
-from .entorno import Entorno, EntornoCreate
+from .functional_leader import FunctionalLeader, FunctionalLeaderUpdate, FunctionalLeaderResponse
+from .technical_leader import TechnicalLeader, TechnicalLeaderResponse, TechnicalLeaderUpdate
+from .entorno import Entorno, EntornoResponse, EntornoUpdate
 from .evc import EVC, EVCCreate, EVCResponse #, EVCUpdate
 from .evc_q import EVC_Q, EVC_QCreate
 from .evc_financial import EVC_Financial, EVC_FinancialCreate
@@ -14,7 +14,23 @@ from .app_user import AppUser, AppUserCreate
 from .category import Category, CategoryCreate
 from .app_user_category import AppUserCategory, AppUserCategoryCreate
 
-FunctionalLeader.model_rebuild()
-TechnicalLeader.model_rebuild()
-Entorno.model_rebuild()
 
+schemas=[FunctionalLeader, TechnicalLeader, Entorno]
+responses=[FunctionalLeaderResponse, TechnicalLeaderResponse, EntornoResponse]
+schemas_update=[EntornoUpdate,FunctionalLeaderUpdate, TechnicalLeaderUpdate]
+
+for schema in schemas:
+    schema.model_rebuild()
+for response in responses:
+    response.model_rebuild()
+    
+for schema_update in schemas_update:
+    schema_update.model_rebuild()
+
+
+
+# FunctionalLeader.model_rebuild()
+# TechnicalLeader.model_rebuild()
+# Entorno.model_rebuild()
+# FunctionalLeaderResponse.model_rebuild()
+# EntornoResponse.model_rebuild()

@@ -16,6 +16,12 @@ class CategoryRole(CategoryRoleBase):
   class Config:
         from_attributes = True  # This replaces orm_mode=True in Pydantic v2
         
-
-
+class CategoryRoleUpdate(CategoryRoleBase):
+  name: Optional[str] = None
+  class Config:
+    from_attributes = True
+    
+class CategoryRoleResponse(CategoryRoleBase):
+  id:int
+  
 

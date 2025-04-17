@@ -6,7 +6,7 @@ from app.schemas.role_provider import RoleProvider
 from app.schemas.category_provider import CategoryProvider
 
 if TYPE_CHECKING:
-    from .category_provider import CategoryProvider
+    from .category_provider import CategoryProvider, CategoryProviderResponse
     from .role_provider import RoleProvider
 
 
@@ -31,7 +31,14 @@ class Provider(ProviderBase):
 
 class ProviderResponse(ProviderBase):
     id: int
-    # Relationships from Provider
-    role_providers: List["RoleProvider"]=Field(default_factory=list)  # Assuming RoleProvider is defined elsewhere
-    # Relationships to Provider
-    category_provider: Optional["CategoryProvider"] = None  # Assuming CategoryProvider is defined elsewhere
+    name: str
+    category_provider_id: int
+    category_provider: Optional["CategoryProviderResponse"] = None
+    
+class ProviderUpdate(ProviderBase):
+    name: Optional[str] = None
+    category_provider_id: Optional[int] = None
+    class Config:
+        from_attributes = True  
+
+

@@ -15,3 +15,11 @@ class Country(CountryBase):
   role_providers: List["RoleProvider"] = Field(default_factory=list)  # Assuming RoleProvider is defined elsewhere
   class Config:
         from_attributes = True  # This replaces orm_mode=True in Pydantic v2
+
+class CountryUpdate(CountryBase):
+    name: Optional[str] = None
+    class Config:
+        from_attributes = True
+class CountryResponse(CountryBase):
+    id: int
+    name: str

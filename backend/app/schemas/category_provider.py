@@ -15,3 +15,12 @@ class CategoryProvider(CategoryProviderBase):
   providers: List["Provider"] = Field(default_factory=list) # Assuming Provider is defined elsewhere  
   class Config:
         from_attributes = True  # This replaces orm_mode=True in Pydantic v2
+
+class CategoryProviderUpdate(CategoryProviderBase):
+    name: Optional[str] = None
+    class Config:
+        from_attributes = True
+class CategoryProviderResponse(CategoryProviderBase):
+    id: int
+    name: str
+    

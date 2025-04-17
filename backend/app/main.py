@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routes import auth, users, evcs, providers, functional_leaders, technical_leaders, entornos, evc_qs, evc_financials
+from app.routes import auth, users, evcs, functional_leaders, technical_leaders, entornos, evc_qs, evc_financials, category_roles, roles, countries, category_providers, providers, role_providers
 from app.database import engine, Base, SessionLocal
 
 from app import models
@@ -35,6 +35,13 @@ app.include_router( technical_leaders.router, prefix="/technical-leaders", tags=
 app.include_router(entornos.router, prefix="/entornos", tags=["Entornos"])
 app.include_router(evc_qs.router, prefix="/evc-qs", tags=["EVC_Qs"])
 app.include_router(evc_financials.router, prefix="/evc-financials", tags=["EVC Financials"])
+app.include_router(category_roles.router, prefix="/category-roles", tags=["Category Roles"])
+app.include_router(roles.router, prefix="/roles", tags=["Roles"])
+app.include_router(countries.router, prefix="/countries", tags=["Countries"])
+app.include_router(category_providers.router, prefix="/category-providers", tags=["Category Providers"])
+app.include_router(providers.router, prefix="/providers", tags=["Providers"])
+app.include_router(role_providers.router, prefix="/role-providers", tags=["Role Providers"])
+
 # Include the evcs router
 # app.include_router(
 #     providers.router, prefix="/providers", tags=["Providers"]

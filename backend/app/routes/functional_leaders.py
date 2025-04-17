@@ -12,13 +12,13 @@ router= APIRouter()
 
 tag_name="Functional Leaders"
 
-@router.get("/functional-leaders", response_model=list[FunctionalLeaderResponse], tags=[tag_name])
-async def get_functional_leaders(db: Session = Depends(get_db)):
-    return functional_leader_service.get_functional_leaders(db)
-
 @router.post("/functional-leaders", response_model=FunctionalLeaderResponse, tags=[tag_name])
 async def create_new_functional_leader(functional_leader_data:FunctionalLeaderCreate, db:Session=Depends(get_db)):
     return functional_leader_service.create_functional_leader(db, functional_leader_data)
+
+@router.get("/functional-leaders", response_model=list[FunctionalLeaderResponse], tags=[tag_name])
+async def get_functional_leaders(db: Session = Depends(get_db)):
+    return functional_leader_service.get_functional_leaders(db)
 
 @router.put("/functional-leaders/{functional_leader_id}", response_model=FunctionalLeaderResponse, tags=[tag_name])
 async def update__functional_leader(

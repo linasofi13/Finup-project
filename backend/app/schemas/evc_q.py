@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 if TYPE_CHECKING:
   from .evc import EVC
-  from .evc_financial import EVC_Financial
+  from .evc_financial import EVC_Financial, EVC_FinancialShortResponse
 
 
 class EVC_QBase(BaseModel):
@@ -24,5 +24,27 @@ class EVC_Q(EVC_QBase):
   # Relationships from EVC_Q
   evc_financials: List["EVC_Financial"] = Field(default_factory=list) # Assuming EVC_Financial is defined elsewhere
   
+  class Config:
+          from_attributes = True  # This replaces orm_mode=True in Pydantic v2
+          
+class EVC_QShortResponse(EVC_QBase):
+  id:int
+  year: Optional[int] = None
+  q: Optional[int] = None
+  allocated_budget: Optional[float] = None
+  allocated_percentage: Optional[float] = None
+  evc_financials: Optional[List[EVC_FinancialShortResponse]] = None  # 
+  
+class EVC_QResponse(EVC_QShortResponse):
+  evc_id: Optional[int] = None
+  
+class EVC_QUpdate(EVC_QBase):
+  id: int
+  evc_id: Optional[int] = None
+  year: Optional[int] = None
+  q: Optional[int] = None
+  allocated_budget: Optional[float] = None
+  allocated_percentage: Optional[float] = None
+
   class Config:
           from_attributes = True  # This replaces orm_mode=True in Pydantic v2

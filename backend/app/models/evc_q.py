@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, ForeignKey, DateTime, func
+from sqlalchemy import Column, Integer, ForeignKey, DateTime, func, Float
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -10,6 +10,9 @@ class EVC_Q(Base):
     year = Column(Integer, nullable=False)
     q = Column(Integer, nullable=False)
     evc_id = Column(Integer, ForeignKey("evc.id"))
+    allocated_budget = Column(Float, nullable=True)
+    allocated_percentage = Column(Float, nullable=True)
+    
     # Relationship with EVC
     evc = relationship("EVC", back_populates="evc_qs")
     

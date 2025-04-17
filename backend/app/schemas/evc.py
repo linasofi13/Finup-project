@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 if TYPE_CHECKING:
     from .entorno import Entorno
-    from .evc_q import EVC_Q
+    from .evc_q import EVC_Q, EVC_QShortResponse
     from .functional_leader import FunctionalLeader
     from .technical_leader import TechnicalLeader
     from .entorno import Entorno, EntornoResponse
@@ -55,3 +55,4 @@ class EVCResponse(EVCBase):
     status: bool
     creation_date: datetime  # Will be auto-set by the database (func.now())
     updated_at: datetime   # Will be auto-set and updated by the database
+    evc_qs: Optional[List[EVC_QShortResponse]] = None

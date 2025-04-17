@@ -15,9 +15,9 @@ class EVC(Base):
         DateTime, nullable=False, default=func.now(), onupdate=func.now()
     )
 
-    technical_leader_id = Column(Integer, ForeignKey("technical_leader.id"))
-    functional_leader_id = Column(Integer, ForeignKey("functional_leader.id"))
-    entorno_id = Column(Integer, ForeignKey("entorno.id"))
+    technical_leader_id = Column(Integer, ForeignKey("technical_leader.id"), nullable=True)
+    functional_leader_id = Column(Integer, ForeignKey("functional_leader.id"), nullable=True)
+    entorno_id = Column(Integer, ForeignKey("entorno.id"), nullable=True)
     status=Column(Boolean, default=True)
 
     # Relationships

@@ -8,24 +8,18 @@ if TYPE_CHECKING:
     from .evc_q import EVC_Q
     from .functional_leader import FunctionalLeader
     from .technical_leader import TechnicalLeader
-    from .entorno import Entorno
+    from .entorno import Entorno, EntornoResponse
 
 class EVCBase(BaseModel):
     name: str
     description: str  # Changed from 'description' to 'project' to match the model
-    entorno_id: int
-    functional_leader_id: int
-    technical_leader_id: int
+
+    entorno_id: Optional[int]= None
+    functional_leader_id: Optional[int]= None
+    technical_leader_id: Optional[int]=None
 
 class EVCCreate(EVCBase):
     status:bool = True
-
-# class EVCUpdate(BaseModel):
-#     name: Optional[str] = None
-#     project: Optional[str] = None  # Changed from 'description' to 'project'
-#     technical_leader_id: Optional[int] = None
-#     functional_leader_id: Optional[int] = None
-#     entorno_id: Optional[int] = None
 
 class EVC(EVCBase):
     id: int
@@ -35,16 +29,29 @@ class EVC(EVCBase):
     # Relationships to EVC
     technical_leader: Optional["TechnicalLeader"] = None
     functional_leader: Optional["FunctionalLeader"] = None
-    entorno: Optional["Entorno"] = None
+    entorno: Optional["EntornoResponse"] = None
     
     #Relationships from EVC
     
-    evc_qs: List["EVC_Q"] = []
+    evc_qs: Optional[List["EVC_Q"]] = None
     class Config:
         from_attributes = True  # This replaces orm_mode=True in Pydantic v2
 
+class EVCUpdate(EVCBase):
+    name: Optional[str] = None
+    description: Optional[str] = None 
+    entorno_id: Optional[int] = None
+    functional_leader_id: Optional[int] = None
+    technical_leader_id: Optional[int] = None
+    status: Optional[bool] = None
+    class Config:
+        from_attributes = True
 class EVCResponse(EVCBase):
     id: int
+    description: str  # Changed from 'description' to 'project' to match the model
+    functional_leader_id: Optional[int ] = None
+    technical_leader_id: Optional[int] = None
+    entorno_id: Optional[int] = None
     status: bool
     creation_date: datetime  # Will be auto-set by the database (func.now())
     updated_at: datetime   # Will be auto-set and updated by the database

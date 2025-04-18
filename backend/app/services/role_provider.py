@@ -2,7 +2,9 @@
 from sqlalchemy.orm import Session
 
 from app.models.role_provider import RoleProvider
+from app.models.country import Country
 from app.schemas.role_provider import RoleProviderCreate, RoleProviderUpdate
+from app.schemas.country import CountryResponse
 
 def create_role_provider(db: Session, role_provider_data: RoleProviderCreate):
     db_role_provider = RoleProvider(**role_provider_data.dict())
@@ -32,3 +34,4 @@ def delete_role_provider(db: Session, role_provider_id: int):
         db.delete(db_role_provider)
         db.commit()
     return db_role_provider
+

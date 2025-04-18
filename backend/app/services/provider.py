@@ -32,3 +32,6 @@ def delete_provider(db: Session, provider_id: int):
         db.delete(db_provider)
         db.commit()
     return db_provider
+
+
+

@@ -36,21 +36,21 @@ async def delete_provider(provider_id: int, db: Session = Depends(get_db)):
     return provider_service.delete_provider(db, provider_id)
 
 
-@router.get("/filter", response_model=List[ProviderResponse])
-def filter_providers(
-    db: Session = Depends(get_db),
-    company: Optional[str] = None,
-    country: Optional[str] = None,
-    line: Optional[str] = None,
-    cost_min: float = 0.0,
-    cost_max: float = 9999999.0,
-) -> List[ProviderResponse]:
-    query = db.query(Provider)
-    if company:
-        query = query.filter(Provider.company.ilike(f"%{company}%"))
-    if country:
-        query = query.filter(Provider.country.ilike(f"%{country}%"))
-    if line:
-        query = query.filter(Provider.line.ilike(f"%{line}%"))
-    query = query.filter(Provider.cost_usd >= cost_min, Provider.cost_usd <= cost_max)
-    return query.all()
+# @router.get("/filter", response_model=List[ProviderResponse])
+# def filter_providers(
+#     db: Session = Depends(get_db),
+#     company: Optional[str] = None,
+#     country: Optional[str] = None,
+#     line: Optional[str] = None,
+#     cost_min: float = 0.0,
+#     cost_max: float = 9999999.0,
+# ) -> List[ProviderResponse]:
+#     query = db.query(Provider)
+#     if company:
+#         query = query.filter(Provider.company.ilike(f"%{company}%"))
+#     if country:
+#         query = query.filter(Provider.country.ilike(f"%{country}%"))
+#     if line:
+#         query = query.filter(Provider.line.ilike(f"%{line}%"))
+#     query = query.filter(Provider.cost_usd >= cost_min, Provider.cost_usd <= cost_max)
+#     return query.all()

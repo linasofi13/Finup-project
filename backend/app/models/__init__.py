@@ -1,6 +1,6 @@
 from app.database import Base
-from app.models.app_user_category import AppUserCategory
-from app.models.app_user import AppUser
+from app.models.user_category import UserCategory
+from app.models.user import User
 from app.models.category_provider import CategoryProvider
 from app.models.category_role import CategoryRole
 from app.models.category import Category
@@ -15,14 +15,13 @@ from app.models.provider import Provider
 from app.models.role_provider import RoleProvider
 from app.models.role import Role
 from app.models.technical_leader import TechnicalLeader
-from app.models.user import User
 
 
 
 # This ensures all models are registered with SQLAlchemy
 __all__ = [
-    "AppUserCategory",
-    "AppUser",
+    "UserCategory",
+    "User",
     "CategoryProvider",
     "CategoryRole",
     "Category",

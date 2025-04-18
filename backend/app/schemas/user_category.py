@@ -4,18 +4,19 @@ from typing import List, Optional, TYPE_CHECKING
 from pydantic import BaseModel, Field
 if TYPE_CHECKING:
   from .category import Category
-  from .app_user import AppUser
+  from .user import User
 
 
-class AppUserCategoryBase(BaseModel):
+class UserCategoryBase(BaseModel):
   user_id : int
   category_id : int
-class AppUserCategoryCreate(AppUserCategoryBase):
+class UserCategoryCreate(UserCategoryBase):
   pass
-class AppUserCategory(AppUserCategoryBase):
+class UserCategory(UserCategoryBase):
   id: int
   #Relationships to AppUserCategory
   category: Optional["Category"] = None  # Assuming Category is defined elsewhere
-  app_user: Optional["AppUser"] = None  # Assuming AppUser is defined elsewhere
+  user: Optional["User"] = None  # Assuming AppUser is defined elsewhere
   class Config:
         from_attributes = True  # This replaces orm_mode=True in Pydantic v2
+

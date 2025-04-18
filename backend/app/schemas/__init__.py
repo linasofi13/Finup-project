@@ -10,15 +10,17 @@ from .role_provider import RoleProvider, RoleProviderCreate, RoleProviderUpdate,
 from .country import Country, CountryCreate, CountryUpdate, CountryResponse
 from .category_provider import CategoryProvider, CategoryProviderCreate, CategoryProviderUpdate, CategoryProviderResponse
 from .provider import Provider, ProviderCreate, ProviderUpdate, ProviderResponse
-from .app_user import AppUser, AppUserCreate
+from .user import User, UserCreate, UserUpdate, UserResponse, Token, TokenData
 from .category import Category, CategoryCreate
-from .app_user_category import AppUserCategory, AppUserCategoryCreate
+from .user_category import UserCategory, UserCategoryCreate
 
 
 schemas=[FunctionalLeader, TechnicalLeader, Entorno, EVC, EVC_Q, EVC_Financial,
          CategoryRole, CategoryRoleResponse, Role, RoleUpdate, RoleResponse,
          Country,CountryUpdate, CountryResponse,CategoryProvider, CategoryProviderUpdate, CategoryProviderResponse,
-         Provider, ProviderUpdate, ProviderResponse, RoleProvider, RoleProviderUpdate, RoleProviderResponse,]
+         Provider, ProviderUpdate, ProviderResponse, RoleProvider, RoleProviderUpdate, RoleProviderResponse,
+         User, UserCreate, UserUpdate, UserResponse, Token, TokenData,
+         UserCategory, UserCategoryCreate, Category, CategoryCreate]
 responses=[FunctionalLeaderResponse, TechnicalLeaderResponse, 
            EntornoResponse, EVCResponse, EVC_QResponse, EVC_FinancialShortResponse,
            EVC_QShortResponse,]

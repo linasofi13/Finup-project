@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routes import auth, users, evcs, functional_leaders, technical_leaders, entornos, evc_qs, evc_financials, category_roles, roles, countries, category_providers, providers, role_providers
+from app.routes import auth, users, evcs, functional_leaders, technical_leaders, entornos, evc_qs, evc_financials, category_roles, roles, countries, category_providers, providers, role_providers, users
 from app.database import engine, Base, SessionLocal
 
 from app import models

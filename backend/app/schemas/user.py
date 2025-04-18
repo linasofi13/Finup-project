@@ -22,6 +22,8 @@ class UserUpdate(BaseModel):
     username: Optional[str] = None
     email: Optional[str] = None
     password: Optional[str] = None
+    is_admin: Optional[bool] = None
+    is_active: Optional[bool] = None
 
     class Config:
         from_attributes = True
@@ -30,6 +32,8 @@ class UserResponse(UserBase):
     id: int
     username: str
     email: str
+    is_admin: bool
+    is_active: bool
 class Token(BaseModel):
     access_token: str
     token_type: str

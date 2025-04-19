@@ -48,6 +48,7 @@ class EVCUpdate(EVCBase):
         from_attributes = True
 class EVCResponse(EVCBase):
     id: int
+    name: str
     description: str  # Changed from 'description' to 'project' to match the model
     functional_leader_id: Optional[int ] = None
     technical_leader_id: Optional[int] = None
@@ -56,3 +57,16 @@ class EVCResponse(EVCBase):
     creation_date: datetime  # Will be auto-set by the database (func.now())
     updated_at: datetime   # Will be auto-set and updated by the database
     evc_qs: Optional[List[EVC_QShortResponse]] = None
+    def get_technical_leader(self):
+        if self.technical_leader_id:
+            from app.services import technical_leader as technical_leader_service
+            return technical_leader_service.get_technical_leader_by_id(self.technical_leader_id)
+        
+    def get_functional_leader(self):
+        if self.functional_leader_id:
+            from app.services import functional_leader as functional_leader_service
+            return functional_leader_service.get_functional_leader_by_id(self.functional_leader_id)
+    def get_entorno(self):
+        if self.entorno_id:
+            from app.services import entorno as entorno_service
+            return entorno_service.get_entorno_by_id(self.entorno_id)

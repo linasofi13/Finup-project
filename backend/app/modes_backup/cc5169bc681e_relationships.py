@@ -1,8 +1,8 @@
-"""Complete Database 2
+"""relationships
 
-Revision ID: dddf50fcd286
-Revises: a7f52f23af8b
-Create Date: 2025-03-12 11:41:59.911810
+Revision ID: cc5169bc681e
+Revises: ab9276498644
+Create Date: 2025-03-29 17:30:02.361100
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = "dddf50fcd286"
-down_revision: Union[str, None] = "a7f52f23af8b"
+revision: str = "cc5169bc681e"
+down_revision: Union[str, None] = "ab9276498644"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -38,6 +38,15 @@ def upgrade() -> None:
     )
     op.create_index(op.f("ix_category_id"), "category", ["id"], unique=False)
     op.create_table(
+        "category_provider",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("name", sa.String(length=50), nullable=False),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_index(
+        op.f("ix_category_provider_id"), "category_provider", ["id"], unique=False
+    )
+    op.create_table(
         "category_role",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(length=50), nullable=False),
@@ -51,6 +60,17 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_country_id"), "country", ["id"], unique=False)
+    op.create_table(
+        "users",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("email", sa.String(length=255), nullable=True),
+        sa.Column("username", sa.String(length=255), nullable=True),
+        sa.Column("password", sa.String(length=255), nullable=True),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_index(op.f("ix_users_email"), "users", ["email"], unique=True)
+    op.create_index(op.f("ix_users_id"), "users", ["id"], unique=False)
+    op.create_index(op.f("ix_users_username"), "users", ["username"], unique=True)
     op.create_table(
         "app_user_category",
         sa.Column("id", sa.Integer(), nullable=False),
@@ -69,18 +89,6 @@ def upgrade() -> None:
     op.create_index(
         op.f("ix_app_user_category_id"), "app_user_category", ["id"], unique=False
     )
-    op.create_table(
-        "providers",
-        sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("name", sa.String(length=60), nullable=False),
-        sa.Column("category_role_id", sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(
-            ["category_role_id"],
-            ["category_role.id"],
-        ),
-        sa.PrimaryKeyConstraint("id"),
-    )
-    op.create_index(op.f("ix_providers_id"), "providers", ["id"], unique=False)
     op.create_table(
         "role",
         sa.Column("id", sa.Integer(), nullable=False),
@@ -116,37 +124,86 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_role_provider_id"), "role_provider", ["id"], unique=False)
-    op.create_table(
-        "evc_financial",
-        sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("evc_q_id", sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(
-            ["evc_q_id"],
-            ["evc_q.id"],
-        ),
-        sa.PrimaryKeyConstraint("id"),
+    op.add_column(
+        "entorno", sa.Column("technical_leader_id", sa.Integer(), nullable=True)
     )
-    op.create_index(op.f("ix_evc_financial_id"), "evc_financial", ["id"], unique=False)
+    op.add_column(
+        "entorno", sa.Column("functional_leader_id", sa.Integer(), nullable=True)
+    )
+    op.create_foreign_key(
+        None, "entorno", "functional_leader", ["functional_leader_id"], ["id"]
+    )
+    op.create_foreign_key(
+        None, "entorno", "technical_leader", ["technical_leader_id"], ["id"]
+    )
+    op.add_column("evc", sa.Column("technical_leader_id", sa.Integer(), nullable=True))
+    op.add_column("evc", sa.Column("functional_leader_id", sa.Integer(), nullable=True))
+    op.add_column("evc", sa.Column("entorno_id", sa.Integer(), nullable=True))
+    op.create_foreign_key(None, "evc", "entorno", ["entorno_id"], ["id"])
+    op.create_foreign_key(
+        None, "evc", "technical_leader", ["technical_leader_id"], ["id"]
+    )
+    op.create_foreign_key(
+        None, "evc", "functional_leader", ["functional_leader_id"], ["id"]
+    )
+    op.add_column("evc_financial", sa.Column("evc_q_id", sa.Integer(), nullable=True))
+    op.add_column(
+        "evc_financial", sa.Column("role_provider_id", sa.Integer(), nullable=True)
+    )
+    op.create_foreign_key(None, "evc_financial", "evc_q", ["evc_q_id"], ["id"])
+    op.create_foreign_key(
+        None, "evc_financial", "role_provider", ["role_provider_id"], ["id"]
+    )
+    op.add_column("evc_providers", sa.Column("evc_id", sa.Integer(), nullable=False))
+    op.add_column(
+        "evc_providers", sa.Column("provider_id", sa.Integer(), nullable=False)
+    )
+    op.create_foreign_key(None, "evc_providers", "providers", ["provider_id"], ["id"])
+    op.create_foreign_key(None, "evc_providers", "evc", ["evc_id"], ["id"])
+    op.add_column("evc_q", sa.Column("evc_id", sa.Integer(), nullable=True))
+    op.create_foreign_key(None, "evc_q", "evc", ["evc_id"], ["id"])
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
     """Downgrade schema."""
     # ### commands auto generated by Alembic - please adjust! ###
-    op.drop_index(op.f("ix_evc_financial_id"), table_name="evc_financial")
-    op.drop_table("evc_financial")
+    op.drop_constraint(None, "evc_q", type_="foreignkey")
+    op.drop_column("evc_q", "evc_id")
+    op.drop_constraint(None, "evc_providers", type_="foreignkey")
+    op.drop_constraint(None, "evc_providers", type_="foreignkey")
+    op.drop_column("evc_providers", "provider_id")
+    op.drop_column("evc_providers", "evc_id")
+    op.drop_constraint(None, "evc_financial", type_="foreignkey")
+    op.drop_constraint(None, "evc_financial", type_="foreignkey")
+    op.drop_column("evc_financial", "role_provider_id")
+    op.drop_column("evc_financial", "evc_q_id")
+    op.drop_constraint(None, "evc", type_="foreignkey")
+    op.drop_constraint(None, "evc", type_="foreignkey")
+    op.drop_constraint(None, "evc", type_="foreignkey")
+    op.drop_column("evc", "entorno_id")
+    op.drop_column("evc", "functional_leader_id")
+    op.drop_column("evc", "technical_leader_id")
+    op.drop_constraint(None, "entorno", type_="foreignkey")
+    op.drop_constraint(None, "entorno", type_="foreignkey")
+    op.drop_column("entorno", "functional_leader_id")
+    op.drop_column("entorno", "technical_leader_id")
     op.drop_index(op.f("ix_role_provider_id"), table_name="role_provider")
     op.drop_table("role_provider")
     op.drop_index(op.f("ix_role_id"), table_name="role")
     op.drop_table("role")
-    op.drop_index(op.f("ix_providers_id"), table_name="providers")
-    op.drop_table("providers")
     op.drop_index(op.f("ix_app_user_category_id"), table_name="app_user_category")
     op.drop_table("app_user_category")
+    op.drop_index(op.f("ix_users_username"), table_name="users")
+    op.drop_index(op.f("ix_users_id"), table_name="users")
+    op.drop_index(op.f("ix_users_email"), table_name="users")
+    op.drop_table("users")
     op.drop_index(op.f("ix_country_id"), table_name="country")
     op.drop_table("country")
     op.drop_index(op.f("ix_category_role_id"), table_name="category_role")
     op.drop_table("category_role")
+    op.drop_index(op.f("ix_category_provider_id"), table_name="category_provider")
+    op.drop_table("category_provider")
     op.drop_index(op.f("ix_category_id"), table_name="category")
     op.drop_table("category")
     op.drop_index(op.f("ix_app_user_id"), table_name="app_user")

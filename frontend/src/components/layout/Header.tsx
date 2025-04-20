@@ -33,11 +33,11 @@ export default function Header({ isSidebarOpen }: HeaderProps) {
             {/* Logo con SVG y texto */}
             <Link href="/" legacyBehavior>
               <a className="text-neutral-dark flex items-center transition-transform duration-200 hover:scale-105">
-                <Image 
-                  src="/images/logoBancolombia.svg" 
-                  alt="Logo" 
-                  width={32} 
-                  height={32} 
+                <Image
+                  src="/images/logoBancolombia.svg"
+                  alt="Logo"
+                  width={32}
+                  height={32}
                   className="h-8 w-auto mr-2"
                 />
               </a>

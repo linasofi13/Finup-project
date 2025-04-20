@@ -1,7 +1,23 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routes import auth, users, evcs, providers  # Import the new routers
+from app.routes import (
+    auth,
+    users,
+    evcs,
+    functional_leaders,
+    technical_leaders,
+    entornos,
+    evc_qs,
+    evc_financials,
+    category_roles,
+    roles,
+    countries,
+    category_providers,
+    providers,
+    role_providers,
+    users,
+)
 from app.database import engine, Base, SessionLocal
 
 from app import models
@@ -25,12 +41,35 @@ app.add_middleware(
 # Incluir rutas
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 app.include_router(users.router, prefix="/users", tags=["Users"])
+app.include_router(evcs.router, prefix="/evcs", tags=["EVCs"])
 app.include_router(
-    evcs.router, prefix="/evcs", tags=["EVCs"]
-)  # Include the evcs router
+    functional_leaders.router, prefix="/functional-leaders", tags=["Functional Leaders"]
+)
 app.include_router(
-    providers.router, prefix="/providers", tags=["Providers"]
-)  # Include the providers router
+    technical_leaders.router, prefix="/technical-leaders", tags=["Technical Leaders"]
+)
+app.include_router(entornos.router, prefix="/entornos", tags=["Entornos"])
+app.include_router(evc_qs.router, prefix="/evc-qs", tags=["EVC_Qs"])
+app.include_router(
+    evc_financials.router, prefix="/evc-financials", tags=["EVC Financials"]
+)
+app.include_router(
+    category_roles.router, prefix="/category-roles", tags=["Category Roles"]
+)
+app.include_router(roles.router, prefix="/roles", tags=["Roles"])
+app.include_router(countries.router, prefix="/countries", tags=["Countries"])
+app.include_router(
+    category_providers.router, prefix="/category-providers", tags=["Category Providers"]
+)
+app.include_router(providers.router, prefix="/providers", tags=["Providers"])
+app.include_router(
+    role_providers.router, prefix="/role-providers", tags=["Role Providers"]
+)
+
+# Include the evcs router
+# app.include_router(
+#     providers.router, prefix="/providers", tags=["Providers"]
+# )  # Include the providers router
 
 
 @app.get("/")

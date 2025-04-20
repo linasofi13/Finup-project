@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from backend.app.models.provider import Provider
+from app.models.provider import Provider
 from app.schemas.provider import ProviderCreate
 
 
@@ -32,16 +32,16 @@ def delete_provider(db: Session, provider_id: int):
     return False
 
 
-def update_provider(db: Session, provider_id: int, provider_data: ProviderCreate):
-    """Updates a provider by ID."""
-    provider = db.query(Provider).filter(Provider.id == provider_id).first()
-    if provider:
-        for key, value in provider_data.dict().items():
-            setattr(provider, key, value)
-        db.commit()
-        db.refresh(provider)
-        return provider
-    return None
+# def update_provider(db: Session, provider_id: int, provider_data: ProviderCreate):
+#     """Updates a provider by ID."""
+#     provider = db.query(Provider).filter(Provider.id == provider_id).first()
+#     if provider:
+#         for key, value in provider_data.dict().items():
+#             setattr(provider, key, value)
+#         db.commit()
+#         db.refresh(provider)
+#         return provider
+#     return None
 
 
 def bulk_create_providers(db: Session, providers_data: list[ProviderCreate]):

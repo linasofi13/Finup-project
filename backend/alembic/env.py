@@ -7,9 +7,14 @@ from alembic import context
 from app.database import Base
 import app.models  # This will import all models
 
+import os
+from dotenv import load_dotenv
+load_dotenv()
 # this is the Alembic Config object
 config = context.config
-
+config.set_main_option(
+    'sqlalchemy.url', os.getenv("DB_URL")
+)
 # other configurations...
 
 

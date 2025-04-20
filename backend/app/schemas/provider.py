@@ -18,13 +18,21 @@ class ProviderBase(BaseModel):
 class ProviderCreate(ProviderBase):
     pass  # validate provider creation
 
+
 class Provider(ProviderBase):
     id: int
     # Relationships from Provider
-    role_providers: List["RoleProvider"] = Field(default_factory=list)  # Assuming RoleProvider is defined elsewhere
+    role_providers: List["RoleProvider"] = Field(
+        default_factory=list
+    )  # Assuming RoleProvider is defined elsewhere
     # Relationships to Provider
-    category_provider: Optional["CategoryProvider"] = None  # Assuming CategoryProvider is defined elsewhere
-    created_at: datetime = Field(default_factory=lambda: datetime.now(datetime.timezone.utc))
+    category_provider: Optional[
+        "CategoryProvider"
+    ] = None  # Assuming CategoryProvider is defined elsewhere
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(datetime.timezone.utc)
+    )
+
     class Config:
         from_attributes = True  # This replaces orm_mode=True in Pydantic v2
 
@@ -34,11 +42,11 @@ class ProviderResponse(ProviderBase):
     name: str
     category_provider_id: int
     category_provider: Optional["CategoryProviderResponse"] = None
-    
+
+
 class ProviderUpdate(ProviderBase):
     name: Optional[str] = None
     category_provider_id: Optional[int] = None
+
     class Config:
-        from_attributes = True  
-
-
+        from_attributes = True

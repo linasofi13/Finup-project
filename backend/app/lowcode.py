@@ -1,6 +1,6 @@
-model_import=input("Enter the model name (e.g., country): ")
-snake_case=input("Enter the snake_case name (e.g., country): ")
-text=f"""
+model_import = input("Enter the model name (e.g., country): ")
+snake_case = input("Enter the snake_case name (e.g., country): ")
+text = f"""
 from sqlalchemy.orm import Session
 
 from app.models.{snake_case} import {model_import}
@@ -34,7 +34,7 @@ def delete_{snake_case}(db: Session, {snake_case}_id: int):
         db.delete(db_{snake_case})
         db.commit()
     return db_{snake_case}"""
-    
+
 import os
 
 # Construct the full file path
@@ -47,12 +47,9 @@ print(file_path)
 # Now you can write the file
 with open(file_path, "w") as file:
     file.write(text)
-    
-    
-    
 
 
-routes_text=f"""
+routes_text = f"""
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
@@ -92,8 +89,8 @@ async def delete_{snake_case}({snake_case}_id: int, db: Session = Depends(get_db
 
 """
 
-routes_text=routes_text.replace('¿','{')
-routes_text=routes_text.replace('?','}')
+routes_text = routes_text.replace("¿", "{")
+routes_text = routes_text.replace("?", "}")
 
 
 # Construct the full file path
@@ -105,4 +102,3 @@ os.makedirs(os.path.dirname(file_path_routes), exist_ok=True)
 # Now you can write the file
 with open(file_path_routes, "w") as file:
     file.write(routes_text)
-    

@@ -44,7 +44,6 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 
     return encoded_jwt
 
+
 def get_user_by_email(db: Session, email: str):
     return db.query(User).filter(User.email == email).first()
-
-

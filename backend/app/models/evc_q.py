@@ -12,9 +12,9 @@ class EVC_Q(Base):
     evc_id = Column(Integer, ForeignKey("evc.id"))
     allocated_budget = Column(Float, nullable=True)
     allocated_percentage = Column(Float, nullable=True)
-    
+
     # Relationship with EVC
     evc = relationship("EVC", back_populates="evc_qs")
-    
-     # Relationship with evc_financial
+
+    # Relationship with evc_financial
     evc_financials = relationship("EVC_Financial", back_populates="evc_q")

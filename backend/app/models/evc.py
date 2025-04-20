@@ -1,5 +1,14 @@
 # app/models/evc.py
-from sqlalchemy import Column, Integer, String, Float, DateTime, func, ForeignKey, Boolean
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Float,
+    DateTime,
+    func,
+    ForeignKey,
+    Boolean,
+)
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -15,10 +24,14 @@ class EVC(Base):
         DateTime, nullable=False, default=func.now(), onupdate=func.now()
     )
 
-    technical_leader_id = Column(Integer, ForeignKey("technical_leader.id"), nullable=True)
-    functional_leader_id = Column(Integer, ForeignKey("functional_leader.id"), nullable=True)
+    technical_leader_id = Column(
+        Integer, ForeignKey("technical_leader.id"), nullable=True
+    )
+    functional_leader_id = Column(
+        Integer, ForeignKey("functional_leader.id"), nullable=True
+    )
     entorno_id = Column(Integer, ForeignKey("entorno.id"), nullable=True)
-    status=Column(Boolean, default=True)
+    status = Column(Boolean, default=True)
 
     # Relationships
     technical_leader = relationship("TechnicalLeader", back_populates="evcs")

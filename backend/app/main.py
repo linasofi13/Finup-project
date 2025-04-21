@@ -10,12 +10,12 @@ from app.routes import (
     entornos,
     evc_qs,
     evc_financials,
-    category_roles,
-    roles,
-    countries,
-    category_providers,
+    # category_roles,
+    # roles,
+    # countries,
+    # category_providers,
     providers,
-    role_providers,
+    # role_providers,
     users,
 )
 from app.database import engine, Base, SessionLocal
@@ -53,18 +53,18 @@ app.include_router(evc_qs.router, prefix="/evc-qs", tags=["EVC_Qs"])
 app.include_router(
     evc_financials.router, prefix="/evc-financials", tags=["EVC Financials"]
 )
-app.include_router(
-    category_roles.router, prefix="/category-roles", tags=["Category Roles"]
-)
-app.include_router(roles.router, prefix="/roles", tags=["Roles"])
-app.include_router(countries.router, prefix="/countries", tags=["Countries"])
-app.include_router(
-    category_providers.router, prefix="/category-providers", tags=["Category Providers"]
-)
+# app.include_router(
+#     category_roles.router, prefix="/category-roles", tags=["Category Roles"]
+# )
+# app.include_router(roles.router, prefix="/roles", tags=["Roles"])
+# app.include_router(countries.router, prefix="/countries", tags=["Countries"])
+# app.include_router(
+#     category_providers.router, prefix="/category-providers", tags=["Category Providers"]
+# )
 app.include_router(providers.router, prefix="/providers", tags=["Providers"])
-app.include_router(
-    role_providers.router, prefix="/role-providers", tags=["Role Providers"]
-)
+# app.include_router(
+#     role_providers.router, prefix="/role-providers", tags=["Role Providers"]
+# )
 
 # Include the evcs router
 # app.include_router(

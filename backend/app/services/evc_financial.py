@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, select, create_engine
 from app.models.evc_financial import EVC_Financial
 from app.schemas.evc_financial import EVC_FinancialCreate, EVC_FinancialUpdate
-from app.models.role_provider import RoleProvider
+# from app.models.role_provider import RoleProvider
 from app.models.evc_q import EVC_Q
 
 
@@ -42,24 +42,24 @@ def delete_evc_financial(db: Session, evc_financial_id: int):
     return db_evc_financial
 
 
-def get_spendings_by_evc_q(db: Session, evc_q_id: int) -> float:
-    """
-    Get the total spendings (sum of RoleProvider.price_usd) for a given evc_q_id.
-    """
-    total = db.query(func.sum(RoleProvider.price_usd)).join(
-        EVC_Financial, EVC_Financial.role_provider_id == RoleProvider.id
-    ).filter(
-        EVC_Financial.evc_q_id == evc_q_id
-    ).scalar()
+# def get_spendings_by_evc_q(db: Session, evc_q_id: int) -> float:
+#     """
+#     Get the total spendings (sum of RoleProvider.price_usd) for a given evc_q_id.
+#     """
+#     total = db.query(func.sum(RoleProvider.price_usd)).join(
+#         EVC_Financial, EVC_Financial.role_provider_id == RoleProvider.id
+#     ).filter(
+#         EVC_Financial.evc_q_id == evc_q_id
+#     ).scalar()
 
-    return total or 0.0
+#     return total or 0.0
 
-def get_percentage_by_evc_q(db: Session, evc_q_id: int) -> float:
-    """
-    Get the percentage of spendings for a given evc_q_id.
-    """
-    total_spendings = get_spendings_by_evc_q(db, evc_q_id)
-    total_budget= db.query(EVC_Q.allocated_budget).filter(EVC_Q.id == evc_q_id).scalar()
-    percentage= (total_spendings / total_budget) if total_budget else 0.0
-    return percentage
+# def get_percentage_by_evc_q(db: Session, evc_q_id: int) -> float:
+#     """
+#     Get the percentage of spendings for a given evc_q_id.
+#     """
+#     total_spendings = get_spendings_by_evc_q(db, evc_q_id)
+#     total_budget= db.query(EVC_Q.allocated_budget).filter(EVC_Q.id == evc_q_id).scalar()
+#     percentage= (total_spendings / total_budget) if total_budget else 0.0
+#     return percentage
     

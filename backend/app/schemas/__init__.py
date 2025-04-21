@@ -17,27 +17,27 @@ from .evc_financial import (
     EVC_FinancialShortResponse,
     EVC_FinancialUpdate,
 )
-from .category_role import (
-    CategoryRole,
-    CategoryRoleCreate,
-    CategoryRoleResponse,
-    CategoryRoleUpdate,
-)
-from .role import Role, RoleCreate, RoleUpdate, RoleResponse
-from .role_provider import (
-    RoleProvider,
-    RoleProviderCreate,
-    RoleProviderUpdate,
-    RoleProviderResponse,
-)
-from .country import Country, CountryCreate, CountryUpdate, CountryResponse
-from .category_provider import (
-    CategoryProvider,
-    CategoryProviderCreate,
-    CategoryProviderUpdate,
-    CategoryProviderResponse,
-)
-from .provider import Provider, ProviderCreate, ProviderUpdate, ProviderResponse
+# from .category_role import (
+#     CategoryRole,
+#     CategoryRoleCreate,
+#     CategoryRoleResponse,
+#     CategoryRoleUpdate,
+# )
+# from .role import Role, RoleCreate, RoleUpdate, RoleResponse
+# from .role_provider import (
+#     RoleProvider,
+#     RoleProviderCreate,
+#     RoleProviderUpdate,
+#     RoleProviderResponse,
+# )
+# from .country import Country, CountryCreate, CountryUpdate, CountryResponse
+# from .category_provider import (
+#     CategoryProvider,
+#     CategoryProviderCreate,
+#     CategoryProviderUpdate,
+#     CategoryProviderResponse,
+# )
+from .provider import ProviderCreate, ProviderResponse
 from .user import User, UserCreate, UserUpdate, UserResponse, Token, TokenData
 from .category import Category, CategoryCreate
 from .user_category import UserCategory, UserCategoryCreate
@@ -50,23 +50,23 @@ schemas = [
     EVC,
     EVC_Q,
     EVC_Financial,
-    CategoryRole,
-    CategoryRoleResponse,
-    Role,
-    RoleUpdate,
-    RoleResponse,
-    Country,
-    CountryUpdate,
-    CountryResponse,
-    CategoryProvider,
-    CategoryProviderUpdate,
-    CategoryProviderResponse,
-    Provider,
-    ProviderUpdate,
+    # CategoryRole,
+    # CategoryRoleResponse,
+    # Role,
+    # RoleUpdate,
+    # RoleResponse,
+    # Country,
+    # CountryUpdate,
+    # CountryResponse,
+    # CategoryProvider,
+    # CategoryProviderUpdate,
+    # CategoryProviderResponse,
+    # Provider,
+    # ProviderUpdate,
     ProviderResponse,
-    RoleProvider,
-    RoleProviderUpdate,
-    RoleProviderResponse,
+    # RoleProvider,
+    # RoleProviderUpdate,
+    # RoleProviderResponse,
     User,
     UserCreate,
     UserUpdate,
@@ -93,7 +93,7 @@ schemas_update = [
     TechnicalLeaderUpdate,
     EVCUpdate,
     EVC_FinancialUpdate,
-    CategoryRoleUpdate,
+    # CategoryRoleUpdate,
 ]
 
 for schema in schemas:

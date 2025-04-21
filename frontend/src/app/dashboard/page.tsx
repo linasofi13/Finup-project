@@ -59,7 +59,7 @@ export default function DashboardPage() {
   const fetchProviders = async () => {
     try {
       const response = await axios.get(
-        "http://127.0.0.1:8000/providers/providers",
+        process.env.NEXT_PUBLIC_PROVIDERS_ENDPOINT as string
       );
       setProvidersData(response.data);
     } catch (error) {

@@ -14,8 +14,9 @@ import axios from "axios";
 import * as XLSX from "xlsx";
 
 // Endpoints (ajusta según tu backend)
-const API_URL = "http://127.0.0.1:8000/providers/providers";
-const BULK_UPLOAD_URL = "http://127.0.0.1:8000/providers/providers/bulk-upload";
+const API_URL = process.env.NEXT_PUBLIC_PROVIDERS_ENDPOINT as string;
+const BULK_UPLOAD_URL = process.env.NEXT_PUBLIC_BULK_UPLOAD_PROVIDERS as string;
+
 
 export default function ProveedoresPage() {
   const [proveedores, setProveedores] = useState([]);
@@ -45,10 +46,30 @@ export default function ProveedoresPage() {
   const [selectedProviderId, setSelectedProviderId] = useState("");
   const [docFile, setDocFile] = useState(null);
   const [docList, setDocList] = useState([]);
+  const [categoryLines, setCategoryLines] = useState([]);
+
+const fetchCategoryLines = async () => {
+  try {
+    const res = await axios.get(process.env.NEXT_PUBLIC_CATEGORY_LINES_ENDPOINT);
+    setCategoryLines(res.data);
+  } catch (error) {
+    console.error("Error fetching category lines:", error);
+  }
+};
 
   useEffect(() => {
     fetchProveedores();
+    fetchCategoryProviders();
+    fetchCategoryRoles();
+    fetchCountries();
+    fetchCategoryLines();
   }, []);
+  
+
+  const [categoryProviders, setCategoryProviders] = useState([]);
+  const [categoryRoles, setCategoryRoles] = useState([]);
+  const [countries, setCountries] = useState([]);
+
 
   const fetchProveedores = async () => {
     try {
@@ -58,6 +79,34 @@ export default function ProveedoresPage() {
       console.error("Error fetching providers:", error);
     }
   };
+
+  const fetchCategoryProviders = async () => {
+    try {
+      const res = await axios.get(process.env.NEXT_PUBLIC_CATEGORY_PROVIDERS_ENDPOINT);
+      setCategoryProviders(res.data);
+    } catch (error) {
+      console.error("Error fetching category providers:", error);
+    }
+  };
+  
+  const fetchCategoryRoles = async () => {
+    try {
+      const res = await axios.get(process.env.NEXT_PUBLIC_CATEGORY_ROLES_ENDPOINT);
+      setCategoryRoles(res.data);
+    } catch (error) {
+      console.error("Error fetching category roles:", error);
+    }
+  };
+  
+  const fetchCountries = async () => {
+    try {
+      const res = await axios.get(process.env.NEXT_PUBLIC_COUNTRIES_ENDPOINT);
+      setCountries(res.data);
+    } catch (error) {
+      console.error("Error fetching countries:", error);
+    }
+  };
+  
   // Función para exportar a Excel
   const exportToExcel = () => {
     const ws = XLSX.utils.json_to_sheet(proveedores);
@@ -72,20 +121,12 @@ export default function ProveedoresPage() {
   };
 
   const filteredProviders = proveedores.filter((prov) => {
-    if (!prov.name.toLowerCase().includes(filters.name.toLowerCase()))
-      return false;
-    if (!prov.role.toLowerCase().includes(filters.role.toLowerCase()))
-      return false;
-    if (!prov.company.toLowerCase().includes(filters.company.toLowerCase()))
-      return false;
-    if (!prov.country.toLowerCase().includes(filters.country.toLowerCase()))
-      return false;
-    if (!prov.category.toLowerCase().includes(filters.category.toLowerCase()))
-      return false;
-    if (!prov.line.toLowerCase().includes(filters.line.toLowerCase()))
-      return false;
-    if (!prov.email.toLowerCase().includes(filters.email.toLowerCase()))
-      return false;
+    if (!(prov.name || "").toLowerCase().includes(filters.name.toLowerCase())) return false;
+    if (!(prov.company || "").toLowerCase().includes(filters.company.toLowerCase())) return false;
+    if (!(prov.country || "").toLowerCase().includes(filters.country.toLowerCase())) return false;
+    if (!(prov.category || "").toLowerCase().includes(filters.category.toLowerCase())) return false;
+    if (!(prov.line || "").toLowerCase().includes(filters.line.toLowerCase())) return false;
+    if (!(prov.email || "").toLowerCase().includes(filters.email.toLowerCase())) return false;
 
     const cost = parseFloat(prov.cost_usd);
     if (filters.costUsdMin) {
@@ -164,14 +205,58 @@ export default function ProveedoresPage() {
   const addNewRow = async (tempId) => {
     const newRow = newRows.find((row) => row.tempId === tempId);
     if (!newRow) return;
+  
     try {
-      const response = await axios.post(API_URL, newRow);
-      setProveedores([...proveedores, response.data]);
+      // Buscar los IDs por nombre
+      const selectedLine = categoryLines.find(line => line.name === newRow.line);
+      const selectedCategory = categoryProviders.find(cat => cat.name === newRow.category);
+      const selectedRole = categoryRoles.find(r => r.name === newRow.role);
+      const selectedCountry = countries.find(c => c.name === newRow.country);
+  
+      // Validar que existan todos los IDs antes de enviar
+      if (!selectedCategory || !selectedRole || !selectedCountry) {
+        alert("Categoría, Rol o País no encontrados. Verifica que existan en el sistema.");
+        return;
+      }
+  
+      // Paso 1: Crear proveedor
+      const providerPayload = {
+        name: newRow.name,
+        role: newRow.role,
+        company: newRow.company,
+        email: newRow.email,
+        country: newRow.country,
+        cost_usd: parseFloat(newRow.cost_usd),
+        category_provider_id: selectedCategory.id,
+        category_line_id: selectedLine?.id ?? null
+      };
+      
+  
+      const providerResponse = await axios.post(API_URL, providerPayload);
+      const createdProvider = providerResponse.data;
+  
+      // Paso 2: Crear role_provider
+      const roleProviderPayload = {
+        provider_id: createdProvider.id,
+        role_id: selectedRole.id,
+        country_id: selectedCountry.id,
+        price_usd: parseFloat(newRow.cost_usd),
+      };
+  
+      await axios.post(process.env.NEXT_PUBLIC_ROLE_PROVIDER_ENDPOINT, roleProviderPayload);
+  
+      // Recargar y limpiar
+      fetchProveedores();
       setNewRows(newRows.filter((row) => row.tempId !== tempId));
     } catch (error) {
-      console.error("Error adding provider:", error);
+      console.error("Error al crear proveedor:", error);
+      if (error.response?.data?.detail) {
+        alert(`Error al crear proveedor: ${JSON.stringify(error.response.data.detail)}`);
+      }
     }
   };
+  
+  
 
   const cancelNewRow = (tempId) => {
     setNewRows(newRows.filter((row) => row.tempId !== tempId));
@@ -492,18 +577,21 @@ export default function ProveedoresPage() {
                       />
                     </td>
                     <td className="p-3 border">
-                      <input
-                        type="text"
-                        name="role"
-                        value={editingProveedor.role}
-                        onChange={(e) =>
-                          setEditingProveedor({
-                            ...editingProveedor,
-                            role: e.target.value,
-                          })
-                        }
-                        className="w-full border p-1 rounded"
-                      />
+                    <select
+                      name="role"
+                      value={editingProveedor.role}
+                      onChange={(e) =>
+                        setEditingProveedor({ ...editingProveedor, role: e.target.value })
+                      }
+                      className="w-full border p-1 rounded"
+                    >
+                      <option value="">Selecciona un rol</option>
+                      {categoryRoles.map((r) => (
+                        <option key={r.id} value={r.name}>
+                          {r.name}
+                        </option>
+                      ))}
+                        </select>
                     </td>
                     <td className="p-3 border">
                       <input
@@ -520,18 +608,23 @@ export default function ProveedoresPage() {
                       />
                     </td>
                     <td className="p-3 border">
-                      <input
-                        type="text"
+                    <td className="p-3 border">
+                      <select
                         name="country"
                         value={editingProveedor.country}
                         onChange={(e) =>
-                          setEditingProveedor({
-                            ...editingProveedor,
-                            country: e.target.value,
-                          })
+                          setEditingProveedor({ ...editingProveedor, country: e.target.value })
                         }
                         className="w-full border p-1 rounded"
-                      />
+                      >
+                        <option value="">Selecciona un país</option>
+                        {countries.map((c) => (
+                          <option key={c.id} value={c.name}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
                     </td>
                     <td className="p-3 border">
                       <input
@@ -548,32 +641,43 @@ export default function ProveedoresPage() {
                       />
                     </td>
                     <td className="p-3 border">
-                      <input
-                        type="text"
+                    <td className="p-3 border">
+                      <select
                         name="category"
                         value={editingProveedor.category}
                         onChange={(e) =>
-                          setEditingProveedor({
-                            ...editingProveedor,
-                            category: e.target.value,
-                          })
+                          setEditingProveedor({ ...editingProveedor, category: e.target.value })
                         }
                         className="w-full border p-1 rounded"
-                      />
+                      >
+                        <option value="">Selecciona una categoría</option>
+                        {categoryProviders.map((cat) => (
+                          <option key={cat.id} value={cat.name}>
+                            {cat.name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
                     </td>
                     <td className="p-3 border">
-                      <input
-                        type="text"
-                        name="line"
-                        value={editingProveedor.line}
-                        onChange={(e) =>
-                          setEditingProveedor({
-                            ...editingProveedor,
-                            line: e.target.value,
-                          })
-                        }
-                        className="w-full border p-1 rounded"
-                      />
+                    <select
+                      name="category_line_id"
+                      value={editingProveedor.category_line_id}
+                      onChange={(e) =>
+                        setEditingProveedor({
+                          ...editingProveedor,
+                          category_line_id: parseInt(e.target.value),
+                        })
+                      }
+                      className="w-full border p-1 rounded"
+                    >
+                      <option value="">Selecciona una línea</option>
+                      {categoryLines.map((line) => (
+                        <option key={line.id} value={line.id}>
+                          {line.name}
+                        </option>
+                      ))}
+                    </select>
                     </td>
                     <td className="p-3 border">
                       <input
@@ -620,7 +724,7 @@ export default function ProveedoresPage() {
                     <td className="p-3 border">{proveedor.country}</td>
                     <td className="p-3 border">${proveedor.cost_usd}</td>
                     <td className="p-3 border">{proveedor.category}</td>
-                    <td className="p-3 border">{proveedor.line}</td>
+                    <td>{categoryLines.find(line => line.id === proveedor.category_line_id)?.name || "-"}</td>
                     <td className="p-3 border">{proveedor.email}</td>
                     <td className="p-3 border text-center">
                       <div className="flex justify-center items-center space-x-2">
@@ -651,14 +755,19 @@ export default function ProveedoresPage() {
                     />
                   </td>
                   <td className="p-3 border">
-                    <input
-                      type="text"
-                      name="role"
-                      value={row.role}
-                      onChange={(e) => handleNewRowInputChange(row.tempId, e)}
-                      className="w-full border p-1 rounded"
-                      placeholder="Rol"
-                    />
+                  <select
+                    name="role"
+                    value={row.role}
+                    onChange={(e) => handleNewRowInputChange(row.tempId, e)}
+                    className="w-full border p-1 rounded"
+                  >
+                    <option value="">Selecciona un rol</option>
+                    {categoryRoles.map((r) => (
+                      <option key={r.id} value={r.name}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </select>
                   </td>
                   <td className="p-3 border">
                     <input
@@ -671,14 +780,19 @@ export default function ProveedoresPage() {
                     />
                   </td>
                   <td className="p-3 border">
-                    <input
-                      type="text"
-                      name="country"
-                      value={row.country}
-                      onChange={(e) => handleNewRowInputChange(row.tempId, e)}
-                      className="w-full border p-1 rounded"
-                      placeholder="País"
-                    />
+                  <select
+                    name="country"
+                    value={row.country}
+                    onChange={(e) => handleNewRowInputChange(row.tempId, e)}
+                    className="w-full border p-1 rounded"
+                  >
+                    <option value="">Selecciona un país</option>
+                    {countries.map((c) => (
+                      <option key={c.id} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
                   </td>
                   <td className="p-3 border">
                     <input
@@ -691,24 +805,34 @@ export default function ProveedoresPage() {
                     />
                   </td>
                   <td className="p-3 border">
-                    <input
-                      type="text"
+                  <select
                       name="category"
                       value={row.category}
                       onChange={(e) => handleNewRowInputChange(row.tempId, e)}
                       className="w-full border p-1 rounded"
-                      placeholder="Categoría"
-                    />
+                    >
+                      <option value="">Selecciona una categoría</option>
+                      {categoryProviders.map((cat) => (
+                        <option key={cat.id} value={cat.name}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
                   </td>
                   <td className="p-3 border">
-                    <input
-                      type="text"
+                  <select
                       name="line"
                       value={row.line}
                       onChange={(e) => handleNewRowInputChange(row.tempId, e)}
                       className="w-full border p-1 rounded"
-                      placeholder="Línea"
-                    />
+                    >
+                    <option value="">Selecciona una línea</option>
+                    {categoryLines.map((line) => (
+                      <option key={line.id} value={line.name}>
+                        {line.name}
+                      </option>
+                    ))}
+                  </select>
                   </td>
                   <td className="p-3 border">
                     <input

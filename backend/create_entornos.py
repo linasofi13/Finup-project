@@ -6,11 +6,11 @@ from app.models.entorno import Entorno
 db = SessionLocal()
 
 entornos_por_defecto = [
-    "Producción",
-    "Pruebas",
-    "Desarrollo",
-    "Integración",
-    "Pre-Producción"
+    "Entorno 1",
+    "Entorno 2",
+    "Entorno 3",
+    "Entorno 4",
+    "Entorno 5"
 ]
 
 for name in entornos_por_defecto:

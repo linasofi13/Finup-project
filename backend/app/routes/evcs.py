@@ -21,6 +21,12 @@ async def create_evc(evc_data: EVCCreate, db: Session = Depends(get_db)):
 def list_evcs(db: Session = Depends(get_db)):
     return evc_service.get_evcs(db)
 
+@router.get("/evcs/{evc_id}", response_model=EVCResponse, tags=[tag_name])
+async def get_evc(evc_id: int, db: Session = Depends(get_db)):
+    db_evc = evc_service.get_evc_by_id(db, evc_id)
+    if not db_evc:
+        raise HTTPException(status_code=404, detail="EVC not found")
+    return db_evc
 
 @router.put("/evcs/{evc_id}", response_model=EVCResponse, tags=[tag_name])
 async def update_evc(evc_id: int, evc_data: EVCUpdate, db: Session = Depends(get_db)):

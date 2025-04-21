@@ -19,6 +19,8 @@ def get_evc_q_by_id(db: Session, evc_q_id: int):
 def get_evc_qs(db: Session, skip: int = 0, limit: int = 100):
     return db.query(EVC_Q).offset(skip).limit(limit).all()
 
+def get_evc_qs_by_evc_id(db: Session, evc_id: int):
+    return db.query(EVC_Q).filter(EVC_Q.evc_id == evc_id).all()
 
 def update_evc_q(db: Session, evc_q_id: int, evc_q_data: EVC_QUpdate):
     db_evc_q = get_evc_q_by_id(db, evc_q_id)
@@ -36,5 +38,4 @@ def delete_evc_q(db: Session, evc_q_id: int):
         db.delete(db_evc_q)
         db.commit()
     return db_evc_q
-
 

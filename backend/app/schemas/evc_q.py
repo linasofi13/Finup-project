@@ -40,11 +40,11 @@ class EVC_QShortResponse(EVC_QBase):
     q: Optional[int] = None
     allocated_budget: Optional[float] = None
     allocated_percentage: Optional[float] = None
-    evc_financials: Optional[List[EVC_FinancialShortResponse]] = None  #
 
 
 class EVC_QResponse(EVC_QShortResponse):
     evc_id: Optional[int] = None
+    evc_financials: Optional[List[EVC_FinancialShortResponse]] = None  #
 
 
 class EVC_QUpdate(EVC_QBase):

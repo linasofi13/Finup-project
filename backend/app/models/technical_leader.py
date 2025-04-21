@@ -10,7 +10,6 @@ class TechnicalLeader(Base):
     name = Column(String(80), nullable=False)
     email = Column(String(80), nullable=False)
     entry_date = Column(DateTime, nullable=False, default=func.now())
-
     # Relationships
     evcs = relationship("EVC", back_populates="technical_leader")
     entornos = relationship("Entorno", back_populates="technical_leader")

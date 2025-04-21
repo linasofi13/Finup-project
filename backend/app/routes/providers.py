@@ -24,9 +24,11 @@ async def create_provider(provider_data: ProviderCreate, db: Session = Depends(g
     return provider_service.create_provider(db, provider_data)
 
 
-@router.get("/", response_model=List[ProviderResponse], tags=[tag_name])
-async def get_providers(db: Session = Depends(get_db)):
-    return provider_service.get_providers(db)
+@app.get("/providers/", response_model=List[ProviderResponse])
+def get_providers(db: Session = Depends(get_db)):
+    providers = db.query(Provider).all()
+    return [provider_service.transform_provider(p) for p in providers]
+
 
 
 @router.put("/{provider_id}", response_model=ProviderResponse, tags=[tag_name])

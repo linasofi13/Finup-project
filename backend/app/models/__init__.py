@@ -16,6 +16,7 @@ from app.models.provider import Provider
 from app.models.role_provider import RoleProvider
 from app.models.role import Role
 from app.models.technical_leader import TechnicalLeader
+from app.models.category_line import CategoryLine
 
 
 # This ensures all models are registered with SQLAlchemy
@@ -37,4 +38,5 @@ __all__ = [
     "Role",
     "TechnicalLeader",
     "User",
+    "CategoryLine",
 ]

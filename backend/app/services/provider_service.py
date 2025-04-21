@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from app.models.provider import Provider
 from app.schemas.provider import ProviderCreate
-
+from sqlalchemy.orm import Session, joinedload
 
 def create_provider(db: Session, provider_data: ProviderCreate):
     """Creates a new provider in the database."""
@@ -12,9 +12,23 @@ def create_provider(db: Session, provider_data: ProviderCreate):
     return provider
 
 
-def get_providers(db: Session):
-    """Returns all providers."""
-    return db.query(Provider).all()
+def get_providers(db: Session) -> List[Provider]:
+    providers = db.query(Provider).options(
+        joinedload(Provider.category_provider),
+        joinedload(Provider.category_line),
+        joinedload(Provider.role_providers).joinedload(RoleProvider.role),
+        joinedload(Provider.role_providers).joinedload(RoleProvider.country)
+    ).all()
+    
+    for p in providers:
+        if p.role_providers:
+            rp = p.role_providers[0]  # Primer role_provider
+            p.cost_usd = rp.price_usd
+            p.country = rp.country.name if rp.country else None
+            p.role = rp.role.name if rp.role else p.role
+
+    return providers
+
 
 
 def get_provider_by_id(db: Session, provider_id: int):

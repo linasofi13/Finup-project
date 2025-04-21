@@ -17,6 +17,7 @@ from app.routes import (
     providers,
     role_providers,
     users,
+    category_line
 )
 from app.database import engine, Base, SessionLocal
 
@@ -66,6 +67,7 @@ app.include_router(
     role_providers.router, prefix="/role-providers", tags=["Role Providers"]
 )
 
+app.include_router(category_line.router)
 # Include the evcs router
 # app.include_router(
 #     providers.router, prefix="/providers", tags=["Providers"]

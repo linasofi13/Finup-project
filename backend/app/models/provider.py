@@ -11,6 +11,8 @@ class Provider(Base):
     role = Column(String)
     company = Column(String)
     email = Column(String, unique=True, index=True)
+    cost_usd = Column(Float, nullable=True)
+
 
     category_provider_id = Column(Integer, ForeignKey("category_provider.id"))
 
@@ -18,3 +20,6 @@ class Provider(Base):
     category_provider = relationship("CategoryProvider", back_populates="providers")
     # Relationship with role_provider
     role_providers = relationship("RoleProvider", back_populates="provider")
+    
+    category_line_id = Column(Integer, ForeignKey("category_line.id"))
+    category_line = relationship("CategoryLine")

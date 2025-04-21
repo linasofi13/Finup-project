@@ -1,0 +1,14 @@
+fastapi==0.103.0
+uvicorn==0.22.0
+sqlalchemy==2.0.20
+psycopg2-binary==2.9.6
+alembic==1.11.1
+pydantic==2.6.4
+python-dotenv==1.0.1
+email-validator==2.2.0
+python-multipart==0.0.19
+passlib==1.7.4
+python-jose==3.3.0
+bcrypt==3.2.2
+black==23.12.1
+Faker==24.8.0

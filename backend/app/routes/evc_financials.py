@@ -63,3 +63,55 @@ async def delete_evc_financial(evc_financial_id: int, db: Session = Depends(get_
     if db_evc_financial is None:
         raise HTTPException(status_code=404, detail="EVC Financial not found")
     return db_evc_financial
+
+
+@router.get(
+    "/evc_financials/{evc_q_id}/spendings",
+    response_model=dict,
+    tags=[tag_name],
+)
+async def get_spendings_by_evc_q(
+    evc_q_id: int, db: Session = Depends(get_db)
+) -> float:
+    """
+    Get the total spendings (sum of RoleProvider.price_usd) for a given evc_q_id.
+    """
+    total = evc_financial_service.get_spendings_by_evc_q(db, evc_q_id)
+    percentage= evc_financial_service.get_percentage_by_evc_q(db, evc_q_id)
+    if percentage ==1:
+        message="No more budget left"   
+    elif percentage>=.9:
+        message="Almost out of budget"
+    elif percentage>=.8:
+        message="Budget is getting low"
+    elif percentage>=.5:
+        message="Budget is getting low"
+    else:
+        message="Budget is sufficient"
+    
+    return {"evc_q_id": evc_q_id, "total_spendings": total, "percentage": percentage, "message": message}
+
+# @router.get(
+#     "/evc_financials/{evc_q_id}/percentage",
+#     response_model=dict,
+#     tags=[tag_name],
+# )
+# async def get_percentage_by_evc_q(
+#     evc_q_id: int, db: Session = Depends(get_db)
+# ) -> float:
+#     """
+#     Get the percentage of spendings for a given evc_q_id.
+#     """
+#     percentage = evc_financial_service.get_percentage_by_evc_q(db, evc_q_id)
+#     if percentage ==1:
+#         message="No more budget left"
+#     elif percentage>=.9:
+#         message="Almost out of budget"
+#     elif percentage>=.8:
+#         message="Budget is getting low"
+#     elif percentage>=.5:
+#         message="Budget is getting low"
+#     else:
+#         message="Budget is sufficient"
+        
+#     return {"evc_q_id": evc_q_id, "percentage": percentage, "message": message}

@@ -36,3 +36,5 @@ def delete_evc_q(db: Session, evc_q_id: int):
         db.delete(db_evc_q)
         db.commit()
     return db_evc_q
+
+

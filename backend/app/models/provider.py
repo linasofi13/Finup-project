@@ -4,7 +4,7 @@ from app.database import Base
 
 
 class Provider(Base):
-    __tablename__ = "providers"
+    __tablename__ = "provider"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
@@ -15,6 +15,9 @@ class Provider(Base):
     category = Column(String)
     line = Column(String)
     email = Column(String, unique=True, index=True)
+    
+    # Relationships
+    evc_financials = relationship("EVC_Financial", back_populates="provider")
 
     # Relationship with EVCProvider
-    evc_providers = relationship("EVCProvider", back_populates="provider")
+    # evc_providers = relationship("EVCProvider", back_populates="provider")

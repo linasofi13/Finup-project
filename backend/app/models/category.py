@@ -1,6 +1,5 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
-from .app_user_category import AppUserCategory
 from app.database import Base
 
 
@@ -11,4 +10,4 @@ class Category(Base):
     name = Column(String(45), nullable=False)
 
     # Relationship to user-category
-    app_users = relationship("AppUserCategory", back_populates="category")
+    users = relationship("UserCategory", back_populates="category")

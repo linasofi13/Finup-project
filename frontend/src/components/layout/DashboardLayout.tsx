@@ -9,7 +9,10 @@ interface DashboardLayoutProps {
   title: string;
 }
 
-export default function DashboardLayout({ children, title }: DashboardLayoutProps) {
+export default function DashboardLayout({
+  children,
+  title,
+}: DashboardLayoutProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
 
@@ -31,7 +34,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
     return null;
   }
 
-  // Sólo renderiza contenido y título, 
+  // Sólo renderiza contenido y título,
   // dejando que el RootLayout maneje el sidebar y el header
   return (
     <div className="flex-1 p-6 pt-20 bg-white">

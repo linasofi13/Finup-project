@@ -26,6 +26,12 @@ async def create_evc_q(evc_q_data: EVC_QCreate, db: Session = Depends(get_db)):
 async def get_evc_qs(db: Session = Depends(get_db)):
     return evc_q_service.get_evc_qs(db)
 
+@router.get(
+    "/evc_qs/evc/{evc_id}", response_model=List[EVC_QShortResponse], tags=[tag_name]
+)
+async def get_evc_qs_by_evc_id(evc_id: int, db: Session = Depends(get_db)):
+    return evc_q_service.get_evc_qs_by_evc_id(db, evc_id)
+
 
 @router.put("/evc_qs/{evc_q_id}", response_model=EVC_QResponse, tags=[tag_name])
 async def update_evc_q(

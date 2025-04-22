@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.models.evc_financial import EVC_Financial
-from app.schemas.evc_financial import EVC_FinancialCreate, EVC_FinancialUpdate
+from app.schemas.evc_financial import EVC_FinancialCreate, EVC_FinancialUpdate, EVC_FinancialCreateConcept
 from app.models.provider import Provider
 from app.models.evc_q import EVC_Q
 from app.services.rule_evaluator import evaluate_rules  
@@ -12,6 +12,15 @@ def create_evc_financial(db: Session, evc_financial_data: EVC_FinancialCreate):
     db.commit()
     db.refresh(db_evc_financial)
     evaluate_rules(db, changed_table="evc_financial")
+    return db_evc_financial
+
+def create_evc_financial_concept(
+    db: Session, evc_financial_data: EVC_FinancialCreateConcept
+):
+    db_evc_financial = EVC_Financial(**evc_financial_data.model_dump())
+    db.add(db_evc_financial)
+    db.commit()
+    db.refresh(db_evc_financial)
     return db_evc_financial
 
 def get_evc_financial_by_id(db: Session, evc_financial_id: int):
@@ -44,7 +53,15 @@ def get_spendings_by_evc_q(db: Session, evc_q_id: int) -> float:
     ).filter(
         EVC_Financial.evc_q_id == evc_q_id
     ).scalar()
-    return total or 0.0
+    total2= db.query(func.sum(EVC_Financial.value_usd)).filter(
+        EVC_Financial.evc_q_id == evc_q_id
+    ).scalar()
+    if total is None:
+        total = 0.0
+    if total2 is None:
+        total2 = 0.0
+
+    return total+total2 or 0.0
 
 def get_percentage_by_evc_q(db: Session, evc_q_id: int) -> float:
     total_spendings = get_spendings_by_evc_q(db, evc_q_id)

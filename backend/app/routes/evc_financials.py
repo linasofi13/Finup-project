@@ -5,8 +5,9 @@ from app.database import get_db
 
 from app.schemas.evc_financial import (
     EVC_FinancialCreate,
+    EVC_FinancialCreateConcept,
     EVC_FinancialUpdate,
-    EVC_FinancialShortResponse,
+    EVC_FinancialResponse,
 )
 from app.models.evc_financial import EVC_Financial
 import app.services.evc_financial as evc_financial_service
@@ -17,7 +18,7 @@ tag_name = "EVC Financials"
 
 
 @router.post(
-    "/evc_financials/", response_model=EVC_FinancialShortResponse, tags=[tag_name]
+    "/evc_financials/", response_model=EVC_FinancialResponse, tags=[tag_name]
 )
 async def create_evc_financial(
     evc_financial: EVC_FinancialCreate, db: Session = Depends(get_db)
@@ -27,8 +28,14 @@ async def create_evc_financial(
     )
 
 
+@router.post( "/evc_financials/concept", response_model=EVC_FinancialResponse, tags=[tag_name])
+async def create_evc_financial_concept(evc_financial_data: EVC_FinancialCreateConcept, db: Session = Depends(get_db)
+):
+    return evc_financial_service.create_evc_financial_concept(
+        db=db, evc_financial_data=evc_financial_data
+    )
 @router.get(
-    "/evc_financials/", response_model=List[EVC_FinancialShortResponse], tags=[tag_name]
+    "/evc_financials/", response_model=List[EVC_FinancialResponse], tags=[tag_name]
 )
 async def read_evc_financials(db: Session = Depends(get_db)):
     evc_financials = evc_financial_service.get_evc_financials(db)
@@ -37,7 +44,7 @@ async def read_evc_financials(db: Session = Depends(get_db)):
 
 @router.put(
     "/evc_financials/{evc_financial_id}",
-    response_model=EVC_FinancialShortResponse,
+    response_model=EVC_FinancialResponse,
     tags=[tag_name],
 )
 async def update_evc_financial(
@@ -55,7 +62,7 @@ async def update_evc_financial(
 
 @router.delete(
     "/evc_financials/{evc_financial_id}",
-    response_model=EVC_FinancialShortResponse,
+    response_model=EVC_FinancialResponse,
     tags=[tag_name],
 )
 async def delete_evc_financial(evc_financial_id: int, db: Session = Depends(get_db)):

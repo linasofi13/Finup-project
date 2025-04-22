@@ -10,17 +10,15 @@ if TYPE_CHECKING:
 class UserBase(BaseModel):
     username: str
     email: str
+    rol: str = "consultor"
 
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=8, max_length=255)
-    # is_admin: bool = False
-    # is_active: bool = True
 
 
 class User(UserBase):
     id: int
-    # Relationships from AppUser
     categories: List["UserCategory"] = None
 
     class Config:
@@ -31,8 +29,7 @@ class UserUpdate(BaseModel):
     username: Optional[str] = None
     email: Optional[str] = None
     password: Optional[str] = None
-    # is_admin: Optional[bool] = None
-    # is_active: Optional[bool] = None
+    rol: Optional[str] = None  # <--- NUEVO CAMPO
 
     class Config:
         from_attributes = True
@@ -42,9 +39,8 @@ class UserResponse(UserBase):
     id: int
     username: str
     email: str
+    rol: str  # <--- NUEVO CAMPO
 
-    # is_admin: bool
-    # is_active: bool
     class Config:
         from_attributes = True
 

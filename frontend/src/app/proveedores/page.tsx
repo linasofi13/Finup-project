@@ -840,7 +840,7 @@ export default function ProveedoresPage() {
 
       {/* Modal de Previsualización para Carga Masiva */}
       {showPreviewModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
+        <div className="fixed inset-0 flex items-center justify-center bg-white/30 backdrop-blur-sm z-50">
           <div
             className="bg-white p-6 rounded-lg shadow-lg w-full max-w-6xl"
             style={{ transform: "translateX(50px)" }}

@@ -3,6 +3,7 @@
 from sqlalchemy.orm import Session, joinedload
 from app.models.evc import EVC
 from app.models.provider import Provider
+from app.models.evc_q import EVC_Q
 from app.schemas.evc import EVCCreate, EVCUpdate, EVCResponse
 
 
@@ -38,8 +39,15 @@ def update_evc(db: Session, evc_id: int, evc_data: EVCUpdate):
 
 
 def delete_evc(db: Session, evc_id: int):
-    db_evc = get_evc_by_id(db, evc_id)
-    if db_evc:
-        db.delete(db_evc)
-        db.commit()
-    return db_evc
+    try:
+        # Eliminar primero las relaciones con EVC_Q
+        db.query(EVC_Q).filter(EVC_Q.evc_id == evc_id).delete()
+        db_evc = get_evc_by_id(db, evc_id)
+        if db_evc:
+            db.delete(db_evc)
+            db.commit()
+        return db_evc
+    except Exception as e:
+        db.rollback()
+        print(f"Error deleting EVC: {str(e)}")
+        raise

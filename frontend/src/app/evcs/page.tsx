@@ -13,6 +13,7 @@ import {
     FaLink,
     FaClock,
     FaHistory,
+    FaCalendar
 } from "react-icons/fa";
 import { RiTeamFill } from "react-icons/ri";
 
@@ -56,6 +57,7 @@ export default function EvcsPage() {
     const [functionalLeadersData, setFunctionalLeadersData] = useState<{ [key: number]: string }>({});
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [evcToDelete, setEvcToDelete] = useState<EVC | null>(null);
+    const [showQuartersModal, setShowQuartersModal] = useState(false);
 
     //Colores para entornos
     const entornoColors = {
@@ -515,6 +517,144 @@ export default function EvcsPage() {
             )}
 
 
+            {/* Modal para gestión de quarters */}
+            {showQuartersModal && selectedEvc && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-3xl max-h-[80vh] overflow-y-auto">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-2xl font-bold">Gestión de Quarters - {selectedEvc.name}</h2>
+                            <FaTimes
+                                className="text-red-500 cursor-pointer"
+                                onClick={() => setShowQuartersModal(false)}
+                            />
+                        </div>
+
+                        {/* Formulario para crear quarter */}
+                        <div className="mb-6 bg-gray-50 p-4 rounded-lg">
+                            <h3 className="text-lg font-semibold mb-4">Agregar Nuevo Quarter</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Año</label>
+                                    <input
+                                        type="number"
+                                        name="year"
+                                        className="p-2 border rounded w-full"
+                                        value={newQuarter.year}
+                                        onChange={handleQuarterChange}
+                                        placeholder="YYYY"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Quarter</label>
+                                    <select
+                                        name="q"
+                                        className="p-2 border rounded w-full"
+                                        value={newQuarter.q}
+                                        onChange={handleQuarterChange}
+                                    >
+                                        <option value="">Seleccionar Q</option>
+                                        <option value="1">Q1</option>
+                                        <option value="2">Q2</option>
+                                        <option value="3">Q3</option>
+                                        <option value="4">Q4</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Presupuesto Asignado</label>
+                                    <input
+                                        type="number"
+                                        name="allocated_budget"
+                                        className="p-2 border rounded w-full"
+                                        value={newQuarter.allocated_budget}
+                                        onChange={handleQuarterChange}
+                                        placeholder="$"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Porcentaje</label>
+                                    <input
+                                        type="number"
+                                        name="allocated_percentage"
+                                        className="p-2 border rounded w-full"
+                                        value={newQuarter.allocated_percentage}
+                                        onChange={handleQuarterChange}
+                                        placeholder="%"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex justify-end mt-4">
+                                <button
+                                    className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+                                    onClick={() => createQuarter(selectedEvc.id)}
+                                >
+                                    Agregar Quarter
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Lista de quarters con gestión de proveedores */}
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-semibold mb-4">Quarters Existentes</h3>
+                            {selectedEvc.evc_qs && selectedEvc.evc_qs.length > 0 ? (
+                                selectedEvc.evc_qs.map((quarter) => (
+                                    <div key={quarter.id} className="border p-4 rounded-lg">
+                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                            <p><strong>Año:</strong> {quarter.year}</p>
+                                            <p><strong>Quarter:</strong> Q{quarter.q}</p>
+                                            <p><strong>Presupuesto:</strong> ${quarter.allocated_budget}</p>
+                                            <p><strong>Porcentaje:</strong> {quarter.allocated_percentage}%</p>
+                                        </div>
+
+                                        {/* Sección de asignación de proveedor */}
+                                        <div className="mt-4 pt-4 border-t">
+                                            <h4 className="font-medium mb-2">Asignar Proveedor</h4>
+                                            <div className="flex gap-4">
+                                                <select
+                                                    className="p-2 border rounded flex-1"
+                                                    value={financialSelections[quarter.id] || ""}
+                                                    onChange={(e) => handleFinancialChange(e, quarter.id)}
+                                                >
+                                                    <option value="">Seleccionar Proveedor</option>
+                                                    {availableProviders.map((provider) => (
+                                                        <option key={provider.id} value={provider.id}>
+                                                            {provider.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <button
+                                                    className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+                                                    onClick={() => createFinancial(selectedEvc.id, quarter.id)}
+                                                >
+                                                    Asignar
+                                                </button>
+                                            </div>
+
+                                            {/* Lista de proveedores asignados */}
+                                            {quarter.evc_financials && quarter.evc_financials.length > 0 && (
+                                                <div className="mt-2">
+                                                    <p className="text-sm font-medium">Proveedores asignados:</p>
+                                                    <div className="flex flex-wrap gap-2 mt-1">
+                                                        {quarter.evc_financials.map((financial) => (
+                                                            <span
+                                                                key={financial.id}
+                                                                className="px-2 py-1 bg-gray-100 rounded text-sm"
+                                                            >
+                                                                {financial.provider.name}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-gray-500">No hay quarters asignados.</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Modal de eliminación */}
             {showDeleteModal && evcToDelete && (
@@ -606,145 +746,24 @@ export default function EvcsPage() {
                             </p>
                         </div>
 
-                        {/* Lista de proveedores asignados al EVC */}
-                        <div className="mb-6">
-                            <h3 className="text-xl font-semibold mb-2">
-                                Proveedores Asignados al EVC
-                            </h3>
-                            {getEvcProviders().length > 0 ? (
-                                <ul className="list-disc pl-5">
-                                    {getEvcProviders().map((provider) => (
-                                        <li key={provider.id}>
-                                            {provider.name || "Sin nombre"} ({provider.company || "Sin empresa"},
-                                            ${provider.cost_usd || 0})
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p>No hay proveedores asignados al EVC.</p>
-                            )}
-                        </div>
-
-                        {/* Formulario para crear quarter */}
-                        <div className="mb-6">
-                            <h3 className="text-xl font-semibold mb-2">Crear Quarter</h3>
-                            <div className="grid grid-cols-2 gap-4">
-                                <input
-                                    type="number"
-                                    name="year"
-                                    placeholder="Año (ej. 2025)"
-                                    className="p-2 border rounded"
-                                    value={newQuarter.year}
-                                    onChange={handleQuarterChange}
-                                />
-                                <select
-                                    name="q"
-                                    className="p-2 border rounded"
-                                    value={newQuarter.q}
-                                    onChange={handleQuarterChange}
-                                >
-                                    <option value="">-- Seleccionar Quarter --</option>
-                                    <option value="1">Q1</option>
-                                    <option value="2">Q2</option>
-                                    <option value="3">Q3</option>
-                                    <option value="4">Q4</option>
-                                </select>
-                                <input
-                                    type="number"
-                                    name="allocated_budget"
-                                    placeholder="Presupuesto asignado"
-                                    className="p-2 border rounded"
-                                    value={newQuarter.allocated_budget}
-                                    onChange={handleQuarterChange}
-                                />
-                                <input
-                                    type="number"
-                                    name="allocated_percentage"
-                                    placeholder="Porcentaje asignado (%)"
-                                    className="p-2 border rounded"
-                                    value={newQuarter.allocated_percentage}
-                                    onChange={handleQuarterChange}
-                                />
-                            </div>
-                            <button
-                                className="mt-4 px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
-                                onClick={() => createQuarter(selectedEvc.id)}
-                            >
-                                Crear Quarter
-                            </button>
-                        </div>
-
-                        {/* Lista de quarters */}
-                        <div>
-                            <h3 className="text-xl font-semibold mb-2">Quarters</h3>
+                        {/* Lista de quarters (solo visualización) */}
+                        <div className="mt-6">
+                            <h3 className="text-xl font-semibold mb-2">Quarters Asignados</h3>
                             {selectedEvc.evc_qs && selectedEvc.evc_qs.length > 0 ? (
-                                selectedEvc.evc_qs.map((quarter) => (
-                                    <div key={quarter.id} className="border p-4 rounded-lg mb-4">
-                                        <p>
-                                            <strong>Año:</strong> {quarter.year}
-                                        </p>
-                                        <p>
-                                            <strong>Quarter:</strong> Q{quarter.q}
-                                        </p>
-                                        <p>
-                                            <strong>Presupuesto Asignado:</strong> ${quarter.allocated_budget}
-                                        </p>
-                                        <p>
-                                            <strong>Porcentaje Asignado:</strong> {quarter.allocated_percentage}%
-                                        </p>
-
-                                        {/* Formulario para asignar proveedor */}
-                                        <div className="mt-4">
-                                            <h4 className="font-semibold">Asignar Proveedor</h4>
-                                            <select
-                                                className="p-2 border rounded w-full"
-                                                value={financialSelections[quarter.id] || ""}
-                                                onChange={(e) => handleFinancialChange(e, quarter.id)}
-                                            >
-                                                <option value="">-- Seleccionar Proveedor --</option>
-                                                {availableProviders.map((provider) => (
-                                                    <option key={provider.id} value={provider.id}>
-                                                        {provider.name} ({provider.company}, ${provider.cost_usd})
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            <button
-                                                className="mt-2 px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
-                                                onClick={() => createFinancial(selectedEvc.id, quarter.id)}
-                                                disabled={!financialSelections[quarter.id]}
-                                            >
-                                                Asignar Proveedor
-                                            </button>
+                                <div className="space-y-4">
+                                    {selectedEvc.evc_qs.map((quarter) => (
+                                        <div key={quarter.id} className="border p-4 rounded-lg">
+                                            <p><strong>Año:</strong> {quarter.year}</p>
+                                            <p><strong>Quarter:</strong> Q{quarter.q}</p>
+                                            <p><strong>Presupuesto:</strong> ${quarter.allocated_budget}</p>
+                                            <p><strong>Porcentaje:</strong> {quarter.allocated_percentage}%</p>
                                         </div>
-
-                                        {/* Lista de proveedores asignados */}
-                                        {quarter.evc_financials && quarter.evc_financials.length > 0 && (
-                                            <div className="mt-4">
-                                                <h4 className="font-semibold">Proveedores Asignados</h4>
-                                                <ul className="list-disc pl-5">
-                                                    {quarter.evc_financials.map((financial) => (
-                                                        <li key={financial.id}>
-                                                            {financial.provider?.name || "Sin nombre"} (
-                                                            {financial.provider?.company || "Sin empresa"}, $
-                                                            {financial.provider?.cost_usd || 0})
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))
+                                    ))}
+                                </div>
                             ) : (
                                 <p>No hay quarters asignados.</p>
                             )}
                         </div>
-
-                        {alert && (
-                            <div className="mt-4 bg-yellow-100 text-yellow-800 p-2 rounded-md flex items-center">
-                                <FaExclamationTriangle className="mr-2" />
-                                {alert}
-                            </div>
-                        )}
                     </div>
                 </div>
             )}
@@ -817,10 +836,25 @@ export default function EvcsPage() {
                             </div>
                         </div>
                         <div className="flex justify-end items-center mt-auto space-x-4">
-                            <FaEye
-                                className="cursor-pointer hover:text-white/70 text-xl"
+                            <button
+                                className="flex items-center cursor-pointer hover:text-white/70 text-base"
                                 onClick={() => showEvcDetails(evc)}
-                            />
+                            >
+                                <FaEye className="mr-2 text-xl" />
+                                Ver detalles
+                            </button>
+
+                            <button
+                                className="flex items-center cursor-pointer hover:text-white/70 text-base"
+                                onClick={() => {
+                                    setSelectedEvc(evc);
+                                    setShowQuartersModal(true);
+                                }}
+                            >
+                                <FaCalendar className="mr-2 text-xl" />
+                                Gestionar Quarters
+                            </button>
+
                             <FaTrash
                                 className="cursor-pointer hover:text-red-300 text-xl"
                                 onClick={() => handleDeleteClick(evc)}

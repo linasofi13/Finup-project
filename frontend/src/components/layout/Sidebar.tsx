@@ -82,13 +82,6 @@ const Sidebar = ({ isOpen, toggleSidebar }: SidebarProps) => {
 
       <nav className="flex flex-col space-y-4 flex-grow">
         <Link
-          href="/"
-          className="sidebar-link flex items-center gap-3 p-2 rounded-md hover:bg-gray-200 transition-all"
-        >
-          <FaHome className="sidebar-icon" />
-          {mounted && isOpen && <span>Inicio</span>}
-        </Link>
-        <Link
           href="/dashboard"
           className="sidebar-link flex items-center gap-3 p-2 rounded-md hover:bg-gray-200 transition-all"
         >

@@ -5,13 +5,14 @@ from app.models.evc import EVC
 from app.models.provider import Provider
 from app.models.evc_q import EVC_Q
 from app.schemas.evc import EVCCreate, EVCUpdate, EVCResponse
-
+from app.services.rule_evaluator import evaluate_rules
 
 def create_evc(db: Session, evc_data: EVCCreate):
     db_evc = EVC(**evc_data.dict())
     db.add(db_evc)
     db.commit()
     db.refresh(db_evc)
+    evaluate_rules(db, changed_table="evc")
     return db_evc
 
 
@@ -35,6 +36,7 @@ def update_evc(db: Session, evc_id: int, evc_data: EVCUpdate):
             setattr(db_evc, key, value)
         db.commit()
         db.refresh(db_evc)
+        evaluate_rules(db, changed_table="evc")
     return db_evc
 
 

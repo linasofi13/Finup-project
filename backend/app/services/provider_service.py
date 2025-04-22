@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from backend.app.models.provider import Provider
+from app.models.provider import Provider
 from app.schemas.provider import ProviderCreate
 
 

@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from backend.app.models.app_user import AppUser
+from backend.app.models.user import AppUser
 from app.repositories.app_user_repository import create_user, get_user_by_username
 from app.database import SessionLocal
 

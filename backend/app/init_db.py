@@ -1,5 +1,5 @@
 from app.database import engine, Base
-from app.models.user import User
+from backend.app.models.user_back import User
 import logging
 
 logging.basicConfig(level=logging.INFO)

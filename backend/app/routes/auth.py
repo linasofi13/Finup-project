@@ -5,28 +5,26 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.user import User
-from app.schemas.auth import UserCreate, Token, User as UserSchema, UserResponse
-from app.core.security import (
-    verify_password,
-    get_password_hash,
-    create_access_token,
-    ACCESS_TOKEN_EXPIRE_MINUTES,
-)
+from app.schemas.user import UserCreate, Token, User as UserSchema, UserResponse
+from app.services import auth_service
+
+# (
+#     verify_password,
+#     get_password_hash,
+#     create_access_token,
+#     ACCESS_TOKEN_EXPIRE_MINUTES,
+# )
 
 router = APIRouter()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 
-def get_user_by_email(db: Session, email: str):
-    return db.query(User).filter(User.email == email).first()
-
-
 def authenticate_user(db: Session, email: str, password: str):
-    user = get_user_by_email(db, email)
+    user = auth_service.get_user_by_email(db, email)
     if not user:
         return False
-    if not verify_password(password, user.password):
+    if not auth_service.verify_password(password, user.password):
         return False
     return user
 
@@ -51,7 +49,7 @@ async def get_current_user(
     except JWTError:
         raise credentials_exception
 
-    user = get_user_by_email(db, email)
+    user = auth_service.get_user_by_email(db, email)
     if user is None:
         raise credentials_exception
 
@@ -60,25 +58,26 @@ async def get_current_user(
 
 @router.post("/register", response_model=UserResponse)
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
-    db_user = get_user_by_email(db, user.email)
+    db_user = auth_service.get_user_by_email(db, user.email)
     if db_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered",
         )
 
-    hashed_password = get_password_hash(user.password)
+    hashed_password = auth_service.get_password_hash(user.password)
     db_user = User(
         email=user.email,
         username=user.username,
         password=hashed_password,
+        rol=user.rol if hasattr(user, "rol") else "consultor"
     )
 
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
 
-    return UserResponse(id=db_user.id, email=db_user.email, username=db_user.username)
+    return UserResponse(id=db_user.id, email=db_user.email, username=db_user.username, rol=db_user.rol)
 
 
 @router.post("/token", response_model=Token)
@@ -94,18 +93,26 @@ async def login_for_access_token(
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        access_token = create_access_token(
-            data={"sub": user.email}, expires_delta=access_token_expires
+        access_token_expires = timedelta(
+            minutes=auth_service.ACCESS_TOKEN_EXPIRE_MINUTES
+        )
+        access_token = auth_service.create_access_token(
+            data={"sub": user.email, "rol": user.rol},  # <-- AGREGA rol aquí
+            expires_delta=access_token_expires
         )
 
         return {
             "access_token": access_token,
             "token_type": "bearer",
-            "user": {"id": user.id, "email": user.email, "username": user.username},
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "username": user.username,
+                "rol": user.rol  # <-- AGREGA rol aquí
+            },
         }
     except Exception as e:
-        print(f"Login error: {str(e)}")  # Add this for debugging
+        print(f"Login error: {str(e)}")
         raise
 
 
@@ -113,5 +120,8 @@ async def login_for_access_token(
 async def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get information about the currently authenticated user."""
     return UserResponse(
-        id=current_user.id, email=current_user.email, username=current_user.username
+        id=current_user.id, 
+        email=current_user.email, 
+        username=current_user.username,
+        rol=current_user.rol
     )

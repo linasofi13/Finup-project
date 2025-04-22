@@ -54,6 +54,8 @@ export default function EvcsPage() {
     const [entornosData, setEntornosData] = useState<{ [key: number]: string }>({});
     const [technicalLeadersData, setTechnicalLeadersData] = useState<{ [key: number]: string }>({});
     const [functionalLeadersData, setFunctionalLeadersData] = useState<{ [key: number]: string }>({});
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [evcToDelete, setEvcToDelete] = useState<EVC | null>(null);
 
     //Colores para entornos
     const entornoColors = {
@@ -338,10 +340,18 @@ export default function EvcsPage() {
         try {
             await axios.delete(`http://127.0.0.1:8000/evcs/evcs/${evcId}`);
             setEvcs((prev) => prev.filter((e) => e.id !== evcId));
+            setShowDeleteModal(false);
+            setEvcToDelete(null);
             setShowDetailModal(false);
         } catch (error) {
             console.error("Error eliminando EVC:", error);
+            setAlert("Error al eliminar la EVC");
         }
+    };
+
+    const handleDeleteClick = (evc: EVC) => {
+        setEvcToDelete(evc);
+        setShowDeleteModal(true);
     };
 
     // Mostrar vista detallada
@@ -500,6 +510,38 @@ export default function EvcsPage() {
                         >
                             Crear EVC
                         </button>
+                    </div>
+                </div>
+            )}
+
+
+
+            {/* Modal de eliminación */}
+            {showDeleteModal && evcToDelete && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+                        <h2 className="text-xl font-bold mb-4">Confirmar Eliminación</h2>
+                        <p className="mb-4">
+                            ¿Está seguro que desea eliminar la EVC "{evcToDelete.name}"?
+                            Esta acción no se puede deshacer.
+                        </p>
+                        <div className="flex justify-end space-x-4">
+                            <button
+                                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    setEvcToDelete(null);
+                                }}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+                                onClick={() => deleteEvc(evcToDelete.id)}
+                            >
+                                Eliminar
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
@@ -781,7 +823,7 @@ export default function EvcsPage() {
                             />
                             <FaTrash
                                 className="cursor-pointer hover:text-red-300 text-xl"
-                                onClick={() => deleteEvc(evc.id)}
+                                onClick={() => handleDeleteClick(evc)}
                             />
                         </div>
                     </div>

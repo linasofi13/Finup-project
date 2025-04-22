@@ -16,6 +16,7 @@ import {
     FaCalendar
 } from "react-icons/fa";
 import { RiTeamFill } from "react-icons/ri";
+import * as XLSX from "xlsx";
 
 import axios from "axios";
 
@@ -410,6 +411,26 @@ export default function EvcsPage() {
         setShowFilterModal(false);
     }
 
+    //Función para exportar a Excel
+    const exportToExcel = () => {
+        const dataToExport = evcs.map(evc => ({
+            'Nombre': evc.name,
+            'Descripción': evc.description,
+            'Estado': evc.status ? 'Activo' : 'Inactivo',
+            'Entorno': evc.entorno_id ? entornosData[evc.entorno_id] : '',
+            'Líder Técnico': evc.technical_leader_id ? technicalLeadersData[evc.technical_leader_id] : '',
+            'Líder Funcional': evc.functional_leader_id ? functionalLeadersData[evc.functional_leader_id] : '',
+            'Quarters Asignados': evc.evc_qs ? evc.evc_qs.length : 0,
+            'Fecha Creación': new Date(evc.creation_date).toLocaleDateString(),
+            'Última Actualización': new Date(evc.updated_at).toLocaleDateString()
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(dataToExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "EVCs");
+        XLSX.writeFile(wb, "evcs.xlsx");
+    }
+
     // Render
     return (
         <div className="p-6 mt-20 bg-white shadow-md rounded-lg flex flex-col">
@@ -424,7 +445,10 @@ export default function EvcsPage() {
                         <FaFilter className="mr-2" />
                         {filteredEvcs.length > 0 ? `Filtrado (${filteredEvcs.length})` : 'Filtrar'}
                     </button>
-                    <button className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600">
+                    <button
+                        onClick={exportToExcel}
+                        className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+                    >
                         <FaDownload className="mr-2" /> Exportar
                     </button>
                     <button

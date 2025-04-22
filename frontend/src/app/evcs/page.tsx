@@ -58,7 +58,11 @@ export default function EvcsPage() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [evcToDelete, setEvcToDelete] = useState<EVC | null>(null);
     const [showQuartersModal, setShowQuartersModal] = useState(false);
-
+    const [showFilterModal, setShowFilterModal] = useState(false);
+    const [filters, setFilters] = useState({
+        entorno_id: '',
+    });
+    const [filteredEvcs, setFilteredEvcs] = useState([]);
     //Colores para entornos
     const entornoColors = {
         1: "from-blue-500 to-blue-700",
@@ -378,6 +382,34 @@ export default function EvcsPage() {
         return Array.from(providers.values());
     };
 
+    //Funciones para manejar filtrado
+    const applyFilters = () => {
+        let result = [...evcs];
+
+        if (filters.entorno_id !== '') {
+            const entornoIdNumber = parseInt(filters.entorno_id);
+            result = result.filter((evc) => {
+                console.log('Comparing:', {
+                    evc_entorno: evc.entorno_id,
+                    filter_entorno: entornoIdNumber,
+                    equals: evc.entorno_id === entornoIdNumber
+                });
+                return evc.entorno_id === entornoIdNumber;
+            });
+        }
+        console.log('Filtered results:', result)
+        setFilteredEvcs(result);
+        setShowFilterModal(false);
+    }
+
+    const clearFilters = () => {
+        setFilters({
+            entorno_id: '',
+        });
+        setFilteredEvcs([]);
+        setShowFilterModal(false);
+    }
+
     // Render
     return (
         <div className="p-6 mt-20 bg-white shadow-md rounded-lg flex flex-col">
@@ -388,8 +420,9 @@ export default function EvcsPage() {
                     <button className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600">
                         <FaTrash className="mr-2" /> Eliminar
                     </button>
-                    <button className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600">
-                        <FaFilter className="mr-2" /> Filtrar
+                    <button className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600" onClick={() => setShowFilterModal(true)}>
+                        <FaFilter className="mr-2" />
+                        {filteredEvcs.length > 0 ? `Filtrado (${filteredEvcs.length})` : 'Filtrar'}
                     </button>
                     <button className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600">
                         <FaDownload className="mr-2" /> Exportar
@@ -516,6 +549,50 @@ export default function EvcsPage() {
                 </div>
             )}
 
+
+
+
+            {/* Modal de filtrado */}
+            {showFilterModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+                        <h2 className="text-xl font-bold mb-4">Filtrar EVCs</h2>
+
+                        <div className="mb-4">
+                            <label className="block font-semibold mb-2">Entorno</label>
+                            <select
+                                className="p-2 border rounded w-full"
+                                value={filters.entorno_id}
+                                onChange={(e) => setFilters(prev => ({ ...prev, entorno_id: e.target.value }))}
+                            >
+
+                                <option value="">Todos los entornos</option>
+                                {availableEntornos.map((entorno) => (
+                                    <option key={entorno.id} value={entorno.id}>
+                                        {entorno.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="flex justify-end space-x-4">
+                            <button
+                                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+                                onClick={clearFilters}
+                            >
+                                Limpiar filtros
+                            </button>
+                            <button
+                                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+                                onClick={applyFilters}
+                            >
+                                Aplicar filtros
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            )};
 
             {/* Modal para gestión de quarters */}
             {showQuartersModal && selectedEvc && (
@@ -770,7 +847,7 @@ export default function EvcsPage() {
 
             {/* Listado de EVCs */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {evcs.map((evc: EVC) => (
+                {(filteredEvcs.length > 0 ? filteredEvcs : evcs).map((evc: EVC) => (
                     <div
                         key={evc.id}
                         className={`p-6 rounded-xl shadow-md flex flex-col bg-gradient-to-tr ${getEntornoColor(evc.entorno_id)
@@ -862,6 +939,11 @@ export default function EvcsPage() {
                         </div>
                     </div>
                 ))}
+                {filteredEvcs.length === 0 && filters.entorno_id && (
+                    <div className="col-span-3 text-center py-8 text-gray-500">
+                        No hay EVCs en el entorno seleccionado.
+                    </div>
+                )};
             </div>
         </div>
     );

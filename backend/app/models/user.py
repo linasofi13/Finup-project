@@ -12,6 +12,7 @@ class User(Base):
     # is_admin= Column(Boolean, nullable=True, default=False)
     # is_active = Column(Boolean, nullable=True, default=True)
     password = Column(String(255), nullable=False)
+    rol = Column(String(20), nullable=False, default="consultor")
 
     # Relationship to user-category
     categories = relationship("UserCategory", back_populates="user")

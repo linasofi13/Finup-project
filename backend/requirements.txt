@@ -1,0 +1,24 @@
+fastapi==0.100.0
+uvicorn==0.22.0
+
+# ORM y migraciones
+sqlalchemy==2.0.20
+alembic==1.11.1
+psycopg2-binary==2.9.6  # PostgreSQL driver
+
+# Validación y esquemas
+pydantic==2.6.4
+email-validator==2.2.0
+
+# Autenticación
+python-jose==3.3.0
+passlib[bcrypt]==1.7.4  # [bcrypt] activa el uso de bcrypt para contraseñas
+
+# Carga de archivos
+python-multipart==0.0.9
+
+# Variables de entorno
+python-dotenv==1.0.1
+
+# Herramientas de desarrollo (opcional)
+black==23.12.1

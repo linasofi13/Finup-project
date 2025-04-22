@@ -1,8 +1,8 @@
-"""initial migration for finupdb
+"""initial migration with notifications
 
-Revision ID: 12be8cb8d034
+Revision ID: 925565863ced
 Revises: 
-Create Date: 2025-04-21 15:55:43.719641
+Create Date: 2025-04-21 21:46:27.521507
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '12be8cb8d034'
+revision: str = '925565863ced'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -45,6 +45,29 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_functional_leader_id'), 'functional_leader', ['id'], unique=False)
+    op.create_table('notification',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('message', sa.String(), nullable=False),
+    sa.Column('type', sa.String(), nullable=True),
+    sa.Column('read', sa.Boolean(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_notification_id'), 'notification', ['id'], unique=False)
+    op.create_table('notification_rule',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('name', sa.String(), nullable=False),
+    sa.Column('target_table', sa.String(), nullable=False),
+    sa.Column('condition_field', sa.String(), nullable=False),
+    sa.Column('threshold', sa.Float(), nullable=False),
+    sa.Column('comparison', sa.String(), nullable=False),
+    sa.Column('message', sa.String(), nullable=False),
+    sa.Column('type', sa.String(), nullable=True),
+    sa.Column('active', sa.Boolean(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_notification_rule_id'), 'notification_rule', ['id'], unique=False)
     op.create_table('provider',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(), nullable=True),
@@ -148,6 +171,10 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_provider_id'), table_name='provider')
     op.drop_index(op.f('ix_provider_email'), table_name='provider')
     op.drop_table('provider')
+    op.drop_index(op.f('ix_notification_rule_id'), table_name='notification_rule')
+    op.drop_table('notification_rule')
+    op.drop_index(op.f('ix_notification_id'), table_name='notification')
+    op.drop_table('notification')
     op.drop_index(op.f('ix_functional_leader_id'), table_name='functional_leader')
     op.drop_table('functional_leader')
     op.drop_index(op.f('ix_category_id'), table_name='category')

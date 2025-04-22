@@ -17,6 +17,8 @@ from app.routes import (
     providers,
     # role_providers,
     users,
+    notification,
+    notification_rules
 )
 from app.database import engine, Base, SessionLocal
 
@@ -53,6 +55,8 @@ app.include_router(evc_qs.router, prefix="/evc-qs", tags=["EVC_Qs"])
 app.include_router(
     evc_financials.router, prefix="/evc-financials", tags=["EVC Financials"]
 )
+app.include_router(notification.router, prefix="/notifications", tags=["Notifications"])
+app.include_router(notification_rules.router, prefix="/notification-rules", tags=["Notification Rules"])
 # app.include_router(
 #     category_roles.router, prefix="/category-roles", tags=["Category Roles"]
 # )

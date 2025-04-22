@@ -70,28 +70,28 @@ export default function EvcsPage() {
 
     //Colores para entornos
     const entornoColors = {
-        1: "from-blue-500 to-blue-700",
-        2: "from-green-500 to-green-700",
-        3: "from-orange-500 to-orange-700",
-        4: "from-pink-500 to-pink-700",
-        5: "from-purple-500 to-purple-700", // Color por defecto
+        1: "bg-[#faa0c5]",  // Rosa claro
+        2: "bg-[#00c389]",  // Verde
+        3: "bg-[#fdda24]",  // Amarillo
+        4: "bg-[#ff7f41]",  // Naranja
+        5: "bg-[#59CBE8]",  // Azul claro
     };
 
     //Obtener el color del entorno
     const getEntornoColor = (entorno_id: number | null) => {
-        return entorno_id ? entornoColors[entorno_id] : "from-purple-500 to-purple-700";
+        return entorno_id ? entornoColors[entorno_id] : "bg-[#59CBE8]";
     };
 
     //Obtener color de acento
     const getContainerColor = (entorno_id: number | null) => {
         const colorMap = {
-            1: "bg-blue-800/50",
-            2: "bg-green-800/50",
-            3: "bg-orange-800/50",
-            4: "bg-pink-800/50",
-            5: "bg-purple-800/50"
+            1: "bg-[#e497b1]",
+            2: "bg-[#00a974]",
+            3: "bg-[#e3c31f]",
+            4: "bg-[#e66a2d]",
+            5: "bg-[#41b3d3]"
         };
-        return entorno_id ? colorMap[entorno_id] : "bg-purple-800/50";
+        return entorno_id ? colorMap[entorno_id] : "bg-[#59CBE8]/50";
     };
 
     // Modelo EVC
@@ -975,8 +975,8 @@ export default function EvcsPage() {
                 {(filteredEvcs.length > 0 ? filteredEvcs : evcs).map((evc: EVC) => (
                     <div
                         key={evc.id}
-                        className={`p-6 rounded-xl shadow-md flex flex-col bg-gradient-to-tr ${getEntornoColor(evc.entorno_id)
-                            } text-white hover:shadow-xl hover:scale-105 transition-transform duration-300`}
+                        className={`p-6 rounded-xl shadow-md flex flex-col ${getEntornoColor(evc.entorno_id)} 
+        text-white hover:shadow-xl hover:scale-105 transition-transform duration-300`}
                     >
                         <div className="flex justify-between items-center mb-3">
                             <h2 className="text-2xl font-bold flex items-center">

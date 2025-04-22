@@ -14,7 +14,7 @@ from .evc_q import EVC_Q, EVC_QCreate, EVC_QResponse, EVC_QShortResponse
 from .evc_financial import (
     EVC_Financial,
     EVC_FinancialCreate,
-    EVC_FinancialShortResponse,
+    EVC_FinancialResponse,
     EVC_FinancialUpdate,
 )
 # from .category_role import (
@@ -84,7 +84,7 @@ responses = [
     EntornoResponse,
     EVCResponse,
     EVC_QResponse,
-    EVC_FinancialShortResponse,
+    EVC_FinancialResponse,
     EVC_QShortResponse,
 ]
 schemas_update = [

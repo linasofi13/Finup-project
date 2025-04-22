@@ -42,14 +42,6 @@ export default function Header({ isSidebarOpen }: HeaderProps) {
                 />
               </a>
             </Link>
-
-            {/* Enlace de Inicio con línea en hover */}
-            <Link href="/" legacyBehavior>
-              <a className="text-[#2c2a29] font-medium relative pb-1 group">
-                Inicio
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#FFE600] transition-all duration-300 group-hover:w-full"></span>
-              </a>
-            </Link>
           </div>
 
           <div className="relative w-1/3 hidden md:block">

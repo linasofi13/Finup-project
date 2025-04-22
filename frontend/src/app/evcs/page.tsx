@@ -15,7 +15,12 @@ import {
 } from "react-icons/fa";
 import axios from "axios";
 
+import { useAuth } from "@/context/AuthContext";
+
 export default function EvcsPage() {
+
+ // Contexto de autenticación
+ const { user } = useAuth();
  // Estados principales
  const [evcs, setEvcs] = useState([]);
  const [showForm, setShowForm] = useState(false);
@@ -266,21 +271,30 @@ export default function EvcsPage() {
    <div className="flex justify-between items-center mb-4">
     <h1 className="text-3xl font-bold">EVCs</h1>
     <div className="flex space-x-2">
-     <button className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600">
-      <FaTrash className="mr-2" /> Eliminar
-     </button>
+     {/* Solo admin puede eliminar */}
+     {user?.rol === "admin" && (
+      <button className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600">
+       <FaTrash className="mr-2" /> Eliminar
+      </button>
+     )}
+
+     {/* Todos pueden filtrar y exportar */}
      <button className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600">
       <FaFilter className="mr-2" /> Filtrar
      </button>
      <button className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600">
       <FaDownload className="mr-2" /> Exportar
      </button>
-     <button
-      onClick={() => setShowForm(true)}
-      className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
-     >
-      <FaPlus className="mr-2" /> Crear EVC
-     </button>
+
+     {/* Solo admin puede crear */}
+     {user?.rol === "admin" && (
+      <button
+       onClick={() => setShowForm(true)}
+       className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+      >
+       <FaPlus className="mr-2" /> Crear EVC
+      </button>
+     )}
     </div>
    </div>
 
@@ -662,10 +676,12 @@ export default function EvcsPage() {
         className="cursor-pointer hover:text-white/70 text-xl"
         onClick={() => showEvcDetails(evc)}
        />
-       <FaTrash
-        className="cursor-pointer hover:text-red-300 text-xl"
-        onClick={() => deleteEvc(evc.id)}
-       />
+       {user?.rol === "admin" && (
+        <FaTrash
+         className="cursor-pointer hover:text-red-300 text-xl"
+         onClick={() => deleteEvc(evc.id)}
+        />
+       )}
       </div>
      </div>
     ))}

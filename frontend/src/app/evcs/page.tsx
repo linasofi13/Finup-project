@@ -64,6 +64,10 @@ export default function EvcsPage() {
         entorno_id: '',
     });
     const [filteredEvcs, setFilteredEvcs] = useState([]);
+    const [showExportModal, setShowExportModal] = useState(false);
+    const [selectedEvcsForExport, setSelectedEvcsForExport] = useState<number[]>([]);
+
+
     //Colores para entornos
     const entornoColors = {
         1: "from-blue-500 to-blue-700",
@@ -413,7 +417,10 @@ export default function EvcsPage() {
 
     //Función para exportar a Excel
     const exportToExcel = () => {
-        const dataToExport = evcs.map(evc => ({
+        const selectedEvcsData = evcs.filter(evc => selectedEvcsForExport.includes(evc.id));
+
+        // Crear hoja principal de EVCs
+        const evcsData = selectedEvcsData.map(evc => ({
             'Nombre': evc.name,
             'Descripción': evc.description,
             'Estado': evc.status ? 'Activo' : 'Inactivo',
@@ -425,11 +432,32 @@ export default function EvcsPage() {
             'Última Actualización': new Date(evc.updated_at).toLocaleDateString()
         }));
 
-        const ws = XLSX.utils.json_to_sheet(dataToExport);
+        // Crear hoja de quarters
+        const quartersData = selectedEvcsData.flatMap(evc =>
+            evc.evc_qs.map(quarter => ({
+                'EVC': evc.name,
+                'Año': quarter.year,
+                'Quarter': `Q${quarter.q}`,
+                'Presupuesto': quarter.allocated_budget,
+                'Porcentaje': quarter.allocated_percentage,
+                'Proveedores': quarter.evc_financials?.map(f => f.provider.name).join(', ') || ''
+            }))
+        );
+
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "EVCs");
-        XLSX.writeFile(wb, "evcs.xlsx");
-    }
+
+        // Agregar hoja de EVCs
+        const wsEvcs = XLSX.utils.json_to_sheet(evcsData);
+        XLSX.utils.book_append_sheet(wb, wsEvcs, "EVCs");
+
+        // Agregar hoja de Quarters
+        const wsQuarters = XLSX.utils.json_to_sheet(quartersData);
+        XLSX.utils.book_append_sheet(wb, wsQuarters, "Quarters");
+
+        XLSX.writeFile(wb, "evcs_con_quarters.xlsx");
+        setShowExportModal(false);
+        setSelectedEvcsForExport([]);
+    };
 
     // Render
     return (
@@ -446,7 +474,7 @@ export default function EvcsPage() {
                         {filteredEvcs.length > 0 ? `Filtrado (${filteredEvcs.length})` : 'Filtrar'}
                     </button>
                     <button
-                        onClick={exportToExcel}
+                        onClick={() => setShowExportModal(true)}
                         className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
                     >
                         <FaDownload className="mr-2" /> Exportar
@@ -576,6 +604,79 @@ export default function EvcsPage() {
 
 
 
+            {/* Modal de selección para exportación */}
+            {showExportModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-bold">Seleccionar EVCs para exportar</h2>
+                            <FaTimes
+                                className="text-red-500 cursor-pointer"
+                                onClick={() => setShowExportModal(false)}
+                            />
+                        </div>
+
+                        <div className="mb-4">
+                            <label className="flex items-center mb-2">
+                                <input
+                                    type="checkbox"
+                                    className="mr-2"
+                                    checked={selectedEvcsForExport.length === evcs.length}
+                                    onChange={(e) => {
+                                        if (e.target.checked) {
+                                            setSelectedEvcsForExport(evcs.map(evc => evc.id));
+                                        } else {
+                                            setSelectedEvcsForExport([]);
+                                        }
+                                    }}
+                                />
+                                Seleccionar todas
+                            </label>
+                        </div>
+
+                        <div className="space-y-2 mb-6">
+                            {evcs.map(evc => (
+                                <label key={evc.id} className="flex items-center p-2 hover:bg-gray-50 rounded">
+                                    <input
+                                        type="checkbox"
+                                        className="mr-2"
+                                        checked={selectedEvcsForExport.includes(evc.id)}
+                                        onChange={(e) => {
+                                            if (e.target.checked) {
+                                                setSelectedEvcsForExport([...selectedEvcsForExport, evc.id]);
+                                            } else {
+                                                setSelectedEvcsForExport(selectedEvcsForExport.filter(id => id !== evc.id));
+                                            }
+                                        }}
+                                    />
+                                    <span>{evc.name}</span>
+                                    <span className="ml-2 text-sm text-gray-500">
+                                        ({evc.evc_qs?.length || 0} quarters)
+                                    </span>
+                                </label>
+                            ))}
+                        </div>
+
+                        <div className="flex justify-end space-x-4">
+                            <button
+                                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+                                onClick={() => setShowExportModal(false)}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+                                onClick={exportToExcel}
+                                disabled={selectedEvcsForExport.length === 0}
+                            >
+                                Exportar Seleccionadas
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
             {/* Modal de filtrado */}
             {showFilterModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -616,7 +717,7 @@ export default function EvcsPage() {
 
                     </div>
                 </div>
-            )};
+            )}
 
             {/* Modal para gestión de quarters */}
             {showQuartersModal && selectedEvc && (
@@ -967,7 +1068,7 @@ export default function EvcsPage() {
                     <div className="col-span-3 text-center py-8 text-gray-500">
                         No hay EVCs en el entorno seleccionado.
                     </div>
-                )};
+                )}
             </div>
         </div>
     );

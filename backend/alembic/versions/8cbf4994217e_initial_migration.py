@@ -1,8 +1,8 @@
-"""initial migration with notifications
+"""initial migration
 
-Revision ID: 925565863ced
+Revision ID: 8cbf4994217e
 Revises: 
-Create Date: 2025-04-21 21:46:27.521507
+Create Date: 2025-04-22 12:27:21.200722
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '925565863ced'
+revision: str = '8cbf4994217e'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -26,6 +26,7 @@ def upgrade() -> None:
     sa.Column('username', sa.String(length=60), nullable=False),
     sa.Column('email', sa.String(length=255), nullable=False),
     sa.Column('password', sa.String(length=255), nullable=False),
+    sa.Column('rol', sa.String(length=20), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_app_user_email'), 'app_user', ['email'], unique=True)
@@ -144,6 +145,9 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('evc_q_id', sa.Integer(), nullable=True),
     sa.Column('provider_id', sa.Integer(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
+    sa.Column('concept', sa.String(length=100), nullable=True),
+    sa.Column('value_usd', sa.Float(), nullable=True),
     sa.ForeignKeyConstraint(['evc_q_id'], ['evc_q.id'], ),
     sa.ForeignKeyConstraint(['provider_id'], ['provider.id'], ),
     sa.PrimaryKeyConstraint('id')

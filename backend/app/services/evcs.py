@@ -1,6 +1,6 @@
 # app/services/evc_service.py
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.models.evc import EVC
 from app.models.provider import Provider
 from app.schemas.evc import EVCCreate, EVCUpdate, EVCResponse
@@ -15,7 +15,12 @@ def create_evc(db: Session, evc_data: EVCCreate):
 
 
 def get_evcs(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(EVC).offset(skip).limit(limit).all()
+    return db.query(EVC).options(
+        joinedload(EVC.entorno),
+        joinedload(EVC.technical_leader),
+        joinedload(EVC.functional_leader),
+        joinedload(EVC.evc_qs)
+    ).offset(skip).limit(limit).all()
 
 
 def get_evc_by_id(db: Session, evc_id: int):

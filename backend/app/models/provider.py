@@ -18,6 +18,7 @@ class Provider(Base):
     
     # Relationships
     evc_financials = relationship("EVC_Financial", back_populates="provider")
+    documents = relationship("ProviderDocument", back_populates="provider")
 
     # Relationship with EVCProvider
     # evc_providers = relationship("EVCProvider", back_populates="provider")

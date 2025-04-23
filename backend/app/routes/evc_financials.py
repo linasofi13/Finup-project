@@ -10,6 +10,7 @@ from app.schemas.evc_financial import (
     EVC_FinancialResponse,
 )
 from app.models.evc_financial import EVC_Financial
+from app.schemas.provider import ProviderResponse
 import app.services.evc_financial as evc_financial_service
 
 router = APIRouter()
@@ -86,18 +87,28 @@ async def get_spendings_by_evc_q(
     total = evc_financial_service.get_spendings_by_evc_q(db, evc_q_id)
     percentage= evc_financial_service.get_percentage_by_evc_q(db, evc_q_id)
     if percentage >=1:
-        message="No more budget left"   
-    elif percentage>=.9:
-        message="Almost out of budget"
+        message="No hay más presupuesto"   
     elif percentage>=.8:
-        message="Budget is getting low"
+        message="Ya casi te quedas sin presupuesto"
     elif percentage>=.5:
-        message="Budget is getting low"
+        message="Vas a la mitad del presupuesto"
     else:
-        message="Budget is sufficient"
+        message="Presupuesto suficiente"
     
-    return {"evc_q_id": evc_q_id, "total_spendings": total, "percentage": percentage, "message": message}
+    return {"evc_q_id": evc_q_id, "total_spendings": total, "percentage": percentage*100, "message": message}
 
+
+@router.get("/evc-financials/{evc_q_id}/providers", response_model=List[ProviderResponse], tags=[tag_name])
+async def get_providers_by_evc_q(
+    evc_q_id: int, db: Session = Depends(get_db)
+):
+    providers= evc_financial_service.get_providers_by_evc_q(db, evc_q_id)
+    if not providers:
+        raise HTTPException(status_code=404, detail="No providers found for this EVC Q")
+    return providers
+
+
+    
 # @router.get(
 #     "/evc_financials/{evc_q_id}/percentage",
 #     response_model=dict,

@@ -1119,7 +1119,7 @@ export default function EvcsPage() {
       ${
        quarter.percentage >= 100
         ? "bg-red-100 text-red-800"
-        : quarter.percentage >= 90
+        : quarter.percentage >= 80
         ? "bg-orange-100 text-orange-800"
         : quarter.percentage >= 50
         ? "bg-yellow-100 text-yellow-800"

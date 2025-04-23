@@ -5,7 +5,7 @@ from datetime import datetime
 
 if TYPE_CHECKING:
     from .evc import EVC
-    from .evc_financial import EVC_Financial, EVC_FinancialShortResponse
+    from .evc_financial import EVC_Financial, EVC_FinancialResponse
 
 
 class EVC_QBase(BaseModel):
@@ -44,7 +44,7 @@ class EVC_QShortResponse(EVC_QBase):
 
 class EVC_QResponse(EVC_QShortResponse):
     evc_id: Optional[int] = None
-    evc_financials: Optional[List[EVC_FinancialShortResponse]] = None  #
+    evc_financials: Optional[List[EVC_FinancialResponse]] = None  #
 
 
 class EVC_QUpdate(EVC_QBase):

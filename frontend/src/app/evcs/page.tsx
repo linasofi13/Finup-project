@@ -9,24 +9,122 @@ import {
  FaEye,
  FaTimes,
  FaExclamationTriangle,
- FaProjectDiagram,
  FaGlobe,
  FaLink,
+ FaClock,
+ FaHistory,
+ FaCalendar,
 } from "react-icons/fa";
+import { RiTeamFill } from "react-icons/ri";
+import * as XLSX from "xlsx";
 import axios from "axios";
 
-import { useAuth } from "@/context/AuthContext";
+// Interfaces
+interface Entorno {
+ id: number;
+ name: string;
+ status: boolean;
+}
+
+interface TechnicalLeader {
+ id: number;
+ name: string;
+}
+
+interface Provider {
+ id: number;
+ name: string;
+ company?: string;
+ cost_usd?: number;
+}
+
+interface EVC_Q {
+ id: number;
+ year: number;
+ q: number;
+ allocated_budget: number;
+ allocated_percentage: number;
+ evc_financials?: { id: number; provider: Provider }[];
+}
+
+interface EVC {
+ id: number;
+ name: string;
+ description: string;
+ status: boolean;
+ creation_date: string;
+ updated_at: string;
+ entorno: Entorno | null;
+ technical_leader: TechnicalLeader | null;
+ functional_leader: { id: number; name: string } | null;
+ evc_qs: EVC_Q[];
+}
 
 export default function EvcsPage() {
-
- // Contexto de autenticación
- const { user } = useAuth();
  // Estados principales
- const [evcs, setEvcs] = useState([]);
+ const [evcs, setEvcs] = useState<EVC[]>([]);
  const [showForm, setShowForm] = useState(false);
  const [alert, setAlert] = useState("");
- const [selectedEvc, setSelectedEvc] = useState(null);
+ const [selectedEvc, setSelectedEvc] = useState<EVC | null>(null);
  const [showDetailModal, setShowDetailModal] = useState(false);
+ const [entornosData, setEntornosData] = useState<{ [key: number]: string }>(
+  {}
+ );
+ const [technicalLeadersData, setTechnicalLeadersData] = useState<{
+  [key: number]: string;
+ }>({});
+ const [functionalLeadersData, setFunctionalLeadersData] = useState<{
+  [key: number]: string;
+ }>({});
+ const [showDeleteModal, setShowDeleteModal] = useState(false);
+ const [evcToDelete, setEvcToDelete] = useState<EVC | null>(null);
+ const [showQuartersModal, setShowQuartersModal] = useState(false);
+ const [showFilterModal, setShowFilterModal] = useState(false);
+ const [filters, setFilters] = useState({
+  entorno_id: "",
+ });
+ const [filteredEvcs, setFilteredEvcs] = useState<EVC[]>([]);
+ const [showExportModal, setShowExportModal] = useState(false);
+ const [selectedEvcsForExport, setSelectedEvcsForExport] = useState<number[]>(
+  []
+ );
+ const [financialSelections, setFinancialSelections] = useState<{
+  [key: number]: string;
+ }>({});
+ const [availableTechnicalLeaders, setAvailableTechnicalLeaders] = useState<
+  TechnicalLeader[]
+ >([]);
+ const [availableFunctionalLeaders, setAvailableFunctionalLeaders] = useState<
+  { id: number; name: string }[]
+ >([]);
+ const [availableEntornos, setAvailableEntornos] = useState<Entorno[]>([]);
+ const [availableProviders, setAvailableProviders] = useState<Provider[]>([]);
+
+ // Colores para entornos
+ const entornoColors = {
+  1: "bg-[#faa0c5]", // Rosa claro
+  2: "bg-[#00c389]", // Verde
+  3: "bg-[#fdda24]", // Amarillo
+  4: "bg-[#ff7f41]", // Naranja
+  5: "bg-[#59CBE8]", // Azul claro
+ };
+
+ // Obtener el color del entorno
+ const getEntornoColor = (entorno_id: number | null) => {
+  return entorno_id ? entornoColors[entorno_id] : "bg-[#59CBE8]";
+ };
+
+ // Obtener color de acento
+ const getContainerColor = (entorno_id: number | null) => {
+  const colorMap = {
+   1: "bg-[#e497b1]",
+   2: "bg-[#00a974]",
+   3: "bg-[#e3c31f]",
+   4: "bg-[#e66a2d]",
+   5: "bg-[#41b3d3]",
+  };
+  return entorno_id ? colorMap[entorno_id] : "bg-[#59CBE8]/50";
+ };
 
  // Modelo EVC
  const [newEvc, setNewEvc] = useState({
@@ -46,17 +144,6 @@ export default function EvcsPage() {
   allocated_percentage: "",
  });
 
- // Modelo EVC_Financial (por quarter)
- const [financialSelections, setFinancialSelections] = useState({}); // { evc_q_id: provider_id }
-
- // Listas para selects
- const [availableTechnicalLeaders, setAvailableTechnicalLeaders] = useState([]);
- const [availableFunctionalLeaders, setAvailableFunctionalLeaders] = useState(
-  []
- );
- const [availableEntornos, setAvailableEntornos] = useState([]);
- const [availableProviders, setAvailableProviders] = useState([]);
-
  // Efectos iniciales
  useEffect(() => {
   fetchEvcs();
@@ -64,10 +151,61 @@ export default function EvcsPage() {
   fetchAvailableFunctionalLeaders();
   fetchAvailableEntornos();
   fetchAvailableProviders();
+  loadEntornosData();
+  loadTechnicalLeadersData();
+  loadFunctionalLeadersData();
  }, []);
 
+ // Cargar data de líderes
+ const loadTechnicalLeadersData = async () => {
+  try {
+   const response = await axios.get(
+    "http://127.0.0.1:8000/technical-leaders/technical-leaders/"
+   );
+   const data: { [key: number]: string } = {};
+   response.data.forEach((leader: TechnicalLeader) => {
+    data[leader.id] = leader.name;
+   });
+   setTechnicalLeadersData(data);
+  } catch (error) {
+   console.error("Error cargando líderes técnicos:", error);
+  }
+ };
+
+ const loadFunctionalLeadersData = async () => {
+  try {
+   const response = await axios.get(
+    "http://127.0.0.1:8000/functional-leaders/functional-leaders"
+   );
+   const data: { [key: number]: string } = {};
+   response.data.forEach((leader: any) => {
+    data[leader.id] = leader.name;
+   });
+   setFunctionalLeadersData(data);
+  } catch (error) {
+   console.error("Error cargando líderes funcionales:", error);
+  }
+ };
+
+ // Cargar data de entornos
+ const loadEntornosData = async () => {
+  try {
+   const response = await axios.get("http://127.0.0.1:8000/entornos/entornos/");
+   const data: { [key: number]: string } = {};
+   response.data.forEach((entorno: Entorno) => {
+    data[entorno.id] = entorno.name;
+   });
+   setEntornosData(data);
+   console.log("Entornos cargados:", data);
+  } catch (error) {
+   console.error("Error cargando entornos:", error);
+  }
+ };
+
  // Handlers EVC
- const handleEvcChange = (e) => {
+ const handleEvcChange = (
+  e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+ ) => {
   const { name, value } = e.target;
   setNewEvc((prev) => ({
    ...prev,
@@ -76,7 +214,9 @@ export default function EvcsPage() {
  };
 
  // Handlers EVC_Q
- const handleQuarterChange = (e) => {
+ const handleQuarterChange = (
+  e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+ ) => {
   const { name, value } = e.target;
   setNewQuarter((prev) => ({
    ...prev,
@@ -85,7 +225,10 @@ export default function EvcsPage() {
  };
 
  // Handlers EVC_Financial
- const handleFinancialChange = (e, evc_q_id) => {
+ const handleFinancialChange = (
+  e: React.ChangeEvent<HTMLSelectElement>,
+  evc_q_id: number
+ ) => {
   const { value } = e.target;
   setFinancialSelections((prev) => ({
    ...prev,
@@ -97,6 +240,8 @@ export default function EvcsPage() {
  const fetchEvcs = async () => {
   try {
    const response = await axios.get("http://127.0.0.1:8000/evcs/evcs/");
+   console.log("EVCs recibidos:", response.data);
+   console.log("Primer EVC:", response.data[0]);
    setEvcs(response.data);
   } catch (error) {
    console.error("Error al cargar EVCs:", error);
@@ -143,6 +288,41 @@ export default function EvcsPage() {
   }
  };
 
+ const fetchProvidersByEvcQ = async (evc_q_id: number) => {
+  try {
+   const response = await axios.get(
+    `http://127.0.0.1:8000/evc-financials/evc-financials/${evc_q_id}/providers`
+   );
+   return response.data;
+  } catch (error) {
+   if (axios.isAxiosError(error) && error.response?.status === 404) {
+    return []; // No providers found
+   }
+   console.error(`Error fetching providers for EVC_Q ${evc_q_id}:`, error);
+   return [];
+  }
+ };
+
+ const fetchSpendingsByEvcQ = async (evc_q_id: number) => {
+  try {
+   console.log(`Fetching spendings for EVC_Q ID: ${evc_q_id}`);
+   const response = await axios.get(
+    `http://127.0.0.1:8000/evc-financials/evc_financials/${evc_q_id}/spendings`
+   );
+
+   console.log(`Spendings for EVC_Q ${evc_q_id}:`, response.data);
+   return response.data;
+  } catch (error) {
+   console.error(`Error fetching spendings for EVC_Q ${evc_q_id}:`, error);
+   return {
+    evc_q_id,
+    total_spendings: 0,
+    percentage: 0,
+    message: "Error fetching spendings",
+   };
+  }
+ };
+
  // Crear EVC
  const createEvc = async () => {
   try {
@@ -173,7 +353,7 @@ export default function EvcsPage() {
  };
 
  // Crear EVC_Q
- const createQuarter = async (evcId) => {
+ const createQuarter = async (evcId: number) => {
   try {
    const response = await axios.post("http://127.0.0.1:8000/evc-qs/evc_qs/", {
     evc_id: evcId,
@@ -200,7 +380,7 @@ export default function EvcsPage() {
  };
 
  // Crear EVC_Financial
- const createFinancial = async (evcId, evc_q_id) => {
+ const createFinancial = async (evcId: number, evc_q_id: number) => {
   const provider_id = financialSelections[evc_q_id];
   if (!provider_id) {
    setAlert("Seleccione un proveedor");
@@ -232,26 +412,72 @@ export default function EvcsPage() {
  };
 
  // Eliminar EVC
- const deleteEvc = async (evcId) => {
+ const deleteEvc = async (evcId: number) => {
   try {
    await axios.delete(`http://127.0.0.1:8000/evcs/evcs/${evcId}`);
    setEvcs((prev) => prev.filter((e) => e.id !== evcId));
+   setShowDeleteModal(false);
+   setEvcToDelete(null);
    setShowDetailModal(false);
   } catch (error) {
    console.error("Error eliminando EVC:", error);
+   setAlert("Error al eliminar la EVC");
   }
  };
 
+ const handleDeleteClick = (evc: EVC) => {
+  setEvcToDelete(evc);
+  setShowDeleteModal(true);
+ };
+
  // Mostrar vista detallada
- const showEvcDetails = (evc) => {
-  setSelectedEvc(evc);
-  setShowDetailModal(true);
+ const showEvcDetails = async (evc: EVC) => {
+  try {
+   // Fetch Spendings with message for each EVC_Q
+   const evcQsWithSpendings = await Promise.all(
+    evc.evc_qs.map(async (quarter) => {
+     const { total_spendings, percentage, message } =
+      await fetchSpendingsByEvcQ(quarter.id);
+     return {
+      ...quarter,
+      total_spendings,
+      percentage,
+      budget_message: message,
+     };
+    })
+   );
+
+   // Fetch providers for each EVC_Q
+   const evcQsWithProviders = await Promise.all(
+    evcQsWithSpendings.map(async (quarter) => {
+     const providers = await fetchProvidersByEvcQ(quarter.id);
+     return {
+      ...quarter,
+      evc_financials: providers.map((provider: Provider) => ({
+       id: provider.id,
+       provider,
+      })),
+     };
+    })
+   );
+
+   // Update the selected EVC with enriched evc_qs
+   setSelectedEvc({
+    ...evc,
+    evc_qs: evcQsWithProviders,
+   });
+   setShowDetailModal(true);
+  } catch (error) {
+   console.error("Error fetching providers for EVC details:", error);
+   setSelectedEvc(evc); // Fallback to original EVC
+   setShowDetailModal(true);
+  }
  };
 
  // Obtener todos los proveedores asignados al EVC
  const getEvcProviders = () => {
   if (!selectedEvc?.evc_qs) return [];
-  const providers = new Map(); // Usar Map para evitar duplicados
+  const providers = new Map();
   selectedEvc.evc_qs.forEach((quarter) => {
    if (quarter.evc_financials) {
     quarter.evc_financials.forEach((financial) => {
@@ -264,6 +490,85 @@ export default function EvcsPage() {
   return Array.from(providers.values());
  };
 
+ // Funciones para manejar filtrado
+ const applyFilters = () => {
+  let result = [...evcs];
+
+  if (filters.entorno_id !== "") {
+   const entornoIdNumber = parseInt(filters.entorno_id);
+   result = result.filter((evc) => {
+    console.log("Comparing:", {
+     evc_entorno: evc.entorno_id,
+     filter_entorno: entornoIdNumber,
+     equals: evc.entorno_id === entornoIdNumber,
+    });
+    return evc.entorno_id === entornoIdNumber;
+   });
+  }
+  console.log("Filtered results:", result);
+  setFilteredEvcs(result);
+  setShowFilterModal(false);
+ };
+
+ const clearFilters = () => {
+  setFilters({
+   entorno_id: "",
+  });
+  setFilteredEvcs([]);
+  setShowFilterModal(false);
+ };
+
+ // Función para exportar a Excel
+ const exportToExcel = () => {
+  const selectedEvcsData = evcs.filter((evc) =>
+   selectedEvcsForExport.includes(evc.id)
+  );
+
+  // Crear hoja principal de EVCs
+  const evcsData = selectedEvcsData.map((evc) => ({
+   Nombre: evc.name,
+   Descripción: evc.description,
+   Estado: evc.status ? "Activo" : "Inactivo",
+   Entorno: evc.entorno_id ? entornosData[evc.entorno_id] : "",
+   "Líder Técnico": evc.technical_leader_id
+    ? technicalLeadersData[evc.technical_leader_id]
+    : "",
+   "Líder Funcional": evc.functional_leader_id
+    ? functionalLeadersData[evc.functional_leader_id]
+    : "",
+   "Quarters Asignados": evc.evc_qs ? evc.evc_qs.length : 0,
+   "Fecha Creación": new Date(evc.creation_date).toLocaleDateString(),
+   "Última Actualización": new Date(evc.updated_at).toLocaleDateString(),
+  }));
+
+  // Crear hoja de quarters
+  const quartersData = selectedEvcsData.flatMap((evc) =>
+   evc.evc_qs.map((quarter) => ({
+    EVC: evc.name,
+    Año: quarter.year,
+    Quarter: `Q${quarter.q}`,
+    Presupuesto: quarter.allocated_budget,
+    Porcentaje: quarter.allocated_percentage,
+    Proveedores:
+     quarter.evc_financials?.map((f) => f.provider.name).join(", ") || "",
+   }))
+  );
+
+  const wb = XLSX.utils.book_new();
+
+  // Agregar hoja de EVCs
+  const wsEvcs = XLSX.utils.json_to_sheet(evcsData);
+  XLSX.utils.book_append_sheet(wb, wsEvcs, "EVCs");
+
+  // Agregar hoja de Quarters
+  const wsQuarters = XLSX.utils.json_to_sheet(quartersData);
+  XLSX.utils.book_append_sheet(wb, wsQuarters, "Quarters");
+
+  XLSX.writeFile(wb, "evcs_con_quarters.xlsx");
+  setShowExportModal(false);
+  setSelectedEvcsForExport([]);
+ };
+
  // Render
  return (
   <div className="p-6 mt-20 bg-white shadow-md rounded-lg flex flex-col">
@@ -271,30 +576,30 @@ export default function EvcsPage() {
    <div className="flex justify-between items-center mb-4">
     <h1 className="text-3xl font-bold">EVCs</h1>
     <div className="flex space-x-2">
-     {/* Solo admin puede eliminar */}
-     {user?.rol === "admin" && (
-      <button className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600">
-       <FaTrash className="mr-2" /> Eliminar
-      </button>
-     )}
-
-     {/* Todos pueden filtrar y exportar */}
      <button className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600">
-      <FaFilter className="mr-2" /> Filtrar
+      <FaTrash className="mr-2" /> Eliminar
      </button>
-     <button className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600">
+     <button
+      className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+      onClick={() => setShowFilterModal(true)}
+     >
+      <FaFilter className="mr-2" />
+      {filteredEvcs.length > 0
+       ? `Filtrado (${filteredEvcs.length})`
+       : "Filtrar"}
+     </button>
+     <button
+      onClick={() => setShowExportModal(true)}
+      className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+     >
       <FaDownload className="mr-2" /> Exportar
      </button>
-
-     {/* Solo admin puede crear */}
-     {user?.rol === "admin" && (
-      <button
-       onClick={() => setShowForm(true)}
-       className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
-      >
-       <FaPlus className="mr-2" /> Crear EVC
-      </button>
-     )}
+     <button
+      onClick={() => setShowForm(true)}
+      className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+     >
+      <FaPlus className="mr-2" /> Crear EVC
+     </button>
     </div>
    </div>
 
@@ -368,7 +673,7 @@ export default function EvcsPage() {
         <option value="">-- Seleccionar --</option>
         {availableEntornos.map((ent) => (
          <option key={ent.id} value={ent.id}>
-          {ent.nombre}
+          {ent.name}
          </option>
         ))}
        </select>
@@ -411,6 +716,307 @@ export default function EvcsPage() {
     </div>
    )}
 
+   {/* Modal de selección para exportación */}
+   {showExportModal && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+     <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+      <div className="flex justify-between items-center mb-4">
+       <h2 className="text-xl font-bold">Seleccionar EVCs para exportar</h2>
+       <FaTimes
+        className="text-red-500 cursor-pointer"
+        onClick={() => setShowExportModal(false)}
+       />
+      </div>
+
+      <div className="mb-4">
+       <label className="flex items-center mb-2">
+        <input
+         type="checkbox"
+         className="mr-2"
+         checked={selectedEvcsForExport.length === evcs.length}
+         onChange={(e) => {
+          if (e.target.checked) {
+           setSelectedEvcsForExport(evcs.map((evc) => evc.id));
+          } else {
+           setSelectedEvcsForExport([]);
+          }
+         }}
+        />
+        Seleccionar todas
+       </label>
+      </div>
+
+      <div className="space-y-2 mb-6">
+       {evcs.map((evc) => (
+        <label
+         key={evc.id}
+         className="flex items-center p-2 hover:bg-gray-50 rounded"
+        >
+         <input
+          type="checkbox"
+          className="mr-2"
+          checked={selectedEvcsForExport.includes(evc.id)}
+          onChange={(e) => {
+           if (e.target.checked) {
+            setSelectedEvcsForExport([...selectedEvcsForExport, evc.id]);
+           } else {
+            setSelectedEvcsForExport(
+             selectedEvcsForExport.filter((id) => id !== evc.id)
+            );
+           }
+          }}
+         />
+         <span>{evc.name}</span>
+         <span className="ml-2 text-sm text-gray-500">
+          ({evc.evc_qs?.length || 0} quarters)
+         </span>
+        </label>
+       ))}
+      </div>
+
+      <div className="flex justify-end space-x-4">
+       <button
+        className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+        onClick={() => setShowExportModal(false)}
+       >
+        Cancelar
+       </button>
+       <button
+        className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+        onClick={exportToExcel}
+        disabled={selectedEvcsForExport.length === 0}
+       >
+        Exportar Seleccionadas
+       </button>
+      </div>
+     </div>
+    </div>
+   )}
+
+   {/* Modal de filtrado */}
+   {showFilterModal && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+     <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+      <h2 className="text-xl font-bold mb-4">Filtrar EVCs</h2>
+
+      <div className="mb-4">
+       <label className="block font-semibold mb-2">Entorno</label>
+       <select
+        className="p-2 border rounded w-full"
+        value={filters.entorno_id}
+        onChange={(e) =>
+         setFilters((prev) => ({ ...prev, entorno_id: e.target.value }))
+        }
+       >
+        <option value="">Todos los entornos</option>
+        {availableEntornos.map((entorno) => (
+         <option key={entorno.id} value={entorno.id}>
+          {entorno.name}
+         </option>
+        ))}
+       </select>
+      </div>
+
+      <div className="flex justify-end space-x-4">
+       <button
+        className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+        onClick={clearFilters}
+       >
+        Limpiar filtros
+       </button>
+       <button
+        className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+        onClick={applyFilters}
+       >
+        Aplicar filtros
+       </button>
+      </div>
+     </div>
+    </div>
+   )}
+
+   {/* Modal para gestión de quarters */}
+   {showQuartersModal && selectedEvc && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+     <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-3xl max-h-[80vh] overflow-y-auto">
+      <div className="flex justify-between items-center mb-4">
+       <h2 className="text-2xl font-bold">
+        Gestión de Quarters - {selectedEvc.name}
+       </h2>
+       <FaTimes
+        className="text-red-500 cursor-pointer"
+        onClick={() => setShowQuartersModal(false)}
+       />
+      </div>
+
+      {/* Formulario para crear quarter */}
+      <div className="mb-6 bg-gray-50 p-4 rounded-lg">
+       <h3 className="text-lg font-semibold mb-4">Agregar Nuevo Quarter</h3>
+       <div className="grid grid-cols-2 gap-4">
+        <div>
+         <label className="block text-sm font-medium mb-1">Año</label>
+         <input
+          type="number"
+          name="year"
+          className="p-2 border rounded w-full"
+          value={newQuarter.year}
+          onChange={handleQuarterChange}
+          placeholder="YYYY"
+         />
+        </div>
+        <div>
+         <label className="block text-sm font-medium mb-1">Quarter</label>
+         <select
+          name="q"
+          className="p-2 border rounded w-full"
+          value={newQuarter.q}
+          onChange={handleQuarterChange}
+         >
+          <option value="">Seleccionar Q</option>
+          <option value="1">Q1</option>
+          <option value="2">Q2</option>
+          <option value="3">Q3</option>
+          <option value="4">Q4</option>
+         </select>
+        </div>
+        <div>
+         <label className="block text-sm font-medium mb-1">
+          Presupuesto Asignado
+         </label>
+         <input
+          type="number"
+          name="allocated_budget"
+          className="p-2 border rounded w-full"
+          value={newQuarter.allocated_budget}
+          onChange={handleQuarterChange}
+          placeholder="$"
+         />
+        </div>
+        <div>
+         <label className="block text-sm font-medium mb-1">Porcentaje</label>
+         <input
+          type="number"
+          name="allocated_percentage"
+          className="p-2 border rounded w-full"
+          value={newQuarter.allocated_percentage}
+          onChange={handleQuarterChange}
+          placeholder="%"
+         />
+        </div>
+       </div>
+       <div className="flex justify-end mt-4">
+        <button
+         className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+         onClick={() => createQuarter(selectedEvc.id)}
+        >
+         Agregar Quarter
+        </button>
+       </div>
+      </div>
+
+      {/* Lista de quarters con gestión de proveedores */}
+      <div className="space-y-4">
+       <h3 className="text-lg font-semibold mb-4">Quarters Existentes</h3>
+       {selectedEvc.evc_qs && selectedEvc.evc_qs.length > 0 ? (
+        selectedEvc.evc_qs.map((quarter) => (
+         <div key={quarter.id} className="border p-4 rounded-lg">
+          <div className="grid grid-cols-2 gap-4 mb-4">
+           <p>
+            <strong>Año:</strong> {quarter.year}
+           </p>
+           <p>
+            <strong>Quarter:</strong> Q{quarter.q}
+           </p>
+           <p>
+            <strong>Presupuesto:</strong> $
+            {quarter.allocated_budget.toLocaleString()}
+           </p>
+           <p>
+            <strong>Porcentaje:</strong> {quarter.allocated_percentage}%
+           </p>
+          </div>
+
+          {/* Sección de asignación de proveedor */}
+          <div className="mt-4 pt-4 border-t">
+           <h4 className="font-medium mb-2">Asignar Proveedor</h4>
+           <div className="flex gap-4">
+            <select
+             className="p-2 border rounded flex-1"
+             value={financialSelections[quarter.id] || ""}
+             onChange={(e) => handleFinancialChange(e, quarter.id)}
+            >
+             <option value="">Seleccionar Proveedor</option>
+             {availableProviders.map((provider) => (
+              <option key={provider.id} value={provider.id}>
+               {provider.name}
+              </option>
+             ))}
+            </select>
+            <button
+             className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+             onClick={() => createFinancial(selectedEvc.id, quarter.id)}
+            >
+             Asignar
+            </button>
+           </div>
+
+           {/* Lista de proveedores asignados */}
+           {quarter.evc_financials && quarter.evc_financials.length > 0 && (
+            <div className="mt-2">
+             <p className="text-sm font-medium">Proveedores asignados:</p>
+             <div className="flex flex-wrap gap-2 mt-1">
+              {quarter.evc_financials.map((financial) => (
+               <span
+                key={financial.id}
+                className="px-2 py-1 bg-gray-100 rounded text-sm"
+               >
+                {financial.provider.name}
+               </span>
+              ))}
+             </div>
+            </div>
+           )}
+          </div>
+         </div>
+        ))
+       ) : (
+        <p className="text-gray-500">No hay quarters asignados.</p>
+       )}
+      </div>
+     </div>
+    </div>
+   )}
+
+   {/* Modal de eliminación */}
+   {showDeleteModal && evcToDelete && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+     <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+      <h2 className="text-xl font-bold mb-4">Confirmar Eliminación</h2>
+      <p className="mb-4">
+       ¿Está seguro que desea eliminar la EVC "{evcToDelete.name}"? Esta acción
+       no se puede deshacer.
+      </p>
+      <div className="flex justify-end space-x-4">
+       <button
+        className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+        onClick={() => {
+         setShowDeleteModal(false);
+         setEvcToDelete(null);
+        }}
+       >
+        Cancelar
+       </button>
+       <button
+        className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+        onClick={() => deleteEvc(evcToDelete.id)}
+       >
+        Eliminar
+       </button>
+      </div>
+     </div>
+    </div>
+   )}
+
    {/* Modal para vista detallada */}
    {showDetailModal && selectedEvc && (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -440,19 +1046,24 @@ export default function EvcsPage() {
        <p>
         <strong>Descripción:</strong> {selectedEvc.description}
        </p>
-       {selectedEvc.technical_leader && (
-        <p>
-         <strong>Líder Técnico:</strong> {selectedEvc.technical_leader.name}
+       {selectedEvc.technical_leader_id && (
+        <p className="flex items-center">
+         <strong className="mr-2">Líder Técnico:</strong>
+         {technicalLeadersData[selectedEvc.technical_leader_id] ||
+          "Cargando..."}
         </p>
        )}
-       {selectedEvc.functional_leader && (
-        <p>
-         <strong>Líder Funcional:</strong> {selectedEvc.functional_leader.name}
+       {selectedEvc.functional_leader_id && (
+        <p className="flex items-center">
+         <strong className="mr-2">Líder Funcional:</strong>
+         {functionalLeadersData[selectedEvc.functional_leader_id] ||
+          "Cargando..."}
         </p>
        )}
-       {selectedEvc.entorno && (
-        <p>
-         <strong>Entorno:</strong> {selectedEvc.entorno.nombre}
+       {selectedEvc.entorno_id && (
+        <p className="flex items-center">
+         <strong className="mr-2">Entorno:</strong>
+         {entornosData[selectedEvc.entorno_id] || "Cargando..."}
         </p>
        )}
        <p>
@@ -468,160 +1079,116 @@ export default function EvcsPage() {
        </p>
       </div>
 
-      {/* Lista de proveedores asignados al EVC */}
-      <div className="mb-6">
-       <h3 className="text-xl font-semibold mb-2">
-        Proveedores Asignados al EVC
-       </h3>
-       {getEvcProviders().length > 0 ? (
-        <ul className="list-disc pl-5">
-         {getEvcProviders().map((provider) => (
-          <li key={provider.id}>
-           {provider.name || "Sin nombre"} ({provider.company || "Sin empresa"},
-           ${provider.cost_usd || 0})
-          </li>
-         ))}
-        </ul>
-       ) : (
-        <p>No hay proveedores asignados al EVC.</p>
-       )}
-      </div>
-
-      {/* Formulario para crear quarter */}
-      <div className="mb-6">
-       <h3 className="text-xl font-semibold mb-2">Crear Quarter</h3>
-       <div className="grid grid-cols-2 gap-4">
-        <input
-         type="number"
-         name="year"
-         placeholder="Año (ej. 2025)"
-         className="p-2 border rounded"
-         value={newQuarter.year}
-         onChange={handleQuarterChange}
-        />
-        <select
-         name="q"
-         className="p-2 border rounded"
-         value={newQuarter.q}
-         onChange={handleQuarterChange}
-        >
-         <option value="">-- Seleccionar Quarter --</option>
-         <option value="1">Q1</option>
-         <option value="2">Q2</option>
-         <option value="3">Q3</option>
-         <option value="4">Q4</option>
-        </select>
-        <input
-         type="number"
-         name="allocated_budget"
-         placeholder="Presupuesto asignado"
-         className="p-2 border rounded"
-         value={newQuarter.allocated_budget}
-         onChange={handleQuarterChange}
-        />
-        <input
-         type="number"
-         name="allocated_percentage"
-         placeholder="Porcentaje asignado (%)"
-         className="p-2 border rounded"
-         value={newQuarter.allocated_percentage}
-         onChange={handleQuarterChange}
-        />
-       </div>
-       <button
-        className="mt-4 px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
-        onClick={() => createQuarter(selectedEvc.id)}
-       >
-        Crear Quarter
-       </button>
-      </div>
-
-      {/* Lista de quarters */}
-      <div>
-       <h3 className="text-xl font-semibold mb-2">Quarters</h3>
+      {/* Lista de quarters (solo visualización) */}
+      <div className="mt-6">
+       <h3 className="text-xl font-semibold mb-2">Quarters Asignados</h3>
        {selectedEvc.evc_qs && selectedEvc.evc_qs.length > 0 ? (
-        selectedEvc.evc_qs.map((quarter) => (
-         <div key={quarter.id} className="border p-4 rounded-lg mb-4">
-          <p>
-           <strong>Año:</strong> {quarter.year}
-          </p>
-          <p>
-           <strong>Quarter:</strong> Q{quarter.q}
-          </p>
-          <p>
-           <strong>Presupuesto Asignado:</strong> ${quarter.allocated_budget}
-          </p>
-          <p>
-           <strong>Porcentaje Asignado:</strong> {quarter.allocated_percentage}%
-          </p>
+        <div className="space-y-4">
+         {selectedEvc.evc_qs.map((quarter) => (
+          <div key={quarter.id} className="border p-4 rounded-lg bg-gray-50">
+           <div className="grid grid-cols-2 gap-4 mb-2">
+            <p>
+             <strong>Año:</strong> {quarter.year}
+            </p>
+            <p>
+             <strong>Quarter:</strong> Q{quarter.q}
+            </p>
+            <p>
+             <strong>Presupuesto:</strong> $
+             {quarter.allocated_budget.toLocaleString()}
+            </p>
 
-          {/* Formulario para asignar proveedor */}
-          <div className="mt-4">
-           <h4 className="font-semibold">Asignar Proveedor</h4>
-           <select
-            className="p-2 border rounded w-full"
-            value={financialSelections[quarter.id] || ""}
-            onChange={(e) => handleFinancialChange(e, quarter.id)}
-           >
-            <option value="">-- Seleccionar Proveedor --</option>
-            {availableProviders.map((provider) => (
-             <option key={provider.id} value={provider.id}>
-              {provider.name} ({provider.company}, ${provider.cost_usd})
-             </option>
-            ))}
-           </select>
-           <button
-            className="mt-2 px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
-            onClick={() => createFinancial(selectedEvc.id, quarter.id)}
-            disabled={!financialSelections[quarter.id]}
-           >
-            Asignar Proveedor
-           </button>
-          </div>
+            <p>
+             <strong>Porcentaje:</strong> {quarter.allocated_percentage}%
+            </p>
 
-          {/* Lista de proveedores asignados */}
-          {quarter.evc_financials && quarter.evc_financials.length > 0 && (
-           <div className="mt-4">
-            <h4 className="font-semibold">Proveedores Asignados</h4>
-            <ul className="list-disc pl-5">
-             {quarter.evc_financials.map((financial) => (
-              <li key={financial.id}>
-               {financial.provider?.name || "Sin nombre"} (
-               {financial.provider?.company || "Sin empresa"}, $
-               {financial.provider?.cost_usd || 0})
-              </li>
-             ))}
-            </ul>
+            <p>
+             <strong>Presupuesto Gastado:</strong> $
+             {quarter.total_spendings.toLocaleString()}
+            </p>
+
+            <p>
+             <strong>Porcentaje Gastado:</strong>
+             {quarter.percentage.toLocaleString()}%
+            </p>
+
+            <p>
+             <strong>Estado:</strong>{" "}
+             <span
+              className={`px-2 py-1 rounded-full text-sm font-medium
+      ${
+       quarter.percentage >= 100
+        ? "bg-red-100 text-red-800"
+        : quarter.percentage >= 90
+        ? "bg-orange-100 text-orange-800"
+        : quarter.percentage >= 50
+        ? "bg-yellow-100 text-yellow-800"
+        : "bg-green-100 text-green-800"
+      }
+    `}
+             >
+              {quarter.budget_message}
+             </span>
+            </p>
            </div>
-          )}
-         </div>
-        ))
+           {quarter.evc_financials && quarter.evc_financials.length > 0 ? (
+            <div className="mt-2">
+             <p className="text-sm font-medium">Proveedores asignados:</p>
+             <div className="flex flex-wrap gap-2 mt-1">
+              {quarter.evc_financials.map((financial) => (
+               <span
+                key={financial.id}
+                className="px-2 py-1 bg-gray-200 rounded text-sm"
+               >
+                {financial.provider.name}
+                {financial.provider.company &&
+                 ` - ${financial.provider.company}`}
+               </span>
+              ))}
+             </div>
+            </div>
+           ) : (
+            <p className="text-sm text-gray-500">
+             No hay proveedores asignados.
+            </p>
+           )}
+          </div>
+         ))}
+        </div>
        ) : (
-        <p>No hay quarters asignados.</p>
+        <p className="text-gray-500">No hay quarters asignados.</p>
        )}
       </div>
-
-      {alert && (
-       <div className="mt-4 bg-yellow-100 text-yellow-800 p-2 rounded-md flex items-center">
-        <FaExclamationTriangle className="mr-2" />
-        {alert}
-       </div>
-      )}
      </div>
     </div>
    )}
 
    {/* Listado de EVCs */}
    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-    {evcs.map((evc) => (
+    {(filteredEvcs.length > 0 ? filteredEvcs : evcs).map((evc: EVC) => (
      <div
       key={evc.id}
-      className="p-6 rounded-xl shadow-md flex flex-col bg-gradient-to-tr from-purple-500 to-purple-700 text-white hover:shadow-xl hover:scale-105 transition-transform duration-300"
+      className={`p-6 rounded-xl shadow-md flex flex-col ${getEntornoColor(
+       evc.entorno_id
+      )} 
+                    text-white hover:shadow-xl hover:scale-105 transition-transform duration-300`}
      >
       <div className="flex justify-between items-center mb-3">
        <h2 className="text-2xl font-bold flex items-center">
-        <FaProjectDiagram className="mr-2" /> {evc.name}
+        <RiTeamFill className="mr-2" /> {evc.name}
        </h2>
+       {evc.entorno_id && (
+        <div
+         className={`${getContainerColor(
+          evc.entorno_id
+         )} rounded-lg px-3 py-1 flex items-center`}
+        >
+         <FaGlobe className="mr-2 text-white/80" />
+         <span className="font-medium">
+          {entornosData[evc.entorno_id] || "Cargando..."}
+         </span>
+        </div>
+       )}
        <span
         className={`px-3 py-1 rounded-full text-sm font-semibold ${
          evc.status ? "bg-green-400" : "bg-red-400"
@@ -632,28 +1199,10 @@ export default function EvcsPage() {
       </div>
       <div className="mb-3 text-lg">
        <p className="flex items-center">
-        <FaGlobe className="mr-2 text-white/80" />
         <span className="font-semibold mr-1">Descripción:</span>{" "}
         {evc.description}
        </p>
-       {evc.technical_leader && (
-        <p className="flex items-center">
-         <span className="font-semibold mr-1">Líder Técnico:</span>{" "}
-         {evc.technical_leader.name}
-        </p>
-       )}
-       {evc.functional_leader && (
-        <p className="flex items-center">
-         <span className="font-semibold mr-1">Líder Funcional:</span>{" "}
-         {evc.functional_leader.name}
-        </p>
-       )}
-       {evc.entorno && (
-        <p className="flex items-center">
-         <span className="font-semibold mr-1">Entorno:</span>{" "}
-         {evc.entorno.nombre}
-        </p>
-       )}
+
        {evc.evc_qs && evc.evc_qs.length > 0 && (
         <p className="flex items-center">
          <span className="font-semibold mr-1">Quarters:</span>{" "}
@@ -662,29 +1211,67 @@ export default function EvcsPage() {
        )}
       </div>
       <div className="mb-3 text-base">
-       <p>
-        <span className="font-semibold">Creado:</span>{" "}
-        {new Date(evc.creation_date).toLocaleDateString()}
-       </p>
-       <p>
-        <span className="font-semibold">Actualizado:</span>{" "}
-        {new Date(evc.updated_at).toLocaleDateString()}
-       </p>
+       <div
+        className={`${getContainerColor(
+         evc.entorno_id
+        )} rounded-lg p-3 flex justify-between items-center`}
+       >
+        <div className="flex items-center">
+         <FaClock className="mr-2" />
+         <span>
+          <span className="text-white/70">Creado:</span>{" "}
+          {new Date(evc.creation_date).toLocaleDateString("es-ES", {
+           year: "numeric",
+           month: "short",
+           day: "numeric",
+          })}
+         </span>
+        </div>
+        <div className="flex items-center">
+         <FaHistory className="mr-2" />
+         <span>
+          <span className="text-white/70">Actualizado:</span>{" "}
+          {new Date(evc.updated_at).toLocaleDateString("es-ES", {
+           year: "numeric",
+           month: "short",
+           day: "numeric",
+          })}
+         </span>
+        </div>
+       </div>
       </div>
       <div className="flex justify-end items-center mt-auto space-x-4">
-       <FaEye
-        className="cursor-pointer hover:text-white/70 text-xl"
+       <button
+        className="flex items-center cursor-pointer hover:text-white/70 text-base"
         onClick={() => showEvcDetails(evc)}
+       >
+        <FaEye className="mr-2 text-xl" />
+        Ver detalles
+       </button>
+
+       <button
+        className="flex items-center cursor-pointer hover:text-white/70 text-base"
+        onClick={() => {
+         setSelectedEvc(evc);
+         setShowQuartersModal(true);
+        }}
+       >
+        <FaCalendar className="mr-2 text-xl" />
+        Gestionar Quarters
+       </button>
+
+       <FaTrash
+        className="cursor-pointer hover:text-red-300 text-xl"
+        onClick={() => handleDeleteClick(evc)}
        />
-       {user?.rol === "admin" && (
-        <FaTrash
-         className="cursor-pointer hover:text-red-300 text-xl"
-         onClick={() => deleteEvc(evc.id)}
-        />
-       )}
       </div>
      </div>
     ))}
+    {filteredEvcs.length === 0 && filters.entorno_id && (
+     <div className="col-span-3 text-center py-8 text-gray-500">
+      No hay EVCs en el entorno seleccionado.
+     </div>
+    )}
    </div>
   </div>
  );

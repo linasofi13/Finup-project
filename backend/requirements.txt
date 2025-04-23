@@ -22,3 +22,4 @@ python-dotenv==1.0.1
 
 # Herramientas de desarrollo (opcional)
 black==23.12.1
+pytest==7.4.4

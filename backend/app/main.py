@@ -18,6 +18,8 @@ from app.routes import (
     # role_providers,
     users,
     provider_documents,
+    notification,
+    notification_rules
 )
 from app.database import engine, Base, SessionLocal
 
@@ -57,6 +59,8 @@ app.include_router(
 
 # para subir archivos supabase y guardar la url en la base de datos
 app.include_router(provider_documents.router, prefix="/provider-documents", tags=["ProviderDocuments"])
+app.include_router(notification.router, prefix="/notifications", tags=["Notifications"])
+app.include_router(notification_rules.router, prefix="/notification-rules", tags=["Notification Rules"])
 # app.include_router(
 #     category_roles.router, prefix="/category-roles", tags=["Category Roles"]
 # )

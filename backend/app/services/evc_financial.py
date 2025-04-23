@@ -63,6 +63,16 @@ def get_spendings_by_evc_q(db: Session, evc_q_id: int) -> float:
 
     return total+total2 or 0.0
 
+
+
+def get_providers_by_evc_q(db:Session, evc_q_id: int):
+    providers= db.query(Provider).join(
+        EVC_Financial, EVC_Financial.provider_id == Provider.id
+    ).filter(
+        EVC_Financial.evc_q_id == evc_q_id
+    ).all()
+    return providers
+
 def get_percentage_by_evc_q(db: Session, evc_q_id: int) -> float:
     total_spendings = get_spendings_by_evc_q(db, evc_q_id)
     total_budget = db.query(EVC_Q.allocated_budget).filter(EVC_Q.id == evc_q_id).scalar()

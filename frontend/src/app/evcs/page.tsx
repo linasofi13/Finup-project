@@ -17,7 +17,7 @@ import {
 } from "react-icons/fa";
 import { RiTeamFill } from "react-icons/ri";
 import * as XLSX from "xlsx";
-
+import { useRef } from "react";
 import axios from "axios";
 
 // Interfaces
@@ -66,7 +66,10 @@ export default function EvcsPage() {
     const [filteredEvcs, setFilteredEvcs] = useState([]);
     const [showExportModal, setShowExportModal] = useState(false);
     const [selectedEvcsForExport, setSelectedEvcsForExport] = useState<number[]>([]);
-
+    const [uploading, setUploading] = useState(false);
+    const [extractedValues, setExtractedValues] = useState<{ [key: number]: number }>({});
+    const [uploadedFiles, setUploadedFiles] = useState<{ [key: number]: string }>({});
+    
 
     //Colores para entornos
     const entornoColors = {
@@ -111,6 +114,57 @@ export default function EvcsPage() {
         allocated_budget: "",
         allocated_percentage: "",
     });
+
+    const handleFileUpload = async (e, evc_q_id) => {
+        const file = e.target.files[0];
+        if (!file) return;
+      
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("evc_q_id", evc_q_id);
+      
+        setUploading(true);
+        // setExtractedValues(null);
+      
+        try {
+          const response = await axios.post(
+            "http://127.0.0.1:8000/evc-financials/evc_financials/upload",
+            formData,
+            {
+              headers: { "Content-Type": "multipart/form-data" },
+            }
+          );
+          setUploadedFiles((prev) => ({
+            ...prev,
+            [evc_q_id]: file.name,
+          }));
+          
+          setExtractedValues((prev) => ({
+            ...prev,
+            [evc_q_id]: response.data.value_usd,
+          }));
+          
+      
+          console.log("Archivo procesado:", response.data);
+      
+          // Actualizar EVC seleccionado
+          const updatedEvc = await axios.get(`http://127.0.0.1:8000/evcs/evcs/${selectedEvc.id}`);
+          setSelectedEvc(updatedEvc.data);
+      
+        } catch (err) {
+          console.error("Error al subir archivo:", err);
+          alert("Error al procesar la factura");
+        } finally {
+          setUploading(false);
+        }
+      };
+      
+      
+    const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
+
+    const triggerFileUpload = (quarterId: number) => {
+    fileInputRefs.current[quarterId]?.click();
+    };
 
     // Modelo EVC_Financial (por quarter)
     const [financialSelections, setFinancialSelections] = useState({}); // { evc_q_id: provider_id }
@@ -162,6 +216,21 @@ export default function EvcsPage() {
             console.error("Error cargando líderes funcionales:", error);
         }
     };
+
+    const fetchQuartersForEvc = async (evcId) => {
+        try {
+          const response = await axios.get("http://127.0.0.1:8000/evc-qs/evc_qs/");
+          // Solo guardar los quarters que correspondan a este evc
+          const quartersForEvc = response.data.filter(q => q.evc_id === evcId);
+          setSelectedEvc((prev) => ({
+            ...prev,
+            evc_qs: quartersForEvc,
+          }));
+        } catch (error) {
+          console.error("Error cargando quarters:", error);
+        }
+      };
+      
 
 
     // Cargar data de entornos
@@ -366,11 +435,18 @@ export default function EvcsPage() {
     };
 
     // Mostrar vista detallada
-    const showEvcDetails = (evc) => {
-        setSelectedEvc(evc);
-        setShowDetailModal(true);
-    };
-
+    const showEvcDetails = async (evc) => {
+        try {
+          const response = await axios.get("http://127.0.0.1:8000/evc-qs/evc_qs/");
+          const quartersForEvc = response.data.filter(q => q.evc_id === evc.id);
+          setSelectedEvc({ ...evc, evc_qs: quartersForEvc });
+          setShowDetailModal(true);
+        } catch (error) {
+          console.error("Error cargando quarters para vista detallada:", error);
+        }
+      };
+      
+    
     // Obtener todos los proveedores asignados al EVC
     const getEvcProviders = () => {
         if (!selectedEvc?.evc_qs) return [];
@@ -810,27 +886,88 @@ export default function EvcsPage() {
                                         {/* Sección de asignación de proveedor */}
                                         <div className="mt-4 pt-4 border-t">
                                             <h4 className="font-medium mb-2">Asignar Proveedor</h4>
+                                            
+                                            <div className="flex flex-col gap-4">
+                                            {/* Sección Asignar Proveedor */}
                                             <div className="flex gap-4">
                                                 <select
-                                                    className="p-2 border rounded flex-1"
-                                                    value={financialSelections[quarter.id] || ""}
-                                                    onChange={(e) => handleFinancialChange(e, quarter.id)}
+                                                className="p-2 border rounded flex-1"
+                                                value={financialSelections[quarter.id] || ""}
+                                                onChange={(e) => handleFinancialChange(e, quarter.id)}
                                                 >
-                                                    <option value="">Seleccionar Proveedor</option>
-                                                    {availableProviders.map((provider) => (
-                                                        <option key={provider.id} value={provider.id}>
-                                                            {provider.name}
-                                                        </option>
-                                                    ))}
+                                                <option value="">Seleccionar Proveedor</option>
+                                                {availableProviders.map((provider) => (
+                                                    <option key={provider.id} value={provider.id}>
+                                                    {provider.name}
+                                                    </option>
+                                                ))}
                                                 </select>
                                                 <button
-                                                    className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
-                                                    onClick={() => createFinancial(selectedEvc.id, quarter.id)}
+                                                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+                                                onClick={() => createFinancial(selectedEvc.id, quarter.id)}
                                                 >
-                                                    Asignar
+                                                Asignar
                                                 </button>
                                             </div>
 
+                                            {/* Sección Cargar Factura debajo */}
+                                            <div className="border border-dashed border-gray-300 rounded-lg p-4 bg-gray-50">
+                                                <label className="block text-sm font-medium mb-2 text-gray-700">Cargar Factura</label>
+                                                <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-md p-6 bg-white hover:border-yellow-400 transition">
+                                                    <input
+                                                    type="file"
+                                                    ref={(el) => (fileInputRefs.current[quarter.id] = el)}
+                                                    accept=".pdf,.png,.jpg,.jpeg"
+                                                    onChange={(e) => handleFileUpload(e, quarter.id)}
+                                                    className="hidden"
+                                                    />
+                                                    <label
+                                                    onClick={() => triggerFileUpload(quarter.id)}
+                                                    className="cursor-pointer flex flex-col items-center"
+                                                    >
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        className="h-10 w-10 text-gray-400 mb-2"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        stroke="currentColor"
+                                                    >
+                                                        <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M7 16V4m0 0L3 8m4-4l4 4m5 0v12m0 0l4-4m-4 4l-4-4"
+                                                        />
+                                                    </svg>
+                                                    <span className="text-gray-600">Haz clic para subir archivo</span>
+                                                    </label>
+                                                </div>
+                                                <div className="flex justify-start">
+    <button
+      type="button"
+      className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+      onClick={() => triggerFileUpload(quarter.id)}
+    >
+      Cargar Archivo
+    </button>
+  </div>
+
+  {uploading && (
+    <p className="text-yellow-600 text-sm">Procesando factura...</p>
+  )}
+
+  {extractedValues[quarter.id] !== undefined && (
+    <p className="text-green-600 text-sm">
+      Valor extraído: <strong>${extractedValues[quarter.id].toLocaleString()}</strong>
+    </p>
+  )}
+  {uploadedFiles[quarter.id] && (
+  <p className="text-blue-600 text-sm mt-2">
+    Archivo cargado: <strong>{uploadedFiles[quarter.id]}</strong>
+  </p>
+)}
+                                            </div>
+                                            </div>
                                             {/* Lista de proveedores asignados */}
                                             {quarter.evc_financials && quarter.evc_financials.length > 0 && (
                                                 <div className="mt-2">
@@ -847,6 +984,24 @@ export default function EvcsPage() {
                                                     </div>
                                                 </div>
                                             )}
+                                            {quarter.evc_financials && quarter.evc_financials.length > 0 && (
+  <div className="mt-4">
+    <p className="text-sm font-medium mb-1">Gastos registrados:</p>
+    <ul className="text-sm text-gray-700 list-disc ml-6 space-y-1">
+      {quarter.evc_financials
+        .filter(item => item.value_usd !== null)
+        .map(item => (
+          <li key={item.id}>
+            {item.concept || 'Sin concepto'} — <strong>${item.value_usd.toLocaleString()}</strong>{" "}
+            <span className="text-gray-500 text-xs">
+              ({new Date(item.created_at).toLocaleString("es-CO")})
+            </span>
+          </li>
+        ))}
+    </ul>
+  </div>
+)}
+ 
                                         </div>
                                     </div>
                                 ))
@@ -959,6 +1114,23 @@ export default function EvcsPage() {
                                             <p><strong>Quarter:</strong> Q{quarter.q}</p>
                                             <p><strong>Presupuesto:</strong> ${quarter.allocated_budget}</p>
                                             <p><strong>Porcentaje:</strong> {quarter.allocated_percentage}%</p>
+                                            {quarter.evc_financials && quarter.evc_financials.length > 0 && (
+                                            <div className="mt-3">
+                                            <p className="text-lg font-bold text-black mb-2">Gastos registrados:</p>
+                                            <ul className="list-disc ml-6 space-y-1 text-sm text-gray-700">
+                                                {quarter.evc_financials
+                                                    .filter(f => f.value_usd !== null)
+                                                    .map((f) => (
+                                                    <li key={f.id}>
+                                                        {f.concept || "Sin concepto"} — <strong>${f.value_usd.toLocaleString()}</strong>{" "}
+                                                        <span className="text-gray-500 text-xs">
+                                                        ({new Date(f.created_at).toLocaleString("es-CO")})
+                                                        </span>
+                                                    </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -1050,6 +1222,7 @@ export default function EvcsPage() {
                                 className="flex items-center cursor-pointer hover:text-white/70 text-base"
                                 onClick={() => {
                                     setSelectedEvc(evc);
+                                    
                                     setShowQuartersModal(true);
                                 }}
                             >

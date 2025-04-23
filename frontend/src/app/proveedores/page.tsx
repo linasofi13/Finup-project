@@ -17,6 +17,22 @@ import * as XLSX from "xlsx";
 const API_URL = "http://127.0.0.1:8000/providers/providers";
 const BULK_UPLOAD_URL = "http://127.0.0.1:8000/providers/providers/bulk-upload";
 
+
+// inicio de codigo para cargar el archivo a supabase
+import { finupBucket } from "@/services/supabaseClient"; 
+
+
+
+
+
+
+
+
+
+
+//fin de codigo para cargar el archivo a supabase
+// Ajusta la ruta si es necesario
+
 export default function ProveedoresPage() {
   const [proveedores, setProveedores] = useState([]);
   const [editingProveedor, setEditingProveedor] = useState(null);
@@ -41,6 +57,7 @@ export default function ProveedoresPage() {
 
   const fileInputRef = useRef(null);
 
+
   // Estado para Documentos
   const [selectedProviderId, setSelectedProviderId] = useState("");
   const [docFile, setDocFile] = useState(null);
@@ -58,6 +75,29 @@ export default function ProveedoresPage() {
       console.error("Error fetching providers:", error);
     }
   };
+
+  const [uploadMessage, setUploadMessage] = useState("");
+  const docFileInputRef = useRef(null);
+  const [filterProviderId, setFilterProviderId] = useState("");
+
+  useEffect(() => {
+    const providerIdToUse = filterProviderId || selectedProviderId;
+    if (providerIdToUse) {
+      fetchProviderDocuments(providerIdToUse);
+    } else {
+      setDocList([]); // Si no hay selección, limpiamos
+    }
+  }, [filterProviderId, selectedProviderId]);
+  
+  const fetchProviderDocuments = async (providerId) => {
+    try {
+      const response = await axios.get(`http://127.0.0.1:8000/provider-documents/by-provider/${providerId}`);
+      setDocList(response.data);
+    } catch (error) {
+      console.error("Error obteniendo documentos del proveedor:", error);
+    }
+  };
+  
   // Función para exportar a Excel
   const exportToExcel = () => {
     const ws = XLSX.utils.json_to_sheet(proveedores);
@@ -300,28 +340,69 @@ export default function ProveedoresPage() {
     setDocFile(e.target.files[0]);
   };
 
-  const handleUploadDocument = () => {
-    if (!docFile) {
-      alert("Por favor selecciona un archivo.");
-      return;
+  const handleUploadDocument = async () => {
+    if (!docFile) return alert("Por favor selecciona un archivo.");
+    if (!selectedProviderId || selectedProviderId === "0") return alert("Selecciona un proveedor válido.");
+  
+    try {
+      const fileName = `${Date.now()}-${docFile.name}`;
+      const filePath = `${selectedProviderId}/${fileName}`;
+      const { data, error } = await finupBucket.upload(filePath, docFile, { upsert: true });
+  
+      if (error) throw new Error(error.message);
+  
+      const { data: publicUrlData } = finupBucket.getPublicUrl(filePath);
+      const publicUrl = publicUrlData?.publicUrl;
+  
+      const response = await axios.post("http://127.0.0.1:8000/provider-documents/", {
+        provider_id: parseInt(selectedProviderId),
+        file_name: docFile.name,
+        file_url: publicUrl,
+      });
+  
+      setDocList((prev) => [...prev, response.data]);
+      setUploadMessage(`✅ Documento "${docFile.name}" subido con éxito para el proveedor seleccionado.`);
+      setDocFile(null);
+      if (docFileInputRef.current) docFileInputRef.current.value = "";
+  
+      // 💡 UX Mejorada: aplicar filtro automáticamente al proveedor recién usado
+      setFilterProviderId(selectedProviderId);
+  
+    } catch (err) {
+      console.error("Error en subida:", err);
+      alert("Ocurrió un error al subir el documento.");
     }
-    if (!selectedProviderId) {
-      alert("Por favor selecciona un Proveedor para asociar el documento.");
-      return;
-    }
-    const newDoc = {
-      id: Date.now(),
-      providerId: selectedProviderId,
-      fileName: docFile.name,
-      fileURL: URL.createObjectURL(docFile),
-    };
-    setDocList([...docList, newDoc]);
-    setDocFile(null);
   };
+  
+  
+  
+  
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [docToDelete, setDocToDelete] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  const paginatedDocs = docList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const totalPages = Math.ceil(docList.length / itemsPerPage);
+
+  const confirmDelete = (id) => {
+    setDocToDelete(id);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmedDelete = () => {
+    handleDeleteDocument(docToDelete);
+    setShowDeleteModal(false);
+  };
+  
 
   const handleDeleteDocument = (docId) => {
     if (!window.confirm("¿Confirmas la eliminación de este documento?")) return;
     setDocList(docList.filter((d) => d.id !== docId));
+
+  
+
   };
 
   return (
@@ -759,84 +840,107 @@ export default function ProveedoresPage() {
         </div>
       </div>
 
-      {/* Sección de Documentación e Historial debajo de la Carga Masiva */}
-      <div className="mt-8 space-y-4">
-        {/* Documentación */}
-        <div className="bg-white p-4 rounded-lg shadow-md">
-          <h2 className="text-lg font-semibold mb-2">Documentación</h2>
-          <p className="text-sm text-gray-600 mb-2">
-            Aquí puedes cargar y ver documentos asociados a un proveedor.
-          </p>
-          <label className="block mb-2 text-sm font-medium text-gray-700">
-            Selecciona un Proveedor
-          </label>
-          <select
-            className="w-full border p-2 rounded mb-2"
-            value={selectedProviderId}
-            onChange={(e) => setSelectedProviderId(e.target.value)}
-          >
-            <option value="">-- Selecciona --</option>
-            {proveedores.map((prov) => (
-              <option key={prov.id} value={prov.id}>
-                {prov.name} ({prov.company})
-              </option>
-            ))}
-          </select>
-          <label className="block mb-2 text-sm font-medium text-gray-700">
-            Selecciona un Archivo
-          </label>
-          <input type="file" onChange={handleDocFileChange} className="mb-2" />
-          <button
-            onClick={handleUploadDocument}
-            className="flex items-center px-4 py-2 bg-[#a767d0] text-white rounded hover:bg-[#955bb8]"
-          >
-            <FaCloudUploadAlt className="mr-2" />
-            Subir Documento
-          </button>
-          {/* Lista de documentos subidos */}
-          <div className="mt-4">
-            <h3 className="text-md font-semibold mb-2">Documentos Cargados</h3>
-            {docList.length === 0 ? (
-              <p className="text-sm text-gray-500">No hay documentos.</p>
+        {/* Sección de Documentación unificada con mejor UX */}
+        <div className="mt-8 space-y-6 bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-xl font-bold">Documentación del Proveedor</h2>
+          <p className="text-sm text-gray-600">Selecciona un proveedor para ver y subir documentos asociados.</p>
+
+          {/* Notificación personalizada */}
+          {uploadMessage && (
+            <div className="bg-green-100 border border-green-400 text-green-800 px-4 py-2 rounded text-sm">
+              {uploadMessage}
+            </div>
+          )}
+
+          {/* Selector único para subir y filtrar */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
+            <select
+              className="w-full border p-2 rounded"
+              value={selectedProviderId}
+              onChange={(e) => {
+                const id = e.target.value;
+                setSelectedProviderId(id);
+                setFilterProviderId(id); // sincroniza filtro con selección
+              }}
+            >
+              <option value="">-- Selecciona un proveedor --</option>
+              {proveedores.map((prov) => (
+                <option key={prov.id} value={prov.id}>
+                  {prov.name} ({prov.company})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Subida de archivo */}
+          {selectedProviderId && (
+            <div className="grid md:grid-cols-3 gap-4 items-end mt-4">
+              <div className="md:col-span-2">
+                <label className="text-sm font-medium text-gray-700 mb-1">Archivo</label>
+                <input
+                  type="file"
+                  ref={docFileInputRef}
+                  onChange={handleDocFileChange}
+                  className="border rounded p-2 w-full"
+                />
+              </div>
+              <button
+                disabled={!docFile}
+                onClick={handleUploadDocument}
+                className={`h-full px-4 py-2 rounded text-white transition ${
+                  !docFile ? "bg-gray-400 cursor-not-allowed" : "bg-[#a767d0] hover:bg-[#955bb8]"
+                }`}
+              >
+                <FaCloudUploadAlt className="inline mr-2" />
+                Subir Documento
+              </button>
+            </div>
+          )}
+
+          {/* Lista de documentos */}
+          <div>
+            <h3 className="text-md font-semibold mt-6 mb-2">Documentos Cargados</h3>
+            {docList.filter(doc => !filterProviderId || doc.provider_id === parseInt(filterProviderId)).length === 0 ? (
+              <p className="text-sm italic text-gray-500">No hay documentos registrados para el proveedor seleccionado.</p>
             ) : (
-              <ul className="space-y-2">
-                {docList.map((doc) => {
-                  const prov = proveedores.find(
-                    (p) => p.id === parseInt(doc.providerId, 10),
-                  );
-                  return (
-                    <li
-                      key={doc.id}
-                      className="flex justify-between items-center bg-gray-50 p-2 rounded"
-                    >
-                      <div>
-                        <p className="text-sm font-medium">{doc.fileName}</p>
-                        <p className="text-xs text-gray-500">
-                          {prov
-                            ? `${prov.name} - ${prov.company}`
-                            : "Proveedor no encontrado"}
-                        </p>
-                      </div>
-                      <FaTrash
-                        className="text-red-500 cursor-pointer hover:text-red-700"
-                        onClick={() => handleDeleteDocument(doc.id)}
-                      />
-                    </li>
-                  );
-                })}
+              <ul className="space-y-2 animate-fade-in">
+                {docList
+                  .filter(doc => !filterProviderId || doc.provider_id === parseInt(filterProviderId))
+                  .map((doc) => {
+                    const prov = proveedores.find((p) => p.id === doc.provider_id);
+                    return (
+                      <li key={doc.id} className="flex justify-between items-center bg-gray-50 p-2 rounded border">
+                        <div>
+                          <p className="text-sm font-medium">{doc.file_name}</p>
+                          <p className="text-xs text-gray-500">
+                            {prov ? `${prov.name} - ${prov.company}` : "Proveedor no encontrado"}
+                          </p>
+                          <a
+                            href={doc.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 text-sm underline hover:text-blue-800"
+                          >
+                            Descargar
+                          </a>
+                        </div>
+                        <FaTrash
+                          className="text-red-500 cursor-pointer hover:text-red-700"
+                          onClick={() => {
+                            const confirmDelete = confirm(`¿Estás seguro de eliminar "${doc.file_name}"?`);
+                            if (confirmDelete) handleDeleteDocument(doc.id);
+                          }}
+                        />
+                      </li>
+                    );
+                  })}
               </ul>
             )}
           </div>
         </div>
 
-        {/* Historial de Contratos (ejemplo) */}
-        <div className="bg-white p-4 rounded-lg shadow-md">
-          <h2 className="text-lg font-semibold mb-2">Historial de Contratos</h2>
-          <p className="text-sm text-gray-600">
-            Información de contratos, fechas, renovaciones, etc.
-          </p>
-        </div>
-      </div>
+
 
       {/* Modal de Previsualización para Carga Masiva */}
       {showPreviewModal && (

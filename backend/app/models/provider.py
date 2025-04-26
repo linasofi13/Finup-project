@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float
 from sqlalchemy.orm import relationship
 from app.database import Base
-
+from .provider_document import ProviderDocument  # Asegura que la relación funcione
 
 class Provider(Base):
     __tablename__ = "provider"

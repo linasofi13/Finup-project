@@ -93,9 +93,16 @@ jobs:
       if: github.event_name == 'pull_request'
       uses: actions/github-script@v7
       with:
+        working-directory: frontend
         script: |
           const fs = require('fs');
-          const testReport = JSON.parse(fs.readFileSync('test-report.json', 'utf8'));
+          let testReport;
+          try {
+            testReport = JSON.parse(fs.readFileSync('./test-report.json', 'utf8'));
+          } catch (error) {
+            console.log('Could not read test report:', error);
+            return core.setFailed('No test report found');
+          }
           
           const summary = `## Test Results
           - Total Tests: ${testReport.numTotalTests}
@@ -112,7 +119,7 @@ jobs:
           
           [View detailed results](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID})`;
           
-          github.rest.issues.createComment({
+          await github.rest.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,

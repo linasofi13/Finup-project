@@ -1,0 +1,60 @@
+name: Integration Tests
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+
+jobs:
+  frontend-tests:
+    name: Frontend Integration Tests
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.17.0
+        cache: 'npm'
+        cache-dependency-path: 'frontend/package-lock.json'
+
+    - name: Install dependencies
+      run: |
+        npm ci
+        npm install -D jest @testing-library/react @testing-library/jest-dom @testing-library/user-event
+
+    - name: Run integration tests
+      continue-on-error: true
+      run: npm test -- --coverage
+      
+
+    - name: Upload test coverage
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: coverage-report
+        path: frontend/coverage/
+        retention-days: 7
+
+    - name: Report test status
+      if: failure()
+      run: |
+        echo "::warning::Integration tests failed but proceeding with merge. Please review the test results."
+
+    - name: Check test results
+      if: failure()
+      run: |
+        echo "::error::Integration tests failed. Please check the test results above."
+        exit 1

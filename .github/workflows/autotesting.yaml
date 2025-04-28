@@ -37,8 +37,38 @@ jobs:
 
     - name: Run integration tests
       continue-on-error: true
-      run: npm test -- --coverage
-      
+      run: |
+        npm test -- --json --outputFile=test-report.json --coverage
+        # Ensure the file exists and has content
+        ls -la test-report.json || echo "File not found"
+        cat test-report.json || echo "Cannot read file"
+    
+    - name: Process test results
+      if: always()
+      run: |
+        if [ -f "test-report.json" ]; then
+          echo "### Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Passed Tests: $(jq '.numPassedTests' test-report.json)" >> $GITHUB_STEP_SUMMARY
+          echo "❌ Failed Tests: $(jq '.numFailedTests' test-report.json)" >> $GITHUB_STEP_SUMMARY
+          echo "⏱️ Total Time: $(jq '.testResults[].endTime - .testResults[].startTime' test-report.json | awk '{sum+=$1} END{print sum/1000 "s"}'))" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### Failed Tests" >> $GITHUB_STEP_SUMMARY
+          jq -r '.testResults[].assertionResults[] | select(.status=="failed") | "- ❌ "+.ancestorTitles[0]+" > "+.title+"\n  "+.failureMessages[0]' test-report.json >> $GITHUB_STEP_SUMMARY
+        else
+          echo "::warning::test-report.json not found"
+          echo "### Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ Test report file not generated" >> $GITHUB_STEP_SUMMARY
+        fi  
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: |
+          test-report.json
+          frontend/coverage/
+        retention-days: 7
 
     - name: Upload test coverage
       uses: actions/upload-artifact@v4

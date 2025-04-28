@@ -32,14 +32,20 @@ export default function Header({ isSidebarOpen }: HeaderProps) {
 
   const fetchNotifications = async () => {
     try {
-      const res = await axios.get("http://localhost:8000/notifications/notifications/");
-      const nuevas = res.data.filter((n: Notification) => !notifications.find((prev) => prev.id === n.id));
+      const res = await axios.get(
+        "http://localhost:8000/notifications/notifications/",
+      );
+      const nuevas = res.data.filter(
+        (n: Notification) => !notifications.find((prev) => prev.id === n.id),
+      );
       if (nuevas.length > 0) {
         nuevas.forEach((n) => {
           toast.custom(
             <div className="bg-white border-l-4 border-yellow-400 shadow-lg rounded-md px-4 py-2">
-              <p className="font-semibold">{mapIcon(n.type)} {n.message}</p>
-            </div>
+              <p className="font-semibold">
+                {mapIcon(n.type)} {n.message}
+              </p>
+            </div>,
           );
         });
         setNotifications([...nuevas, ...notifications]);
@@ -70,14 +76,15 @@ export default function Header({ isSidebarOpen }: HeaderProps) {
 
   const markAsRead = async (id: number) => {
     try {
-      await axios.patch(`http://localhost:8000/notifications/notifications/${id}/read`);
+      await axios.patch(
+        `http://localhost:8000/notifications/notifications/${id}/read`,
+      );
       // Eliminar del estado al marcar como leída
       setNotifications((prev) => prev.filter((n) => n.id !== id));
     } catch (err) {
       console.error("Error al marcar notificación como leída:", err);
     }
   };
-  
 
   return (
     <header
@@ -91,9 +98,18 @@ export default function Header({ isSidebarOpen }: HeaderProps) {
         <div className="max-w-7xl mx-auto flex justify-between h-16 items-center">
           <div className="flex items-center space-x-8">
             <Link href="/">
-              <Image src="/images/logoBancolombia.svg" alt="Logo" width={32} height={32} className="h-8 w-auto mr-2" />
+              <Image
+                src="/images/logoBancolombia.svg"
+                alt="Logo"
+                width={32}
+                height={32}
+                className="h-8 w-auto mr-2"
+              />
             </Link>
-            <Link href="/" className="text-[#2c2a29] font-medium relative pb-1 group">
+            <Link
+              href="/"
+              className="text-[#2c2a29] font-medium relative pb-1 group"
+            >
               Inicio
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#FFE600] transition-all duration-300 group-hover:w-full"></span>
             </Link>
@@ -133,7 +149,10 @@ export default function Header({ isSidebarOpen }: HeaderProps) {
                         <li>No hay nuevas notificaciones.</li>
                       ) : (
                         notifications.map((n) => (
-                          <li key={n.id} className="border-b py-2 flex items-center justify-between">
+                          <li
+                            key={n.id}
+                            className="border-b py-2 flex items-center justify-between"
+                          >
                             <div className="flex items-center">
                               <span className="bg-yellow-200 p-1 rounded-full mr-2">
                                 {mapIcon(n.type)}
@@ -155,14 +174,15 @@ export default function Header({ isSidebarOpen }: HeaderProps) {
               </div>
             )}
 
-            {user ? <UserMenu user={user} /> : (
+            {user ? (
+              <UserMenu user={user} />
+            ) : (
               <Link
-              href="/login"
-              className="bg-[#FFE600] hover:bg-[#F5DC00] text-black font-medium border-0 rounded-full px-8 py-2 shadow-md transition-all duration-300"
-            >
-              Iniciar sesión
-            </Link>
-            
+                href="/login"
+                className="bg-[#FFE600] hover:bg-[#F5DC00] text-black font-medium border-0 rounded-full px-8 py-2 shadow-md transition-all duration-300"
+              >
+                Iniciar sesión
+              </Link>
             )}
           </div>
         </div>

@@ -3,6 +3,7 @@ from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime
 from datetime import datetime
 from app.database import Base
 
+
 class NotificationRule(Base):
     __tablename__ = "notification_rule"
 

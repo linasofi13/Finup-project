@@ -72,12 +72,10 @@ export default function DashboardPage() {
     }
   };
 
-
-  
-
-
   // evs
-  const [seccionSeleccionada, setSeccionSeleccionada] = useState<"proveedores" | "evcs">("proveedores");
+  const [seccionSeleccionada, setSeccionSeleccionada] = useState<
+    "proveedores" | "evcs"
+  >("proveedores");
   const [evcsData, setEvcsData] = useState([]);
   const [evcQsData, setEvcQsData] = useState([]);
   const [evcFinancialsData, setEvcFinancialsData] = useState([]);
@@ -102,14 +100,14 @@ export default function DashboardPage() {
 
   const fetchEvcFinancials = async () => {
     try {
-      const res = await axios.get("http://127.0.0.1:8000/evc-financials/evc_financials/");
+      const res = await axios.get(
+        "http://127.0.0.1:8000/evc-financials/evc_financials/",
+      );
       setEvcFinancialsData(res.data);
     } catch (err) {
       console.error("Error fetching EVC Financials:", err);
     }
   };
-  
-
 
   // 2. Cálculos de Información General
   const totalProviders = providersData.length;
@@ -210,7 +208,7 @@ export default function DashboardPage() {
   return (
     <DashboardLayout title="Dashboard">
       <div className="h-6"></div>
-  
+
       {/* Selector de sección mejorado */}
       <div className="flex justify-center mb-6">
         <div className="flex bg-gray-100 rounded-lg shadow-md overflow-hidden">
@@ -237,7 +235,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-  
       {/* Contenido dinámico según la sección seleccionada */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {seccionSeleccionada === "proveedores" && (
@@ -263,7 +260,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             </Card>
-  
+
             {/* 2. Costo Promedio por Rol */}
             <Card title="Costo Promedio por Rol">
               <ResponsiveContainer width="100%" height={400}>
@@ -288,7 +285,7 @@ export default function DashboardPage() {
                 </RadarChart>
               </ResponsiveContainer>
             </Card>
-  
+
             {/* 3. Proveedores por Rango de Costo */}
             <Card title="Proveedores por Rango de Costo">
               <ResponsiveContainer width="100%" height={400}>
@@ -307,7 +304,7 @@ export default function DashboardPage() {
                 </LineChart>
               </ResponsiveContainer>
             </Card>
-  
+
             {/* 4. Proveedores por País (se mantiene PieChart) */}
             <Card title="Proveedores por País">
               <ResponsiveContainer width="100%" height={400}>
@@ -334,57 +331,65 @@ export default function DashboardPage() {
               </ResponsiveContainer>
             </Card>
 
-{/* 5. Proveedores por Categoría (BarChart horizontal mejorado) */}
-<Card title="Proveedores por Categoría">
-  <ResponsiveContainer width="100%" height={400}>
-    <BarChart
-      layout="vertical"
-      data={pieDataCategory}
-      margin={{ top: 20, right: 40, left: 80, bottom: 20 }}
-    >
-      <CartesianGrid strokeDasharray="3 3" />
-      <XAxis type="number" />
-      <YAxis type="category" dataKey="name" />
-      <Tooltip formatter={(value) => [`${value} proveedor(es)`, "Cantidad"]} />
-      <Legend />
-      <Bar dataKey="value" fill="#00C49F" name="Cantidad">
-        {pieDataCategory.map((_, index) => (
-          <Cell
-            key={`cat-bar-${index}`}
-            fill={BAR_COLORS[index % BAR_COLORS.length]}
-          />
-        ))}
-      </Bar>
-    </BarChart>
-  </ResponsiveContainer>
-</Card>
+            {/* 5. Proveedores por Categoría (BarChart horizontal mejorado) */}
+            <Card title="Proveedores por Categoría">
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart
+                  layout="vertical"
+                  data={pieDataCategory}
+                  margin={{ top: 20, right: 40, left: 80, bottom: 20 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis type="category" dataKey="name" />
+                  <Tooltip
+                    formatter={(value) => [
+                      `${value} proveedor(es)`,
+                      "Cantidad",
+                    ]}
+                  />
+                  <Legend />
+                  <Bar dataKey="value" fill="#00C49F" name="Cantidad">
+                    {pieDataCategory.map((_, index) => (
+                      <Cell
+                        key={`cat-bar-${index}`}
+                        fill={BAR_COLORS[index % BAR_COLORS.length]}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
 
-{/* 6. Proveedores por Línea (BarChart vertical en lugar de LineChart) */}
-<Card title="Proveedores por Línea">
-  <ResponsiveContainer width="100%" height={400}>
-    <BarChart
-      data={pieDataLine}
-      margin={{ top: 20, right: 30, left: 30, bottom: 20 }}
-    >
-      <CartesianGrid strokeDasharray="3 3" />
-      <XAxis dataKey="name" />
-      <YAxis />
-      <Tooltip formatter={(value) => [`${value} proveedor(es)`, "Cantidad"]} />
-      <Legend />
-      <Bar dataKey="value" fill="#FFBB28" name="Cantidad">
-        {pieDataLine.map((_, index) => (
-          <Cell
-            key={`line-bar-${index}`}
-            fill={BAR_COLORS[index % BAR_COLORS.length]}
-          />
-        ))}
-      </Bar>
-    </BarChart>
-  </ResponsiveContainer>
-</Card>
+            {/* 6. Proveedores por Línea (BarChart vertical en lugar de LineChart) */}
+            <Card title="Proveedores por Línea">
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart
+                  data={pieDataLine}
+                  margin={{ top: 20, right: 30, left: 30, bottom: 20 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip
+                    formatter={(value) => [
+                      `${value} proveedor(es)`,
+                      "Cantidad",
+                    ]}
+                  />
+                  <Legend />
+                  <Bar dataKey="value" fill="#FFBB28" name="Cantidad">
+                    {pieDataLine.map((_, index) => (
+                      <Cell
+                        key={`line-bar-${index}`}
+                        fill={BAR_COLORS[index % BAR_COLORS.length]}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
 
-
-  
             {/* 7. Costo Promedio por Empresa */}
             <Card title="Costo Promedio por Empresa">
               <ResponsiveContainer width="100%" height={400}>
@@ -402,7 +407,7 @@ export default function DashboardPage() {
                 </ScatterChart>
               </ResponsiveContainer>
             </Card>
-  
+
             {/* 8. Acciones Rápidas */}
             <Card title="Acciones Rápidas">
               <div className="space-y-4">
@@ -413,217 +418,235 @@ export default function DashboardPage() {
             </Card>
           </>
         )}
-  
+
         {/* BLOQUE VACÍO PARA EVCS - Lo llenaremos en el siguiente paso */}
         {seccionSeleccionada === "evcs" && (
-  <>
-    {/* 1. EVCs por Estado */}
-    <Card title="EVCs por Estado">
-      <ResponsiveContainer width="100%" height={400}>
-        <PieChart>
-          <Pie
-            data={Object.entries(
-              evcsData.reduce((acc, evc) => {
-                const key = evc.status ? "Activos" : "Inactivos";
-                acc[key] = (acc[key] || 0) + 1;
-                return acc;
-              }, {} as Record<string, number>)
-            ).map(([name, value]) => ({ name, value }))}
-            dataKey="value"
-            nameKey="name"
-            cx="50%"
-            cy="50%"
-            outerRadius={120}
-            label
-          >
-            {Object.entries(
-              evcsData.reduce((acc, evc) => {
-                const key = evc.status ? "Activos" : "Inactivos";
-                acc[key] = (acc[key] || 0) + 1;
-                return acc;
-              }, {} as Record<string, number>)
-            ).map(([_, __], index) => (
-              <Cell
-                key={`cell-status-${index}`}
-                fill={PIE_COLORS[index % PIE_COLORS.length]}
-              />
-            ))}
-          </Pie>
-          <Tooltip />
-          <Legend />
-        </PieChart>
-      </ResponsiveContainer>
-    </Card>
+          <>
+            {/* 1. EVCs por Estado */}
+            <Card title="EVCs por Estado">
+              <ResponsiveContainer width="100%" height={400}>
+                <PieChart>
+                  <Pie
+                    data={Object.entries(
+                      evcsData.reduce(
+                        (acc, evc) => {
+                          const key = evc.status ? "Activos" : "Inactivos";
+                          acc[key] = (acc[key] || 0) + 1;
+                          return acc;
+                        },
+                        {} as Record<string, number>,
+                      ),
+                    ).map(([name, value]) => ({ name, value }))}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={120}
+                    label
+                  >
+                    {Object.entries(
+                      evcsData.reduce(
+                        (acc, evc) => {
+                          const key = evc.status ? "Activos" : "Inactivos";
+                          acc[key] = (acc[key] || 0) + 1;
+                          return acc;
+                        },
+                        {} as Record<string, number>,
+                      ),
+                    ).map(([_, __], index) => (
+                      <Cell
+                        key={`cell-status-${index}`}
+                        fill={PIE_COLORS[index % PIE_COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </Card>
 
-    {/* 2. Distribución de EVCs por Entorno */}
-    <Card title="Distribución de EVCs por Entorno">
-      <ResponsiveContainer width="100%" height={400}>
-        <BarChart
-          data={Object.entries(
-            evcsData.reduce((acc, evc) => {
-              const key = `Entorno ${evc.entorno_id}`;
-              acc[key] = (acc[key] || 0) + 1;
-              return acc;
-            }, {} as Record<string, number>)
-          ).map(([name, value]) => ({ name, value }))}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" />
-          <YAxis />
-          <Tooltip />
-          <Legend />
-          <Bar dataKey="value" fill="#00C49F" name="EVCs" />
-        </BarChart>
-      </ResponsiveContainer>
-    </Card>
+            {/* 2. Distribución de EVCs por Entorno */}
+            <Card title="Distribución de EVCs por Entorno">
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart
+                  data={Object.entries(
+                    evcsData.reduce(
+                      (acc, evc) => {
+                        const key = `Entorno ${evc.entorno_id}`;
+                        acc[key] = (acc[key] || 0) + 1;
+                        return acc;
+                      },
+                      {} as Record<string, number>,
+                    ),
+                  ).map(([name, value]) => ({ name, value }))}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="value" fill="#00C49F" name="EVCs" />
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
 
-    {/* 3. Presupuesto Total por Año (AreaChart) */}
-    <Card title="Presupuesto Total por Año">
-      <ResponsiveContainer width="100%" height={400}>
-        <AreaChart
-          data={Object.entries(
-            evcQsData.reduce((acc, q) => {
-              acc[q.year] = (acc[q.year] || 0) + q.allocated_budget;
-              return acc;
-            }, {} as Record<number, number>)
-          ).map(([year, total]) => ({
-            year,
-            total,
-          }))}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="year" />
-          <YAxis />
-          <Tooltip />
-          <Area
-            type="monotone"
-            dataKey="total"
-            stroke="#0088FE"
-            fill="#0088FE"
-            name="Presupuesto Total"
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-    </Card>
+            {/* 3. Presupuesto Total por Año (AreaChart) */}
+            <Card title="Presupuesto Total por Año">
+              <ResponsiveContainer width="100%" height={400}>
+                <AreaChart
+                  data={Object.entries(
+                    evcQsData.reduce(
+                      (acc, q) => {
+                        acc[q.year] = (acc[q.year] || 0) + q.allocated_budget;
+                        return acc;
+                      },
+                      {} as Record<number, number>,
+                    ),
+                  ).map(([year, total]) => ({
+                    year,
+                    total,
+                  }))}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="year" />
+                  <YAxis />
+                  <Tooltip />
+                  <Area
+                    type="monotone"
+                    dataKey="total"
+                    stroke="#0088FE"
+                    fill="#0088FE"
+                    name="Presupuesto Total"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </Card>
 
-    {/* 4. % Promedio de Uso por Año (LineChart) */}
-    <Card title="% Promedio de Uso por Año">
-      <ResponsiveContainer width="100%" height={400}>
-        <LineChart
-          data={Object.entries(
-            evcQsData.reduce((acc, q) => {
-              const year = q.year;
-              if (!acc[year]) acc[year] = { total: 0, count: 0 };
-              acc[year].total += q.allocated_percentage;
-              acc[year].count += 1;
-              return acc;
-            }, {} as Record<number, { total: number; count: number }>)
-          ).map(([year, { total, count }]) => ({
-            year,
-            avgPercentage: count > 0 ? total / count : 0,
-          }))}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="year" />
-          <YAxis domain={[0, 100]} />
-          <Tooltip />
-          <Line
-            type="monotone"
-            dataKey="avgPercentage"
-            stroke="#FF8042"
-            dot={{ r: 4 }}
-            name="% Promedio"
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </Card>
+            {/* 4. % Promedio de Uso por Año (LineChart) */}
+            <Card title="% Promedio de Uso por Año">
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart
+                  data={Object.entries(
+                    evcQsData.reduce(
+                      (acc, q) => {
+                        const year = q.year;
+                        if (!acc[year]) acc[year] = { total: 0, count: 0 };
+                        acc[year].total += q.allocated_percentage;
+                        acc[year].count += 1;
+                        return acc;
+                      },
+                      {} as Record<number, { total: number; count: number }>,
+                    ),
+                  ).map(([year, { total, count }]) => ({
+                    year,
+                    avgPercentage: count > 0 ? total / count : 0,
+                  }))}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="year" />
+                  <YAxis domain={[0, 100]} />
+                  <Tooltip />
+                  <Line
+                    type="monotone"
+                    dataKey="avgPercentage"
+                    stroke="#FF8042"
+                    dot={{ r: 4 }}
+                    name="% Promedio"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </Card>
 
-    {/* 5. Presupuesto vs % Uso (ScatterChart) */}
-    <Card title="Presupuesto vs % Uso">
-      <ResponsiveContainer width="100%" height={400}>
-        <ScatterChart>
-          <CartesianGrid />
-          <XAxis
-            type="number"
-            dataKey="budget"
-            name="Presupuesto"
-            unit=" USD"
-          />
-          <YAxis
-            type="number"
-            dataKey="percentage"
-            name="% Uso"
-            unit="%"
-            domain={[0, 100]}
-          />
-          <Tooltip cursor={{ strokeDasharray: "3 3" }} />
-          <Scatter
-            name="EVCs"
-            data={evcQsData.map((q) => ({
-              budget: q.allocated_budget,
-              percentage: q.allocated_percentage,
-            }))}
-            fill="#AA336A"
-          />
-        </ScatterChart>
-      </ResponsiveContainer>
-    </Card>
+            {/* 5. Presupuesto vs % Uso (ScatterChart) */}
+            <Card title="Presupuesto vs % Uso">
+              <ResponsiveContainer width="100%" height={400}>
+                <ScatterChart>
+                  <CartesianGrid />
+                  <XAxis
+                    type="number"
+                    dataKey="budget"
+                    name="Presupuesto"
+                    unit=" USD"
+                  />
+                  <YAxis
+                    type="number"
+                    dataKey="percentage"
+                    name="% Uso"
+                    unit="%"
+                    domain={[0, 100]}
+                  />
+                  <Tooltip cursor={{ strokeDasharray: "3 3" }} />
+                  <Scatter
+                    name="EVCs"
+                    data={evcQsData.map((q) => ({
+                      budget: q.allocated_budget,
+                      percentage: q.allocated_percentage,
+                    }))}
+                    fill="#AA336A"
+                  />
+                </ScatterChart>
+              </ResponsiveContainer>
+            </Card>
 
-    {/* 6. Distribución por Año y Quarter (RadarChart) */}
-    <Card title="Presupuesto por Quarter/Año (Radar)">
-      <ResponsiveContainer width="100%" height={400}>
-        <RadarChart
-          outerRadius="80%"
-          data={(() => {
-            const quarterMap: Record<string, Record<string, number>> = {};
-            evcQsData.forEach((q) => {
-              const quarterLabel = `Q${q.q}`;
-              const yearKey = `${q.year}`;
-              if (!quarterMap[quarterLabel]) {
-                quarterMap[quarterLabel] = {};
-              }
-              quarterMap[quarterLabel][yearKey] =
-                (quarterMap[quarterLabel][yearKey] || 0) +
-                q.allocated_budget;
-            });
-            const allYears = new Set<string>();
-            Object.values(quarterMap).forEach((v) =>
-              Object.keys(v).forEach((y) => allYears.add(y))
-            );
-            return Object.entries(quarterMap).map(([quarter, values]) => {
-              const dataPoint: Record<string, any> = { quarter };
-              allYears.forEach((year) => {
-                dataPoint[year] = values[year] || 0;
-              });
-              return dataPoint;
-            });
-          })()}
-        >
-          <PolarGrid />
-          <PolarAngleAxis dataKey="quarter" />
-          <PolarRadiusAxis />
-          {[...new Set(evcQsData.map((q) => `${q.year}`))].map(
-            (year, index) => (
-              <Radar
-                key={year}
-                name={year}
-                dataKey={year}
-                stroke={PIE_COLORS[index % PIE_COLORS.length]}
-                fill={PIE_COLORS[index % PIE_COLORS.length]}
-                fillOpacity={0.4}
-              />
-            )
-          )}
-          <Legend />
-          <Tooltip />
-        </RadarChart>
-      </ResponsiveContainer>
-    </Card>
-  </>
-)}
-
-
+            {/* 6. Distribución por Año y Quarter (RadarChart) */}
+            <Card title="Presupuesto por Quarter/Año (Radar)">
+              <ResponsiveContainer width="100%" height={400}>
+                <RadarChart
+                  outerRadius="80%"
+                  data={(() => {
+                    const quarterMap: Record<
+                      string,
+                      Record<string, number>
+                    > = {};
+                    evcQsData.forEach((q) => {
+                      const quarterLabel = `Q${q.q}`;
+                      const yearKey = `${q.year}`;
+                      if (!quarterMap[quarterLabel]) {
+                        quarterMap[quarterLabel] = {};
+                      }
+                      quarterMap[quarterLabel][yearKey] =
+                        (quarterMap[quarterLabel][yearKey] || 0) +
+                        q.allocated_budget;
+                    });
+                    const allYears = new Set<string>();
+                    Object.values(quarterMap).forEach((v) =>
+                      Object.keys(v).forEach((y) => allYears.add(y)),
+                    );
+                    return Object.entries(quarterMap).map(
+                      ([quarter, values]) => {
+                        const dataPoint: Record<string, any> = { quarter };
+                        allYears.forEach((year) => {
+                          dataPoint[year] = values[year] || 0;
+                        });
+                        return dataPoint;
+                      },
+                    );
+                  })()}
+                >
+                  <PolarGrid />
+                  <PolarAngleAxis dataKey="quarter" />
+                  <PolarRadiusAxis />
+                  {[...new Set(evcQsData.map((q) => `${q.year}`))].map(
+                    (year, index) => (
+                      <Radar
+                        key={year}
+                        name={year}
+                        dataKey={year}
+                        stroke={PIE_COLORS[index % PIE_COLORS.length]}
+                        fill={PIE_COLORS[index % PIE_COLORS.length]}
+                        fillOpacity={0.4}
+                      />
+                    ),
+                  )}
+                  <Legend />
+                  <Tooltip />
+                </RadarChart>
+              </ResponsiveContainer>
+            </Card>
+          </>
+        )}
       </div>
     </DashboardLayout>
   );
-}  
+}

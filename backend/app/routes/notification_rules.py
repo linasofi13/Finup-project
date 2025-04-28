@@ -6,9 +6,11 @@ from app.schemas.notification_rule import NotificationRuleCreate, NotificationRu
 
 router = APIRouter(prefix="/notification-rules", tags=["Notification Rules"])
 
+
 @router.get("/", response_model=list[NotificationRuleOut])
 def list_rules(db: Session = Depends(get_db)):
     return db.query(NotificationRule).all()
+
 
 @router.post("/", response_model=NotificationRuleOut)
 def create_rule(rule: NotificationRuleCreate, db: Session = Depends(get_db)):
@@ -18,8 +20,11 @@ def create_rule(rule: NotificationRuleCreate, db: Session = Depends(get_db)):
     db.refresh(db_rule)
     return db_rule
 
+
 @router.patch("/{rule_id}", response_model=NotificationRuleOut)
-def update_rule(rule_id: int, rule: NotificationRuleCreate, db: Session = Depends(get_db)):
+def update_rule(
+    rule_id: int, rule: NotificationRuleCreate, db: Session = Depends(get_db)
+):
     db_rule = db.query(NotificationRule).get(rule_id)
     if not db_rule:
         raise HTTPException(status_code=404, detail="Rule not found")

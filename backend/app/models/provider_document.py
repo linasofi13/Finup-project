@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
 
+
 class ProviderDocument(Base):
     __tablename__ = "provider_document"
     id = Column(Integer, primary_key=True, index=True)

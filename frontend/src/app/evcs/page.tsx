@@ -68,7 +68,7 @@ export default function EvcsPage() {
   const [selectedEvc, setSelectedEvc] = useState<EVC | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [entornosData, setEntornosData] = useState<{ [key: number]: string }>(
-    {}
+    {},
   );
   const [technicalLeadersData, setTechnicalLeadersData] = useState<{
     [key: number]: string;
@@ -86,7 +86,7 @@ export default function EvcsPage() {
   const [filteredEvcs, setFilteredEvcs] = useState<EVC[]>([]);
   const [showExportModal, setShowExportModal] = useState(false);
   const [selectedEvcsForExport, setSelectedEvcsForExport] = useState<number[]>(
-    []
+    [],
   );
   const [financialSelections, setFinancialSelections] = useState<{
     [key: number]: string;
@@ -160,7 +160,7 @@ export default function EvcsPage() {
   const loadTechnicalLeadersData = async () => {
     try {
       const response = await axios.get(
-        "http://127.0.0.1:8000/technical-leaders/technical-leaders/"
+        "http://127.0.0.1:8000/technical-leaders/technical-leaders/",
       );
       const data: { [key: number]: string } = {};
       response.data.forEach((leader: TechnicalLeader) => {
@@ -175,7 +175,7 @@ export default function EvcsPage() {
   const loadFunctionalLeadersData = async () => {
     try {
       const response = await axios.get(
-        "http://127.0.0.1:8000/functional-leaders/functional-leaders"
+        "http://127.0.0.1:8000/functional-leaders/functional-leaders",
       );
       const data: { [key: number]: string } = {};
       response.data.forEach((leader: any) => {
@@ -190,7 +190,9 @@ export default function EvcsPage() {
   // Cargar data de entornos
   const loadEntornosData = async () => {
     try {
-      const response = await axios.get("http://127.0.0.1:8000/entornos/entornos/");
+      const response = await axios.get(
+        "http://127.0.0.1:8000/entornos/entornos/",
+      );
       const data: { [key: number]: string } = {};
       response.data.forEach((entorno: Entorno) => {
         data[entorno.id] = entorno.name;
@@ -204,7 +206,7 @@ export default function EvcsPage() {
 
   // Handlers EVC
   const handleEvcChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     setNewEvc((prev) => ({
@@ -215,7 +217,7 @@ export default function EvcsPage() {
 
   // Handlers EVC_Q
   const handleQuarterChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     setNewQuarter((prev) => ({
@@ -227,7 +229,7 @@ export default function EvcsPage() {
   // Handlers EVC_Financial
   const handleFinancialChange = (
     e: React.ChangeEvent<HTMLSelectElement>,
-    evc_q_id: number
+    evc_q_id: number,
   ) => {
     const { value } = e.target;
     setFinancialSelections((prev) => ({
@@ -251,7 +253,7 @@ export default function EvcsPage() {
   const fetchAvailableTechnicalLeaders = async () => {
     try {
       const resp = await axios.get(
-        "http://127.0.0.1:8000/technical-leaders/technical-leaders/"
+        "http://127.0.0.1:8000/technical-leaders/technical-leaders/",
       );
       setAvailableTechnicalLeaders(resp.data);
     } catch (error) {
@@ -262,7 +264,7 @@ export default function EvcsPage() {
   const fetchAvailableFunctionalLeaders = async () => {
     try {
       const resp = await axios.get(
-        "http://127.0.0.1:8000/functional-leaders/functional-leaders"
+        "http://127.0.0.1:8000/functional-leaders/functional-leaders",
       );
       setAvailableFunctionalLeaders(resp.data);
     } catch (error) {
@@ -281,7 +283,9 @@ export default function EvcsPage() {
 
   const fetchAvailableProviders = async () => {
     try {
-      const resp = await axios.get("http://127.0.0.1:8000/providers/providers/");
+      const resp = await axios.get(
+        "http://127.0.0.1:8000/providers/providers/",
+      );
       setAvailableProviders(resp.data);
     } catch (error) {
       console.error("Error al cargar proveedores:", error);
@@ -291,7 +295,7 @@ export default function EvcsPage() {
   const fetchProvidersByEvcQ = async (evc_q_id: number) => {
     try {
       const response = await axios.get(
-        `http://127.0.0.1:8000/evc-financials/evc-financials/${evc_q_id}/providers`
+        `http://127.0.0.1:8000/evc-financials/evc-financials/${evc_q_id}/providers`,
       );
       return response.data;
     } catch (error) {
@@ -307,7 +311,7 @@ export default function EvcsPage() {
     try {
       console.log(`Fetching spendings for EVC_Q ID: ${evc_q_id}`);
       const response = await axios.get(
-        `http://127.0.0.1:8000/evc-financials/evc_financials/${evc_q_id}/spendings`
+        `http://127.0.0.1:8000/evc-financials/evc_financials/${evc_q_id}/spendings`,
       );
 
       console.log(`Spendings for EVC_Q ${evc_q_id}:`, response.data);
@@ -355,16 +359,19 @@ export default function EvcsPage() {
   // Crear EVC_Q
   const createQuarter = async (evcId: number) => {
     try {
-      const response = await axios.post("http://127.0.0.1:8000/evc-qs/evc_qs/", {
-        evc_id: evcId,
-        year: parseInt(newQuarter.year, 10),
-        q: parseInt(newQuarter.q, 10),
-        allocated_budget: parseFloat(newQuarter.allocated_budget),
-        allocated_percentage: parseFloat(newQuarter.allocated_percentage),
-      });
+      const response = await axios.post(
+        "http://127.0.0.1:8000/evc-qs/evc_qs/",
+        {
+          evc_id: evcId,
+          year: parseInt(newQuarter.year, 10),
+          q: parseInt(newQuarter.q, 10),
+          allocated_budget: parseFloat(newQuarter.allocated_budget),
+          allocated_percentage: parseFloat(newQuarter.allocated_percentage),
+        },
+      );
       console.log("Quarter creado:", response.data);
       const updatedEvc = await axios.get(
-        `http://127.0.0.1:8000/evcs/evcs/${evcId}`
+        `http://127.0.0.1:8000/evcs/evcs/${evcId}`,
       );
       setSelectedEvc(updatedEvc.data);
       setNewQuarter({
@@ -392,11 +399,11 @@ export default function EvcsPage() {
         {
           evc_q_id: evc_q_id,
           provider_id: parseInt(provider_id, 10) || null,
-        }
+        },
       );
       console.log("Financial creado:", response.data);
       const updatedEvc = await axios.get(
-        `http://127.0.0.1:8000/evcs/evcs/${evcId}`
+        `http://127.0.0.1:8000/evcs/evcs/${evcId}`,
       );
       setSelectedEvc(updatedEvc.data);
       setFinancialSelections((prev) => ({
@@ -444,7 +451,7 @@ export default function EvcsPage() {
             percentage,
             budget_message: message,
           };
-        })
+        }),
       );
 
       // Fetch providers for each EVC_Q
@@ -458,7 +465,7 @@ export default function EvcsPage() {
               provider,
             })),
           };
-        })
+        }),
       );
 
       // Update the selected EVC with enriched evc_qs
@@ -521,7 +528,7 @@ export default function EvcsPage() {
   // Función para exportar a Excel
   const exportToExcel = () => {
     const selectedEvcsData = evcs.filter((evc) =>
-      selectedEvcsForExport.includes(evc.id)
+      selectedEvcsForExport.includes(evc.id),
     );
 
     // Crear hoja principal de EVCs
@@ -551,7 +558,7 @@ export default function EvcsPage() {
         Porcentaje: quarter.allocated_percentage,
         Proveedores:
           quarter.evc_financials?.map((f) => f.provider.name).join(", ") || "",
-      }))
+      })),
     );
 
     const wb = XLSX.utils.book_new();
@@ -721,7 +728,9 @@ export default function EvcsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Seleccionar EVCs para exportar</h2>
+              <h2 className="text-xl font-bold">
+                Seleccionar EVCs para exportar
+              </h2>
               <FaTimes
                 className="text-red-500 cursor-pointer"
                 onClick={() => setShowExportModal(false)}
@@ -758,10 +767,13 @@ export default function EvcsPage() {
                     checked={selectedEvcsForExport.includes(evc.id)}
                     onChange={(e) => {
                       if (e.target.checked) {
-                        setSelectedEvcsForExport([...selectedEvcsForExport, evc.id]);
+                        setSelectedEvcsForExport([
+                          ...selectedEvcsForExport,
+                          evc.id,
+                        ]);
                       } else {
                         setSelectedEvcsForExport(
-                          selectedEvcsForExport.filter((id) => id !== evc.id)
+                          selectedEvcsForExport.filter((id) => id !== evc.id),
                         );
                       }
                     }}
@@ -805,7 +817,10 @@ export default function EvcsPage() {
                 className="p-2 border rounded w-full"
                 value={filters.entorno_id}
                 onChange={(e) =>
-                  setFilters((prev) => ({ ...prev, entorno_id: e.target.value }))
+                  setFilters((prev) => ({
+                    ...prev,
+                    entorno_id: e.target.value,
+                  }))
                 }
               >
                 <option value="">Todos los entornos</option>
@@ -851,7 +866,9 @@ export default function EvcsPage() {
 
             {/* Formulario para crear quarter */}
             <div className="mb-6 bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-lg font-semibold mb-4">Agregar Nuevo Quarter</h3>
+              <h3 className="text-lg font-semibold mb-4">
+                Agregar Nuevo Quarter
+              </h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Año</label>
@@ -865,7 +882,12 @@ export default function EvcsPage() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="quarter-select" className="block text-sm font-medium mb-1">Quarter</label>
+                  <label
+                    htmlFor="quarter-select"
+                    className="block text-sm font-medium mb-1"
+                  >
+                    Quarter
+                  </label>
                   <select
                     id="quarter-select"
                     name="q"
@@ -895,7 +917,9 @@ export default function EvcsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Porcentaje</label>
+                  <label className="block text-sm font-medium mb-1">
+                    Porcentaje
+                  </label>
                   <input
                     type="number"
                     name="allocated_percentage"
@@ -918,7 +942,9 @@ export default function EvcsPage() {
 
             {/* Lista de quarters con gestión de proveedores */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold mb-4">Quarters Existentes</h3>
+              <h3 className="text-lg font-semibold mb-4">
+                Quarters Existentes
+              </h3>
               {selectedEvc.evc_qs && selectedEvc.evc_qs.length > 0 ? (
                 selectedEvc.evc_qs.map((quarter) => (
                   <div key={quarter.id} className="border p-4 rounded-lg">
@@ -934,7 +960,8 @@ export default function EvcsPage() {
                         {quarter.allocated_budget.toLocaleString()}
                       </p>
                       <p>
-                        <strong>Porcentaje:</strong> {quarter.allocated_percentage}%
+                        <strong>Porcentaje:</strong>{" "}
+                        {quarter.allocated_percentage}%
                       </p>
                     </div>
 
@@ -956,28 +983,33 @@ export default function EvcsPage() {
                         </select>
                         <button
                           className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
-                          onClick={() => createFinancial(selectedEvc.id, quarter.id)}
+                          onClick={() =>
+                            createFinancial(selectedEvc.id, quarter.id)
+                          }
                         >
                           Asignar
                         </button>
                       </div>
 
                       {/* Lista de proveedores asignados */}
-                      {quarter.evc_financials && quarter.evc_financials.length > 0 && (
-                        <div className="mt-2">
-                          <p className="text-sm font-medium">Proveedores asignados:</p>
-                          <div className="flex flex-wrap gap-2 mt-1">
-                            {quarter.evc_financials.map((financial) => (
-                              <span
-                                key={financial.id}
-                                className="px-2 py-1 bg-gray-100 rounded text-sm"
-                              >
-                                {financial.provider.name}
-                              </span>
-                            ))}
+                      {quarter.evc_financials &&
+                        quarter.evc_financials.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-sm font-medium">
+                              Proveedores asignados:
+                            </p>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {quarter.evc_financials.map((financial) => (
+                                <span
+                                  key={financial.id}
+                                  className="px-2 py-1 bg-gray-100 rounded text-sm"
+                                >
+                                  {financial.provider.name}
+                                </span>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
                     </div>
                   </div>
                 ))
@@ -995,8 +1027,8 @@ export default function EvcsPage() {
           <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">Confirmar Eliminación</h2>
             <p className="mb-4">
-              ¿Está seguro que desea eliminar la EVC "{evcToDelete.name}"? Esta acción
-              no se puede deshacer.
+              ¿Está seguro que desea eliminar la EVC "{evcToDelete.name}"? Esta
+              acción no se puede deshacer.
             </p>
             <div className="flex justify-end space-x-4">
               <button
@@ -1024,7 +1056,9 @@ export default function EvcsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-3xl max-h-[80vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold">Detalles de {selectedEvc.name}</h2>
+              <h2 className="text-2xl font-bold">
+                Detalles de {selectedEvc.name}
+              </h2>
               <FaTimes
                 className="text-red-500 cursor-pointer"
                 onClick={() => setShowDetailModal(false)}
@@ -1069,7 +1103,8 @@ export default function EvcsPage() {
                 </p>
               )}
               <p>
-                <strong>Estado:</strong> {selectedEvc.status ? "Activo" : "Inactivo"}
+                <strong>Estado:</strong>{" "}
+                {selectedEvc.status ? "Activo" : "Inactivo"}
               </p>
               <p>
                 <strong>Creado:</strong>{" "}
@@ -1087,7 +1122,10 @@ export default function EvcsPage() {
               {selectedEvc.evc_qs && selectedEvc.evc_qs.length > 0 ? (
                 <div className="space-y-4">
                   {selectedEvc.evc_qs.map((quarter) => (
-                    <div key={quarter.id} className="border p-4 rounded-lg bg-gray-50">
+                    <div
+                      key={quarter.id}
+                      className="border p-4 rounded-lg bg-gray-50"
+                    >
                       <div className="grid grid-cols-2 gap-4 mb-2">
                         <p>
                           <strong>Año:</strong> {quarter.year}
@@ -1101,7 +1139,8 @@ export default function EvcsPage() {
                         </p>
 
                         <p>
-                          <strong>Porcentaje:</strong> {quarter.allocated_percentage}%
+                          <strong>Porcentaje:</strong>{" "}
+                          {quarter.allocated_percentage}%
                         </p>
 
                         <p>
@@ -1118,23 +1157,27 @@ export default function EvcsPage() {
                           <strong>Estado:</strong>{" "}
                           <span
                             className={`px-2 py-1 rounded-full text-sm font-medium
-      ${quarter.percentage >= 100
-                                ? "bg-red-100 text-red-800"
-                                : quarter.percentage >= 80
-                                  ? "bg-orange-100 text-orange-800"
-                                  : quarter.percentage >= 50
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : "bg-green-100 text-green-800"
-                              }
+      ${
+        quarter.percentage >= 100
+          ? "bg-red-100 text-red-800"
+          : quarter.percentage >= 80
+            ? "bg-orange-100 text-orange-800"
+            : quarter.percentage >= 50
+              ? "bg-yellow-100 text-yellow-800"
+              : "bg-green-100 text-green-800"
+      }
     `}
                           >
                             {quarter.budget_message}
                           </span>
                         </p>
                       </div>
-                      {quarter.evc_financials && quarter.evc_financials.length > 0 ? (
+                      {quarter.evc_financials &&
+                      quarter.evc_financials.length > 0 ? (
                         <div className="mt-2">
-                          <p className="text-sm font-medium">Proveedores asignados:</p>
+                          <p className="text-sm font-medium">
+                            Proveedores asignados:
+                          </p>
                           <div className="flex flex-wrap gap-2 mt-1">
                             {quarter.evc_financials.map((financial) => (
                               <span
@@ -1170,7 +1213,7 @@ export default function EvcsPage() {
           <div
             key={evc.id}
             className={`p-6 rounded-xl shadow-md flex flex-col ${getEntornoColor(
-              evc.entorno_id
+              evc.entorno_id,
             )} 
                     text-white hover:shadow-xl hover:scale-105 transition-transform duration-300`}
           >
@@ -1181,7 +1224,7 @@ export default function EvcsPage() {
               {evc.entorno_id && (
                 <div
                   className={`${getContainerColor(
-                    evc.entorno_id
+                    evc.entorno_id,
                   )} rounded-lg px-3 py-1 flex items-center`}
                 >
                   <FaGlobe className="mr-2 text-white/80" />
@@ -1191,8 +1234,9 @@ export default function EvcsPage() {
                 </div>
               )}
               <span
-                className={`px-3 py-1 rounded-full text-sm font-semibold ${evc.status ? "bg-green-400" : "bg-red-400"
-                  }`}
+                className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                  evc.status ? "bg-green-400" : "bg-red-400"
+                }`}
               >
                 {evc.status ? "Activo" : "Inactivo"}
               </span>
@@ -1213,7 +1257,7 @@ export default function EvcsPage() {
             <div className="mb-3 text-base">
               <div
                 className={`${getContainerColor(
-                  evc.entorno_id
+                  evc.entorno_id,
                 )} rounded-lg p-3 flex justify-between items-center`}
               >
                 <div className="flex items-center">

@@ -7,6 +7,7 @@ from app.models.evc_q import EVC_Q
 from app.schemas.evc import EVCCreate, EVCUpdate, EVCResponse
 from app.services.rule_evaluator import evaluate_rules
 
+
 def create_evc(db: Session, evc_data: EVCCreate):
     db_evc = EVC(**evc_data.dict())
     db.add(db_evc)
@@ -17,12 +18,18 @@ def create_evc(db: Session, evc_data: EVCCreate):
 
 
 def get_evcs(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(EVC).options(
-        joinedload(EVC.entorno),
-        joinedload(EVC.technical_leader),
-        joinedload(EVC.functional_leader),
-        joinedload(EVC.evc_qs)
-    ).offset(skip).limit(limit).all()
+    return (
+        db.query(EVC)
+        .options(
+            joinedload(EVC.entorno),
+            joinedload(EVC.technical_leader),
+            joinedload(EVC.functional_leader),
+            joinedload(EVC.evc_qs),
+        )
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 
 def get_evc_by_id(db: Session, evc_id: int):

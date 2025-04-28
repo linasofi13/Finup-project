@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 from app.database import Base
 from datetime import datetime
 
+
 class Notification(Base):
     __tablename__ = "notification"
     id = Column(Integer, primary_key=True, index=True)

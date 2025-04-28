@@ -2,6 +2,7 @@
 from app.models.notification import Notification
 from sqlalchemy.orm import Session
 
+
 def create_notification(db: Session, data: dict):
     notification = Notification(**data)
     db.add(notification)

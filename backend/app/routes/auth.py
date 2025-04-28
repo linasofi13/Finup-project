@@ -70,14 +70,16 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
         email=user.email,
         username=user.username,
         password=hashed_password,
-        rol=user.rol if hasattr(user, "rol") else "consultor"
+        rol=user.rol if hasattr(user, "rol") else "consultor",
     )
 
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
 
-    return UserResponse(id=db_user.id, email=db_user.email, username=db_user.username, rol=db_user.rol)
+    return UserResponse(
+        id=db_user.id, email=db_user.email, username=db_user.username, rol=db_user.rol
+    )
 
 
 @router.post("/token", response_model=Token)
@@ -98,7 +100,7 @@ async def login_for_access_token(
         )
         access_token = auth_service.create_access_token(
             data={"sub": user.email, "rol": user.rol},  # <-- AGREGA rol aquí
-            expires_delta=access_token_expires
+            expires_delta=access_token_expires,
         )
 
         return {
@@ -108,7 +110,7 @@ async def login_for_access_token(
                 "id": user.id,
                 "email": user.email,
                 "username": user.username,
-                "rol": user.rol  # <-- AGREGA rol aquí
+                "rol": user.rol,  # <-- AGREGA rol aquí
             },
         }
     except Exception as e:
@@ -120,8 +122,8 @@ async def login_for_access_token(
 async def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get information about the currently authenticated user."""
     return UserResponse(
-        id=current_user.id, 
-        email=current_user.email, 
+        id=current_user.id,
+        email=current_user.email,
         username=current_user.username,
-        rol=current_user.rol
+        rol=current_user.rol,
     )

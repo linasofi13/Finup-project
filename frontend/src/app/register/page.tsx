@@ -46,8 +46,8 @@ export default function RegisterPage() {
       name: "",
       email: "",
       password: "",
-      confirmPassword: ""
-    }
+      confirmPassword: "",
+    },
   });
 
   const onSubmit = async (data: FormData) => {
@@ -80,7 +80,11 @@ export default function RegisterPage() {
             </div>
           )}
 
-          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)} role="form">
+          <form
+            className="space-y-6"
+            onSubmit={handleSubmit(onSubmit)}
+            role="form"
+          >
             <Input
               id="name"
               label="Nombre completo"

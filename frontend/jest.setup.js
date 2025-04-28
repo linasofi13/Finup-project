@@ -1,12 +1,12 @@
-import '@testing-library/jest-dom'
+import "@testing-library/jest-dom";
 
 // Limpiar todos los mocks después de cada test
 afterEach(() => {
-    jest.clearAllMocks()
-})
+  jest.clearAllMocks();
+});
 
 // Mock fetch global
-global.fetch = jest.fn()
+global.fetch = jest.fn();
 
 // Mock window.alert
-window.alert = jest.fn()
+window.alert = jest.fn();

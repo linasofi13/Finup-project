@@ -9,7 +9,7 @@ class ProviderSimple(BaseModel):
 
     class Config:
         from_attributes = True  # Habilita la conversión desde ORM
-        
+
 
 class ProviderDocumentBase(BaseModel):
     provider_id: int

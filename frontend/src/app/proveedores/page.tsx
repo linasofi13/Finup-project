@@ -827,8 +827,10 @@ export default function ProveedoresPage() {
           </p>
           <input
             type="file"
+            data-testid="file-input"
             ref={fileInputRef}
             className="hidden"
+            accept=".xlsx,.xls"
             onChange={handleFileUpload}
           />
           <button
@@ -949,7 +951,7 @@ export default function ProveedoresPage() {
             className="bg-white p-6 rounded-lg shadow-lg w-full max-w-6xl"
             style={{ transform: "translateX(50px)" }}
           >
-            <h2 className="text-xl font-bold mb-4">
+            <h2 data-testid="preview-modal-title" className="text-xl font-bold mb-4">
               Previsualizar Carga Masiva
             </h2>
             <div className="overflow-x-auto mb-4">

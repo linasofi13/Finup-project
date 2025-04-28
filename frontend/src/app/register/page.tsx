@@ -40,6 +40,14 @@ export default function RegisterPage() {
     formState: { errors },
   } = useForm<FormData>({
     resolver: yupResolver(schema),
+    mode: "onChange", // Validar al cambiar
+    criteriaMode: "all", // Mostrar todos los errores
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: ""
+    }
   });
 
   const onSubmit = async (data: FormData) => {
@@ -72,7 +80,7 @@ export default function RegisterPage() {
             </div>
           )}
 
-          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)} role="form">
             <Input
               id="name"
               label="Nombre completo"

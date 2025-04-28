@@ -83,8 +83,8 @@ export default function DocumentosPage() {
     const valor = filtroCampo === "uploaded_at"
       ? new Date(doc[filtroCampo]).toLocaleDateString()
       : filtroCampo === "provider_name"
-      ? doc.provider?.name?.toLowerCase?.() || ""
-      : doc[filtroCampo]?.toLowerCase?.() || "";
+        ? doc.provider?.name?.toLowerCase?.() || ""
+        : doc[filtroCampo]?.toLowerCase?.() || "";
     return valor.includes(filtroTexto.toLowerCase());
   });
 
@@ -159,6 +159,7 @@ export default function DocumentosPage() {
                 <td className="p-3 border">{new Date(doc.uploaded_at).toLocaleDateString()}</td>
                 <td className="p-3 border text-center">
                   <button
+                    aria-label="eliminar"
                     className="text-red-500 hover:text-red-700"
                     onClick={() => eliminarDocumento(doc.id)}
                   >

@@ -472,6 +472,7 @@ export default function ProveedoresPage() {
                     onChange={handleFilterChange}
                     className="w-full border p-1 rounded"
                     placeholder="Filtrar..."
+                    data-testid="role-filter"
                   />
                 </th>
                 <th className="p-2 border">

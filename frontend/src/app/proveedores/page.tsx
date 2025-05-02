@@ -472,6 +472,7 @@ export default function ProveedoresPage() {
                     onChange={handleFilterChange}
                     className="w-full border p-1 rounded"
                     placeholder="Filtrar..."
+                    data-testid="role-filter"
                   />
                 </th>
                 <th className="p-2 border">
@@ -891,11 +892,10 @@ export default function ProveedoresPage() {
             <button
               disabled={!docFile}
               onClick={handleUploadDocument}
-              className={`h-full px-4 py-2 rounded text-white transition ${
-                !docFile
+              className={`h-full px-4 py-2 rounded text-white transition ${!docFile
                   ? "bg-gray-400 cursor-not-allowed"
                   : "bg-[#a767d0] hover:bg-[#955bb8]"
-              }`}
+                }`}
             >
               <FaCloudUploadAlt className="inline mr-2" />
               Subir Documento

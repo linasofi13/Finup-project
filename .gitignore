@@ -1,3 +1,36 @@
+
+# 🛑 Ignorar archivos de entorno
+.env
+.env.local
+.env.production
+.env.development
+
+# 🚀 Archivos de dependencias
+node_modules/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+
+# 🔥 Caché de Python y FastAPI
+migrations/
+instance/
+
+# 🐳 Docker
+docker-compose.override.yml
+
+# 📂 Archivos del sistema y editor
+.vscode/
+.DS_Store
+.idea/
 venv/
 __pycache__/
-requirements.txt
+
+backend/alembic/versions/*.pyc
+backend/alembic/versions/*.pyo
+backend/alembic/versions/*.pyd
+backend/alembic/versions/*.so
+backend/alembic/versions/*.egg-info
+backend/alembic/versions/*.py
+backend/alembic/versions/*

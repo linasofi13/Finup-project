@@ -1,0 +1,25 @@
+So, we need to change three files.
+.env and add this:
+DB_USER=postgres
+DB_PASSWORD=password
+DB_HOST=localhost  # Change if your DB is on another server
+DB_PORT=5432  # Default PostgreSQL port
+DB_NAME=database_name
+DB_URL=postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}
+
+Line 66 alembic.ini located at app/
+sqlalchemy.url = postgresql+psycopg2://user:password@localhost/finup
+
+Line 29 app/database.py
+
+SQLALCHEMY_DATABASE_URL = "postgresql://user:password@localhost/name_database"
+
+How to create the postgreSQL database:
+
+psql -U postgres
+create database datatabase_name;
+
+I strongly recommend using finup for convenience and facility.
+
+
+Chachos, perdón por el inglés, ChatGPT me sacó algo fuera de contexto y no hay más tiempo.

@@ -1,0 +1,70 @@
+@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #333333;
+  --primary: #ededed;
+  --primary-hover: #fff159;
+  --error: #ef4444;
+  --success: #10b981;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-error: var(--error);
+  --color-success: var(--success);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+    --primary: #ffe500;
+    --primary-hover: #fff159;
+    --error: #f87171;
+    --success: #34d399;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Inter", Arial, sans-serif;
+}
+
+/* Custom form styles */
+.form-input {
+  @apply appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm;
+}
+
+.btn-primary {
+  @apply w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-gray-900 bg-yellow-400 hover:bg-yellow-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-400 disabled:opacity-50;
+}
+
+.error-message {
+  @apply text-red-500 text-xs mt-1;
+}
+
+.alert-error {
+  @apply bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative;
+}
+
+.alert-success {
+  @apply bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative;
+}
+
+.sidebar-link {
+  @apply flex items-center space-x-3 text-gray-700 hover:bg-gray-200 px-3 py-2 rounded-lg transition;
+}
+
+.sidebar-icon {
+  @apply text-lg;
+}

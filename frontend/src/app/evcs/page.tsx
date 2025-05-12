@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
     FaTrash,
     FaFilter,
@@ -17,7 +17,6 @@ import {
 } from "react-icons/fa";
 import { RiTeamFill } from "react-icons/ri";
 import * as XLSX from "xlsx";
-import { useRef } from "react";
 import axios from "axios";
 
 // Interfaces
@@ -33,6 +32,28 @@ interface TechnicalLeader {
     name: string;
 }
 
+interface Provider {
+    id: number;
+    name: string;
+    company?: string;
+    cost_usd?: number;
+}
+
+interface EVC_Q {
+    id: number;
+    year: number;
+    q: number;
+    allocated_budget: number;
+    allocated_percentage: number;
+    evc_financials?: { 
+        id: number; 
+        provider: Provider;
+        value_usd?: number;
+        concept?: string;
+        created_at?: string;
+    }[];
+}
+
 interface EVC {
     id: number;
     name: string;
@@ -42,16 +63,16 @@ interface EVC {
     updated_at: string;
     entorno: Entorno | null;
     technical_leader: TechnicalLeader | null;
-    functional_leader: any;
-    evc_qs: any[];
+    functional_leader: { id: number; name: string } | null;
+    evc_qs: EVC_Q[];
 }
 
 export default function EvcsPage() {
     // Estados principales
-    const [evcs, setEvcs] = useState([]);
+    const [evcs, setEvcs] = useState<EVC[]>([]);
     const [showForm, setShowForm] = useState(false);
     const [alert, setAlert] = useState("");
-    const [selectedEvc, setSelectedEvc] = useState(null);
+    const [selectedEvc, setSelectedEvc] = useState<EVC | null>(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [entornosData, setEntornosData] = useState<{ [key: number]: string }>({});
     const [technicalLeadersData, setTechnicalLeadersData] = useState<{ [key: number]: string }>({});
@@ -61,15 +82,22 @@ export default function EvcsPage() {
     const [showQuartersModal, setShowQuartersModal] = useState(false);
     const [showFilterModal, setShowFilterModal] = useState(false);
     const [filters, setFilters] = useState({
-        entorno_id: '',
+        entorno_id: "",
     });
-    const [filteredEvcs, setFilteredEvcs] = useState([]);
+    const [filteredEvcs, setFilteredEvcs] = useState<EVC[]>([]);
     const [showExportModal, setShowExportModal] = useState(false);
     const [selectedEvcsForExport, setSelectedEvcsForExport] = useState<number[]>([]);
+    const [financialSelections, setFinancialSelections] = useState<{ [key: number]: string }>({});
+    const [availableTechnicalLeaders, setAvailableTechnicalLeaders] = useState<TechnicalLeader[]>([]);
+    const [availableFunctionalLeaders, setAvailableFunctionalLeaders] = useState<{ id: number; name: string }[]>([]);
+    const [availableEntornos, setAvailableEntornos] = useState<Entorno[]>([]);
+    const [availableProviders, setAvailableProviders] = useState<Provider[]>([]);
+    
+    // Estados para OCR
     const [uploading, setUploading] = useState(false);
     const [extractedValues, setExtractedValues] = useState<{ [key: number]: number }>({});
     const [uploadedFiles, setUploadedFiles] = useState<{ [key: number]: string }>({});
-    
+    const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
 
     //Colores para entornos
     const entornoColors = {
@@ -115,67 +143,52 @@ export default function EvcsPage() {
         allocated_percentage: "",
     });
 
-    const handleFileUpload = async (e, evc_q_id) => {
-        const file = e.target.files[0];
+    // Funciones para OCR
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, evc_q_id: number) => {
+        const file = e.target.files?.[0];
         if (!file) return;
       
         const formData = new FormData();
         formData.append("file", file);
-        formData.append("evc_q_id", evc_q_id);
+        formData.append("evc_q_id", evc_q_id.toString());
       
         setUploading(true);
-        // setExtractedValues(null);
       
         try {
-          const response = await axios.post(
-            "http://127.0.0.1:8000/evc-financials/evc_financials/upload",
-            formData,
-            {
-              headers: { "Content-Type": "multipart/form-data" },
-            }
-          );
-          setUploadedFiles((prev) => ({
-            ...prev,
-            [evc_q_id]: file.name,
-          }));
-          
-          setExtractedValues((prev) => ({
-            ...prev,
-            [evc_q_id]: response.data.value_usd,
-          }));
-          
-      
-          console.log("Archivo procesado:", response.data);
-      
-          // Actualizar EVC seleccionado
-          const updatedEvc = await axios.get(`http://127.0.0.1:8000/evcs/evcs/${selectedEvc.id}`);
-          setSelectedEvc(updatedEvc.data);
-      
+            const response = await axios.post(
+                "http://127.0.0.1:8000/evc-financials/evc_financials/upload",
+                formData,
+                {
+                    headers: { "Content-Type": "multipart/form-data" },
+                }
+            );
+            setUploadedFiles((prev) => ({
+                ...prev,
+                [evc_q_id]: file.name,
+            }));
+            
+            setExtractedValues((prev) => ({
+                ...prev,
+                [evc_q_id]: response.data.value_usd,
+            }));
+            
+            console.log("Archivo procesado:", response.data);
+        
+            // Actualizar EVC seleccionado
+            const updatedEvc = await axios.get(`http://127.0.0.1:8000/evcs/evcs/${selectedEvc?.id}`);
+            setSelectedEvc(updatedEvc.data);
+        
         } catch (err) {
-          console.error("Error al subir archivo:", err);
-          alert("Error al procesar la factura");
+            console.error("Error al subir archivo:", err);
+            alert("Error al procesar la factura");
         } finally {
-          setUploading(false);
+            setUploading(false);
         }
-      };
-      
-      
-    const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
-
-    const triggerFileUpload = (quarterId: number) => {
-    fileInputRefs.current[quarterId]?.click();
     };
 
-    // Modelo EVC_Financial (por quarter)
-    const [financialSelections, setFinancialSelections] = useState({}); // { evc_q_id: provider_id }
-
-    // Listas para selects
-    const [availableTechnicalLeaders, setAvailableTechnicalLeaders] = useState([]);
-    const [availableFunctionalLeaders, setAvailableFunctionalLeaders] = useState(
-        []
-    );
-    const [availableEntornos, setAvailableEntornos] = useState([]);
-    const [availableProviders, setAvailableProviders] = useState([]);
+    const triggerFileUpload = (quarterId: number) => {
+        fileInputRefs.current[quarterId]?.click();
+    };
 
     // Efectos iniciales
     useEffect(() => {
@@ -910,8 +923,8 @@ export default function EvcsPage() {
                                                 </button>
                                             </div>
 
-                                            {/* Sección Cargar Factura debajo */}
-                                            <div className="border border-dashed border-gray-300 rounded-lg p-4 bg-gray-50">
+                                            {/* Sección Cargar Factura */}
+                                            <div className="border border-dashed border-gray-300 rounded-lg p-4 bg-gray-50 mt-4">
                                                 <label className="block text-sm font-medium mb-2 text-gray-700">Cargar Factura</label>
                                                 <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-md p-6 bg-white hover:border-yellow-400 transition">
                                                     <input
@@ -942,30 +955,30 @@ export default function EvcsPage() {
                                                     <span className="text-gray-600">Haz clic para subir archivo</span>
                                                     </label>
                                                 </div>
-                                                <div className="flex justify-start">
-    <button
-      type="button"
-      className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
-      onClick={() => triggerFileUpload(quarter.id)}
-    >
-      Cargar Archivo
-    </button>
-  </div>
+                                                <div className="flex justify-start mt-2">
+                                                    <button
+                                                        type="button"
+                                                        className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+                                                        onClick={() => triggerFileUpload(quarter.id)}
+                                                    >
+                                                        Cargar Archivo
+                                                    </button>
+                                                </div>
 
-  {uploading && (
-    <p className="text-yellow-600 text-sm">Procesando factura...</p>
-  )}
+                                                {uploading && (
+                                                    <p className="text-yellow-600 text-sm">Procesando factura...</p>
+                                                )}
 
-  {extractedValues[quarter.id] !== undefined && (
-    <p className="text-green-600 text-sm">
-      Valor extraído: <strong>${extractedValues[quarter.id].toLocaleString()}</strong>
-    </p>
-  )}
-  {uploadedFiles[quarter.id] && (
-  <p className="text-blue-600 text-sm mt-2">
-    Archivo cargado: <strong>{uploadedFiles[quarter.id]}</strong>
-  </p>
-)}
+                                                {extractedValues[quarter.id] !== undefined && (
+                                                    <p className="text-green-600 text-sm">
+                                                        Valor extraído: <strong>${extractedValues[quarter.id].toLocaleString()}</strong>
+                                                    </p>
+                                                )}
+                                                {uploadedFiles[quarter.id] && (
+                                                    <p className="text-blue-600 text-sm mt-2">
+                                                        Archivo cargado: <strong>{uploadedFiles[quarter.id]}</strong>
+                                                    </p>
+                                                )}
                                             </div>
                                             </div>
                                             {/* Lista de proveedores asignados */}
@@ -985,23 +998,22 @@ export default function EvcsPage() {
                                                 </div>
                                             )}
                                             {quarter.evc_financials && quarter.evc_financials.length > 0 && (
-  <div className="mt-4">
-    <p className="text-sm font-medium mb-1">Gastos registrados:</p>
-    <ul className="text-sm text-gray-700 list-disc ml-6 space-y-1">
-      {quarter.evc_financials
-        .filter(item => item.value_usd !== null)
-        .map(item => (
-          <li key={item.id}>
-            {item.concept || 'Sin concepto'} — <strong>${item.value_usd.toLocaleString()}</strong>{" "}
-            <span className="text-gray-500 text-xs">
-              ({new Date(item.created_at).toLocaleString("es-CO")})
-            </span>
-          </li>
-        ))}
-    </ul>
-  </div>
-)}
- 
+                                                <div className="mt-4">
+                                                    <p className="text-sm font-medium mb-1">Gastos registrados:</p>
+                                                    <ul className="text-sm text-gray-700 list-disc ml-6 space-y-1">
+                                                        {quarter.evc_financials
+                                                            .filter(item => item.value_usd !== null)
+                                                            .map(item => (
+                                                                <li key={item.id}>
+                                                                    {item.concept || 'Sin concepto'} — <strong>${item.value_usd.toLocaleString()}</strong>{" "}
+                                                                    <span className="text-gray-500 text-xs">
+                                                                        ({new Date(item.created_at).toLocaleString("es-CO")})
+                                                                    </span>
+                                                                </li>
+                                                            ))}
+                                                    </ul>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 ))

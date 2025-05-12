@@ -115,6 +115,7 @@ function EvcCard({
   index,
   selected,
   onSelect,
+  onStatusChange,
 }: {
   evc: EVC;
   entornosData: { [key: number]: string };
@@ -123,25 +124,26 @@ function EvcCard({
   index: number;
   selected: boolean;
   onSelect: (checked: boolean) => void;
+  onStatusChange: (evc: EVC) => Promise<void>;
 }) {
   // Assign color from palette
   const bgColor = evcColors[index % evcColors.length];
   // Status badge
   const status = evc.status ? 'Activo' : 'Inactivo';
   const statusColor = evc.status ? 'bg-green-400 text-green-900' : 'bg-red-500 text-white';
-  
+
   // Progress bar calculations
   const totalAssigned = evc.evc_qs.reduce((sum, q) => sum + (q.allocated_budget || 0), 0);
   const totalSpent = evc.evc_qs.reduce((sum, q) => sum + (q.total_spendings || 0), 0);
   const totalAssignedPercentage = evc.evc_qs.reduce((sum, q) => sum + (q.allocated_percentage || 0), 0);
   const totalSpentPercentage = evc.evc_qs.reduce((sum, q) => sum + (q.percentage || 0), 0);
-  
+
   const asignado = totalAssignedPercentage;
   const gastado = totalSpentPercentage;
   const progreso = evc.evc_qs.length > 0 ? Math.round(evc.evc_qs.reduce((sum, q) => sum + (q.percentage || 0), 0) / evc.evc_qs.length) : 0;
-  
+
   const qActual = evc.evc_qs?.length > 0 ? evc.evc_qs[evc.evc_qs.length - 1].q : 1;
-  
+
   return (
     <div
       className={`rounded-2xl shadow-lg p-6 w-full text-gray-900 relative flex flex-col min-h-[320px] group transition-all duration-200 ${selected ? 'border-2 border-yellow-400 bg-yellow-50' : ''}`}
@@ -156,19 +158,27 @@ function EvcCard({
         title="Seleccionar EVC"
         style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}
       />
-      
+
       {/* Checkmark overlay when selected */}
       {selected && (
         <span className="absolute top-2 right-2 z-20 bg-yellow-400 text-white rounded-full p-1 shadow pointer-events-none">
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
         </span>
       )}
-      
-      {/* Status badge */}
-      <div className="absolute top-4 right-4">
-        <span className={`text-xs font-semibold px-3 py-1 rounded-full ${statusColor}`}>{status}</span>
+
+      {/* Status badge with toggle button */}
+      <div className="absolute top-4 right-4 flex items-center gap-2">
+        <button
+          onClick={async (e) => {
+            e.stopPropagation();
+            await onStatusChange(evc);
+          }}
+          className={`text-xs font-semibold px-3 py-1 rounded-full transition-colors duration-200 hover:opacity-80 ${statusColor}`}
+        >
+          {status}
+        </button>
       </div>
-      
+
       {/* Header */}
       <div className="flex items-center gap-4 mb-4">
         <div className="bg-white/30 rounded-full p-3">
@@ -179,7 +189,7 @@ function EvcCard({
           <div className="text-base md:text-lg font-medium text-gray-800 opacity-90">{evc.description || "Proyecto"}</div>
         </div>
       </div>
-      
+
       {/* Badges */}
       <div className="flex flex-wrap gap-2 mb-4">
         {evc.entorno_id && (
@@ -192,7 +202,7 @@ function EvcCard({
           Creado: {new Date(evc.creation_date).toLocaleDateString()}
         </span>
       </div>
-      
+
       {/* Details Row */}
       <div className="flex justify-between items-center mb-4">
         <div>
@@ -216,7 +226,7 @@ function EvcCard({
           </button>
         </div>
       </div>
-      
+
       {/* Progress Bars */}
       <div className="space-y-2 mt-auto">
         <ProgressBar label="Asignado" value={asignado} color="bg-green-400" />
@@ -292,7 +302,7 @@ function QuarterCard({ quarter, onUpdatePercentage }: { quarter: EVC_Q, onUpdate
         <div className="text-base font-semibold text-gray-700">Año: <span className="font-bold text-gray-900">{quarter.year}</span></div>
         <div className="text-base font-semibold text-gray-700">Quarter: <span className="font-bold text-gray-900">Q{quarter.q}</span></div>
       </div>
-      
+
       <div className="mb-4">
         <div className="flex justify-between items-center mb-1">
           <span className="text-sm font-medium text-gray-700">Asignado</span>
@@ -314,9 +324,9 @@ function QuarterCard({ quarter, onUpdatePercentage }: { quarter: EVC_Q, onUpdate
       </div>
 
       <div className="mb-2 text-sm text-gray-700">Presupuesto: <span className="font-bold text-gray-900">${quarter.allocated_budget.toLocaleString()}</span></div>
-      
+
       <div className="mb-2 text-sm text-gray-700 flex items-center gap-2">
-        Porcentaje asignado: 
+        Porcentaje asignado:
         {isEditing ? (
           <div className="flex items-center gap-2">
             <input
@@ -364,7 +374,7 @@ function QuarterCard({ quarter, onUpdatePercentage }: { quarter: EVC_Q, onUpdate
       </div>
 
       <div className="mb-2 text-sm text-gray-700">Presupuesto gastado: <span className="font-bold text-gray-900">${quarter.total_spendings?.toLocaleString() ?? 0}</span></div>
-      
+
       <div className="mb-4">
         <div className="text-sm font-medium text-gray-700 mb-2">Estado:</div>
         <span className={`px-2 py-1 rounded-full text-xs font-semibold
@@ -960,18 +970,18 @@ export default function EvcsPage() {
       );
 
       console.log("Quarter creado:", response.data);
-      
+
       // Fetch the updated EVC with the new quarter
       const updatedEvc = await axios.get(
         `http://127.0.0.1:8000/evcs/evcs/${evcId}`
       );
-      
+
       // Update the selected EVC state
       setSelectedEvc(updatedEvc.data);
-      
+
       // Update the evcs list to reflect the new quarter
-      setEvcs(prevEvcs => 
-        prevEvcs.map(evc => 
+      setEvcs(prevEvcs =>
+        prevEvcs.map(evc =>
           evc.id === evcId ? updatedEvc.data : evc
         )
       );
@@ -1199,47 +1209,47 @@ export default function EvcsPage() {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, evc_q_id: number) => {
     const file = e.target.files?.[0];
     if (!file) return;
-  
+
     const formData = new FormData();
     formData.append("file", file);
     formData.append("evc_q_id", evc_q_id.toString());
-  
+
     setUploading(true);
-  
+
     try {
-        const response = await axios.post(
-            "http://127.0.0.1:8000/evc-financials/evc_financials/upload",
-            formData,
-            {
-                headers: { "Content-Type": "multipart/form-data" },
-            }
-        );
-        setUploadedFiles((prev) => ({
-            ...prev,
-            [evc_q_id]: file.name,
-        }));
-        
-        setExtractedValues((prev) => ({
-            ...prev,
-            [evc_q_id]: response.data.value_usd,
-        }));
-    
-        console.log("Archivo procesado:", response.data);
-    
-        // Actualizar EVC seleccionado
-        if (selectedEvc) {
-            const updatedEvc = await axios.get(`http://127.0.0.1:8000/evcs/evcs/${selectedEvc.id}`);
-            setSelectedEvc(updatedEvc.data);
+      const response = await axios.post(
+        "http://127.0.0.1:8000/evc-financials/evc_financials/upload",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
         }
+      );
+      setUploadedFiles((prev) => ({
+        ...prev,
+        [evc_q_id]: file.name,
+      }));
+
+      setExtractedValues((prev) => ({
+        ...prev,
+        [evc_q_id]: response.data.value_usd,
+      }));
+
+      console.log("Archivo procesado:", response.data);
+
+      // Actualizar EVC seleccionado
+      if (selectedEvc) {
+        const updatedEvc = await axios.get(`http://127.0.0.1:8000/evcs/evcs/${selectedEvc.id}`);
+        setSelectedEvc(updatedEvc.data);
+      }
     } catch (err: unknown) {
-        if (err instanceof Error) {
-            console.error("Error al subir archivo:", err.message);
-        } else {
-            console.error("Error al subir archivo:", String(err));
-        }
-        setAlertMsg("Error al procesar la factura");
+      if (err instanceof Error) {
+        console.error("Error al subir archivo:", err.message);
+      } else {
+        console.error("Error al subir archivo:", String(err));
+      }
+      setAlertMsg("Error al procesar la factura");
     } finally {
-        setUploading(false);
+      setUploading(false);
     }
   };
 
@@ -1258,6 +1268,30 @@ export default function EvcsPage() {
       setGastosModal({ open: true, quarter, gastos });
     } catch (err) {
       setGastosModal({ open: true, quarter, gastos: [] });
+    }
+  };
+
+  // Add status update function
+  const handleStatusChange = async (evc: EVC) => {
+    try {
+      const response = await axios.put(`http://127.0.0.1:8000/evcs/evcs/${evc.id}`, {
+        status: !evc.status
+      });
+
+      // Update the EVCs list with the new status
+      setEvcs(prevEvcs =>
+        prevEvcs.map(e =>
+          e.id === evc.id ? { ...e, status: !e.status } : e
+        )
+      );
+
+      // If this EVC is currently selected, update its status in selectedEvc
+      if (selectedEvc?.id === evc.id) {
+        setSelectedEvc(prev => prev ? { ...prev, status: !prev.status } : null);
+      }
+    } catch (error) {
+      console.error('Error updating EVC status:', error);
+      setAlertMsg('Error al actualizar el estado del EVC');
     }
   };
 
@@ -2179,6 +2213,7 @@ export default function EvcsPage() {
                 checked ? [...prev, evc.id] : prev.filter(id => id !== evc.id)
               );
             }}
+            onStatusChange={handleStatusChange}
           />
         ))}
         {filteredEvcs.length === 0 && filters.entorno_id && (

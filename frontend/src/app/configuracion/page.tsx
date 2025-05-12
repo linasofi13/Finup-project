@@ -346,7 +346,7 @@ export default function ConfiguracionPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 mt-16">
       <h1 className="text-2xl font-bold mb-6">Configuración de Notificaciones</h1>
       
       {/* Add default rules button and bulk delete button */}

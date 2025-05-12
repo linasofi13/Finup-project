@@ -55,7 +55,9 @@ def delete_evc(db: Session, evc_id: int):
         quarter_ids = [q.id for q in quarters]
         if quarter_ids:
             # Delete all EVC_Financial records for these quarters
-            db.query(EVC_Financial).filter(EVC_Financial.evc_q_id.in_(quarter_ids)).delete(synchronize_session=False)
+            db.query(EVC_Financial).filter(
+                EVC_Financial.evc_q_id.in_(quarter_ids)
+            ).delete(synchronize_session=False)
         # Now delete the quarters
         db.query(EVC_Q).filter(EVC_Q.evc_id == evc_id).delete(synchronize_session=False)
         db_evc = get_evc_by_id(db, evc_id)

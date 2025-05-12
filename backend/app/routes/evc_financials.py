@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
 from fastapi import UploadFile, File, Form
-import fitz  
+import fitz
 from PIL import Image
 import io
 import pytesseract
@@ -127,12 +127,13 @@ async def get_providers_by_evc_q(evc_q_id: int, db: Session = Depends(get_db)):
     return providers
 
 
-
-@router.post("/evc_financials/upload", response_model=EVC_FinancialResponse, tags=[tag_name])
+@router.post(
+    "/evc_financials/upload", response_model=EVC_FinancialResponse, tags=[tag_name]
+)
 async def create_financial_from_file(
     evc_q_id: int = Form(...),
     file: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     content = await file.read()
     text = ""
@@ -143,7 +144,7 @@ async def create_financial_from_file(
             text += page.get_text()
     else:
         pass
-        #image = Image.open(io.BytesIO(content))
+        # image = Image.open(io.BytesIO(content))
         # text = pytesseract.image_to_string(image)
 
     print("=== TEXTO COMPLETO DEL PDF ===")
@@ -154,8 +155,12 @@ async def create_financial_from_file(
     value_candidates = []
 
     for line in lines:
-        if any(keyword in line.lower() for keyword in ["total", "subtotal", "iva", "$"]):
-            matches = re.findall(r"\$?\d{1,3}(?:,\d{3})*(?:\.\d{2})?", line)  # <- mejora aquí
+        if any(
+            keyword in line.lower() for keyword in ["total", "subtotal", "iva", "$"]
+        ):
+            matches = re.findall(
+                r"\$?\d{1,3}(?:,\d{3})*(?:\.\d{2})?", line
+            )  # <- mejora aquí
             for raw in matches:
                 try:
                     cleaned = raw.replace("$", "").replace(",", "")
@@ -166,7 +171,9 @@ async def create_financial_from_file(
                     continue
 
     if not value_candidates:
-        raise HTTPException(status_code=400, detail="No se encontraron montos válidos en la factura")
+        raise HTTPException(
+            status_code=400, detail="No se encontraron montos válidos en la factura"
+        )
 
     value = max(value_candidates)
     print(f"Valor máximo detectado y utilizado como TOTAL: {value}")
@@ -174,14 +181,9 @@ async def create_financial_from_file(
     evc_data = EVC_FinancialCreateConcept(
         evc_q_id=evc_q_id,
         concept="Cargado automáticamente desde factura",
-        value_usd=value
+        value_usd=value,
     )
     return evc_financial_service.create_evc_financial_concept(db, evc_data)
-
-
-
-
-
 
 
 # @router.get(

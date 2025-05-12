@@ -6,8 +6,10 @@ from app.schemas.notification_rule import NotificationRuleCreate, NotificationRu
 from pydantic import BaseModel
 from typing import List
 
+
 class BulkDeleteRequest(BaseModel):
     rule_ids: List[int]
+
 
 router = APIRouter(prefix="/notification-rules", tags=["Notification Rules"])
 
@@ -42,7 +44,9 @@ def update_rule(
 
 @router.delete("/bulk")
 def delete_rules_bulk(request: BulkDeleteRequest, db: Session = Depends(get_db)):
-    db.query(NotificationRule).filter(NotificationRule.id.in_(request.rule_ids)).delete(synchronize_session=False)
+    db.query(NotificationRule).filter(NotificationRule.id.in_(request.rule_ids)).delete(
+        synchronize_session=False
+    )
     db.commit()
     return {"message": f"{len(request.rule_ids)} rules deleted successfully"}
 

@@ -148,7 +148,10 @@ export default function TalentosPage() {
   };
 
   const handleDeleteSelected = async () => {
-    if (!window.confirm("¿Confirma la eliminación de los talentos seleccionados?")) return;
+    if (
+      !window.confirm("¿Confirma la eliminación de los talentos seleccionados?")
+    )
+      return;
     try {
       for (const id of selectedIds) {
         await axios.delete(`${API_URL}/${id}`);

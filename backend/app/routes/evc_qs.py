@@ -26,11 +26,22 @@ async def create_evc_q(evc_q_data: EVC_QCreate, db: Session = Depends(get_db)):
 async def get_evc_qs(db: Session = Depends(get_db)):
     return evc_q_service.get_evc_qs(db)
 
+
 @router.get(
     "/evc_qs/evc/{evc_id}", response_model=List[EVC_QShortResponse], tags=[tag_name]
 )
 async def get_evc_qs_by_evc_id(evc_id: int, db: Session = Depends(get_db)):
     return evc_q_service.get_evc_qs_by_evc_id(db, evc_id)
+
+
+@router.get(
+    "/evc_qs/last/evc/{evc_id}", response_model=EVC_QShortResponse, tags=[tag_name]
+)
+async def get_last_evc_q_by_evc_id(evc_id: int, db: Session = Depends(get_db)):
+    db_evc_q = evc_q_service.get_last_evc_q_by_evc_id(db, evc_id)
+    if not db_evc_q:
+        raise HTTPException(status_code=404, detail="EVC_Q not found")
+    return db_evc_q
 
 
 @router.put("/evc_qs/{evc_q_id}", response_model=EVC_QResponse, tags=[tag_name])

@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float
 from sqlalchemy.orm import relationship
 from app.database import Base
+from .provider_document import ProviderDocument  # Asegura que la relación funcione
 
 
 class Provider(Base):
@@ -15,9 +16,10 @@ class Provider(Base):
     category = Column(String)
     line = Column(String)
     email = Column(String, unique=True, index=True)
-    
+
     # Relationships
     evc_financials = relationship("EVC_Financial", back_populates="provider")
+    documents = relationship("ProviderDocument", back_populates="provider")
 
     # Relationship with EVCProvider
     # evc_providers = relationship("EVCProvider", back_populates="provider")

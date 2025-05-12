@@ -73,7 +73,12 @@ export default function ProfilePage() {
       setSuccess(true);
       setShowEdit(false);
       setTimeout(() => setSuccess(false), 2000);
-      reset({ ...data, currentPassword: "", newPassword: "", confirmPassword: "" });
+      reset({
+        ...data,
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
     } catch (err) {
       alert("Error al actualizar el perfil");
     }
@@ -82,38 +87,98 @@ export default function ProfilePage() {
   // SVGs inline
   const Svg = {
     user: (
-      <svg className="w-6 h-6 text-secondary-dark" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 15c2.386 0 4.614.622 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+      <svg
+        className="w-6 h-6 text-secondary-dark"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M5.121 17.804A13.937 13.937 0 0112 15c2.386 0 4.614.622 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+        />
       </svg>
     ),
     mail: (
-      <svg className="w-5 h-5 text-neutral-medium" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M16 12l-4-4-4 4m0 0l4 4 4-4M4 6h16M4 18h16" />
+      <svg
+        className="w-5 h-5 text-neutral-medium"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M16 12l-4-4-4 4m0 0l4 4 4-4M4 6h16M4 18h16"
+        />
       </svg>
     ),
     shield: (
-      <svg className="w-4 h-4 text-neutral-medium" fill="currentColor" viewBox="0 0 20 20">
+      <svg
+        className="w-4 h-4 text-neutral-medium"
+        fill="currentColor"
+        viewBox="0 0 20 20"
+      >
         <path d="M10 2L3 5v6c0 5 4 7 7 7s7-2 7-7V5l-7-3z" />
       </svg>
     ),
     lock: (
-      <svg className="w-5 h-5 text-neutral-medium" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+      <svg
+        className="w-5 h-5 text-neutral-medium"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        viewBox="0 0 24 24"
+      >
         <rect width="16" height="11" x="4" y="11" rx="2" ry="2" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8 11V7a4 4 0 118 0v4" />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M8 11V7a4 4 0 118 0v4"
+        />
       </svg>
     ),
     edit: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 11l6-6m0 0l3.536 3.536a2 2 0 010 2.828L12.828 18.536a2 2 0 01-2.828 0L6 14m3-3l6-6" />
+      <svg
+        className="w-5 h-5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M15.232 5.232l3.536 3.536M9 11l6-6m0 0l3.536 3.536a2 2 0 010 2.828L12.828 18.536a2 2 0 01-2.828 0L6 14m3-3l6-6"
+        />
       </svg>
     ),
     close: (
-      <svg className="w-6 h-6 text-neutral-medium" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+      <svg
+        className="w-6 h-6 text-neutral-medium"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M6 18L18 6M6 6l12 12"
+        />
       </svg>
     ),
     check: (
-      <svg className="w-5 h-5 text-neutral-medium" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+      <svg
+        className="w-5 h-5 text-neutral-medium"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        viewBox="0 0 24 24"
+      >
         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
       </svg>
     ),
@@ -218,7 +283,9 @@ export default function ProfilePage() {
                   disabled={isSubmitting}
                   className="w-full flex justify-center items-center space-x-2 bg-bancolombia-yellow text-bancolombia-text font-bold rounded-full py-2 hover:bg-primary-light transition"
                 >
-                  {isSubmitting ? "Actualizando..." : (
+                  {isSubmitting ? (
+                    "Actualizando..."
+                  ) : (
                     <>
                       {Svg.edit}
                       <span>Guardar cambios</span>

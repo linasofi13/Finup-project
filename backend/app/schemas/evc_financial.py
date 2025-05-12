@@ -15,10 +15,10 @@ class EVC_FinancialBase(BaseModel):
 class EVC_FinancialCreate(EVC_FinancialBase):
     provider_id: int
 
+
 class EVC_FinancialCreateConcept(EVC_FinancialBase):
     concept: str
     value_usd: float
-
 
 
 class EVC_Financial(EVC_FinancialBase):
@@ -33,6 +33,7 @@ class EVC_Financial(EVC_FinancialBase):
 
     concept: Optional[str] = None
     value_usd: Optional[float] = None
+
     class Config:
         from_attributes = True  # This replaces orm_mode=True in Pydantic v2
 
@@ -40,10 +41,13 @@ class EVC_Financial(EVC_FinancialBase):
 class EVC_FinancialResponse(EVC_FinancialBase):
     id: int
     provider_id: Optional[int] = None
-    provider: Optional["ProviderResponse"] = None  # Assuming RoleProvider is defined elsewhere
+    provider: Optional[
+        "ProviderResponse"
+    ] = None  # Assuming RoleProvider is defined elsewhere
     concept: Optional[str] = None
     value_usd: Optional[float] = None
     created_at: datetime
+
 
 class EVC_FinancialUpdate(EVC_FinancialBase):
     evc_q_id: Optional[int] = None

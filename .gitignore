@@ -27,3 +27,10 @@ docker-compose.override.yml
 venv/
 __pycache__/
 
+backend/alembic/versions/*.pyc
+backend/alembic/versions/*.pyo
+backend/alembic/versions/*.pyd
+backend/alembic/versions/*.so
+backend/alembic/versions/*.egg-info
+backend/alembic/versions/*.py
+backend/alembic/versions/*

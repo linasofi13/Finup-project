@@ -17,8 +17,9 @@ from app.routes import (
     providers,
     # role_providers,
     users,
+    provider_documents,
     notification,
-    notification_rules
+    notification_rules,
 )
 from app.database import engine, Base, SessionLocal
 
@@ -55,8 +56,15 @@ app.include_router(evc_qs.router, prefix="/evc-qs", tags=["EVC_Qs"])
 app.include_router(
     evc_financials.router, prefix="/evc-financials", tags=["EVC Financials"]
 )
+
+# para subir archivos supabase y guardar la url en la base de datos
+app.include_router(
+    provider_documents.router, prefix="/provider-documents", tags=["ProviderDocuments"]
+)
 app.include_router(notification.router, prefix="/notifications", tags=["Notifications"])
-app.include_router(notification_rules.router, prefix="/notification-rules", tags=["Notification Rules"])
+app.include_router(
+    notification_rules.router, prefix="/notification-rules", tags=["Notification Rules"]
+)
 # app.include_router(
 #     category_roles.router, prefix="/category-roles", tags=["Category Roles"]
 # )

@@ -11,7 +11,7 @@ interface User {
   rol?: string;
 }
 
-interface AuthContextType {
+export interface AuthContextType {
   user: User | null;
   loading: boolean;
   error: string | null;

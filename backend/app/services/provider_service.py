@@ -76,9 +76,7 @@ def update_provider(db: Session, provider_id: int, provider_data: ProviderCreate
 
 
 def bulk_create_providers(db: Session, providers_data: list[ProviderCreate]):
-    existing_emails = {
-        p.email for p in db.query(Provider.email).all()
-    }
+    existing_emails = {p.email for p in db.query(Provider.email).all()}
     new_providers = []
 
     for provider_data in providers_data:

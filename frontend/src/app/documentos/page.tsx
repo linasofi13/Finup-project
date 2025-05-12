@@ -1,61 +1,56 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
 import {
   FaDownload,
-  FaEye,
   FaTrash,
-  FaFileUpload,
-  FaFilter,
+  FaChevronLeft,
+  FaChevronRight,
 } from "react-icons/fa";
 
 export default function DocumentosPage() {
-  const [documentos, setDocumentos] = useState([
-    {
-      id: 1,
-      nombre: "PLANTILLA_FINANCIERA.docx",
-      tipo: "docx",
-      tamano: "28.50 KB",
-      fecha: "16/11/2022",
-      url: "/files/PLANTILLA_FINANCIERA.docx",
-    },
-    {
-      id: 2,
-      nombre: "REPORTE_FINANZAS_2025.xls",
-      tipo: "xls",
-      tamano: "28.50 KB",
-      fecha: "16/11/2022",
-      url: "/files/REPORTE_FINANZAS_2025.xls",
-    },
-    {
-      id: 3,
-      nombre: "EVCS_2024.zip",
-      tipo: "zip",
-      tamano: "28.50 KB",
-      fecha: "16/11/2022",
-      url: "/files/EVCS_2024.zip",
-    },
-    {
-      id: 4,
-      nombre: "INFORME_FINANZAS.pdf",
-      tipo: "pdf",
-      tamano: "28.50 KB",
-      fecha: "16/11/2022",
-      url: "/files/INFORME_FINANZAS.pdf",
-    },
-  ]);
-
+  const [documentos, setDocumentos] = useState([]);
+  const [proveedores, setProveedores] = useState([]);
   const [seleccionados, setSeleccionados] = useState(new Set());
-  const [archivoCargado, setArchivoCargado] = useState(null);
   const [seleccionarTodos, setSeleccionarTodos] = useState(false);
+  const [filtroTexto, setFiltroTexto] = useState("");
+  const [filtroCampo, setFiltroCampo] = useState("file_name");
+  const [pagina, setPagina] = useState(1);
+  const porPagina = 10;
+
+  useEffect(() => {
+    fetchDocumentos();
+  }, []);
+
+  const fetchProveedores = async () => {
+    try {
+      const res = await axios.get("http://127.0.0.1:8000/providers/");
+      setProveedores(res.data);
+    } catch (err) {
+      console.error("Error al obtener proveedores:", err);
+    }
+  };
+
+  const fetchDocumentos = async () => {
+    try {
+      const response = await axios.get(
+        "http://127.0.0.1:8000/provider-documents/",
+      );
+      setDocumentos(response.data);
+    } catch (error) {
+      console.error("Error al obtener documentos:", error);
+    }
+  };
+
+  const getProviderName = (id) => {
+    const prov = proveedores.find((p) => p.id === id);
+    return prov ? prov.name : "Sin nombre";
+  };
 
   const toggleSeleccionado = (id) => {
     const nuevaSeleccion = new Set(seleccionados);
-    if (nuevaSeleccion.has(id)) {
-      nuevaSeleccion.delete(id);
-    } else {
-      nuevaSeleccion.add(id);
-    }
+    nuevaSeleccion.has(id) ? nuevaSeleccion.delete(id) : nuevaSeleccion.add(id);
     setSeleccionados(nuevaSeleccion);
     setSeleccionarTodos(nuevaSeleccion.size === documentos.length);
   };
@@ -69,54 +64,65 @@ export default function DocumentosPage() {
     setSeleccionarTodos(!seleccionarTodos);
   };
 
-  const manejarCargaArchivo = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setArchivoCargado(file);
-    }
-  };
-
-  const guardarArchivo = () => {
-    if (archivoCargado) {
-      const nuevoDocumento = {
-        id: documentos.length + 1,
-        nombre: archivoCargado.name,
-        tipo: archivoCargado.type.split("/")[1] || "archivo",
-        tamano: (archivoCargado.size / 1024).toFixed(2) + " KB",
-        fecha: new Date().toLocaleDateString(),
-        url: `/files/${archivoCargado.name}`,
-      };
-      setDocumentos([...documentos, nuevoDocumento]);
-      setArchivoCargado(null);
-    }
-  };
-
-  const eliminarDocumento = (id) => {
+  const eliminarDocumento = async (id) => {
     const confirmar = window.confirm(
       "¿Estás seguro de que deseas eliminar este documento?",
     );
-    if (confirmar) {
-      const nuevosDocumentos = documentos.filter(
-        (documento) => documento.id !== id,
-      );
-      setDocumentos(nuevosDocumentos);
+    if (!confirmar) return;
+    try {
+      await axios.delete(`http://127.0.0.1:8000/provider-documents/${id}`);
+      setDocumentos(documentos.filter((doc) => doc.id !== id));
       setSeleccionados(
         new Set([...seleccionados].filter((selId) => selId !== id)),
       );
+    } catch (error) {
+      console.error("Error al eliminar documento:", error);
     }
   };
 
+  const handleFiltroInput = (e) => {
+    if (filtroCampo === "uploaded_at" && isNaN(Date.parse(e.target.value)))
+      return;
+    setFiltroTexto(e.target.value);
+  };
+
+  const documentosFiltrados = documentos.filter((doc) => {
+    const valor =
+      filtroCampo === "uploaded_at"
+        ? new Date(doc[filtroCampo]).toLocaleDateString()
+        : filtroCampo === "provider_name"
+          ? doc.provider?.name?.toLowerCase?.() || ""
+          : doc[filtroCampo]?.toLowerCase?.() || "";
+    return valor.includes(filtroTexto.toLowerCase());
+  });
+
+  const documentosPaginados = documentosFiltrados.slice(
+    (pagina - 1) * porPagina,
+    pagina * porPagina,
+  );
+  const totalPaginas = Math.ceil(documentosFiltrados.length / porPagina);
+
   return (
-    <div className="p-6 mt-20 bg-white shadow-md rounded-lg flex flex-col">
-      <div className="flex justify-between items-center mb-4">
+    <div className="p-6 mt-20 bg-white shadow-md rounded-lg flex flex-col relative">
+      <div className="flex flex-wrap justify-between items-center mb-4 gap-4">
         <h1 className="text-3xl font-bold">Documentos</h1>
-        <div className="flex space-x-2">
-          <button className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600">
-            <FaFilter className="mr-2" /> Filtrar
-          </button>
-          <button className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600">
-            <FaDownload className="mr-2" /> Descarga Masiva
-          </button>
+        <div className="flex items-center gap-2">
+          <select
+            className="border px-2 py-1 rounded text-sm"
+            value={filtroCampo}
+            onChange={(e) => setFiltroCampo(e.target.value)}
+          >
+            <option value="file_name">Nombre del Archivo</option>
+            <option value="uploaded_at">Fecha de Carga</option>
+            <option value="provider_name">Nombre del Proveedor</option>
+          </select>
+          <input
+            type={filtroCampo === "uploaded_at" ? "date" : "text"}
+            placeholder="Buscar..."
+            className="border px-3 py-1 rounded text-sm"
+            value={filtroTexto}
+            onChange={handleFiltroInput}
+          />
         </div>
       </div>
 
@@ -132,43 +138,51 @@ export default function DocumentosPage() {
                 />
               </th>
               <th className="p-3 text-left border">Nombre del Archivo</th>
-              <th className="p-3 text-left border">Descargar</th>
-              <th className="p-3 text-left border">Tamaño</th>
-              <th className="p-3 text-left border">Fecha de Creación</th>
-              <th className="p-3 text-left border">Acciones</th>
+              <th className="p-3 text-left border">Proveedor</th>
+              <th className="p-3 text-center border">Descargar</th>
+              <th className="p-3 text-left border">Fecha de Carga</th>
+              <th className="p-3 text-center border">Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {documentos.map((documento) => (
+            {documentosPaginados.map((doc) => (
               <tr
-                key={documento.id}
-                className="border text-gray-700 hover:bg-yellow-100 cursor-pointer"
+                key={doc.id}
+                className="border text-gray-700 hover:bg-yellow-100"
               >
                 <td className="p-3 border">
                   <input
                     type="checkbox"
-                    checked={seleccionados.has(documento.id)}
-                    onChange={() => toggleSeleccionado(documento.id)}
+                    checked={seleccionados.has(doc.id)}
+                    onChange={() => toggleSeleccionado(doc.id)}
                   />
                 </td>
-                <td className="p-3 border">{documento.nombre}</td>
+                <td className="p-3 border">{doc.file_name}</td>
+                <td className="p-3 border">
+                  {doc.provider?.name || "Sin nombre"}
+                </td>
                 <td className="p-3 border text-center">
                   <a
-                    href={documento.url}
+                    href={doc.file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     download
-                    className="text-yellow-500 cursor-pointer hover:text-yellow-700"
+                    className="text-yellow-500 hover:text-yellow-700 inline-block"
                   >
-                    <FaDownload />
+                    <FaDownload className="mx-auto" />
                   </a>
                 </td>
-                <td className="p-3 border">{documento.tamano}</td>
-                <td className="p-3 border">{documento.fecha}</td>
-                <td className="p-3 border text-center flex space-x-3">
-                  <FaEye className="text-yellow-500 cursor-pointer hover:text-yellow-700" />
-                  <FaTrash
-                    className="text-red-500 cursor-pointer hover:text-red-700"
-                    onClick={() => eliminarDocumento(documento.id)}
-                  />
+                <td className="p-3 border">
+                  {new Date(doc.uploaded_at).toLocaleDateString()}
+                </td>
+                <td className="p-3 border text-center">
+                  <button
+                    aria-label="eliminar"
+                    className="text-red-500 hover:text-red-700"
+                    onClick={() => eliminarDocumento(doc.id)}
+                  >
+                    <FaTrash />
+                  </button>
                 </td>
               </tr>
             ))}
@@ -176,37 +190,25 @@ export default function DocumentosPage() {
         </table>
       </div>
 
-      <div className="mt-8 p-6 bg-gray-50 rounded-lg shadow-md">
-        <h2 className="text-lg font-semibold">Cargar Documento</h2>
-        <p className="text-gray-600 mt-2">
-          Los archivos cargados serán procesados automáticamente por el sistema.
-        </p>
-        <div className="mt-4 border-dashed border-2 border-gray-300 p-6 text-center">
-          <p className="text-gray-600">Arrastra y suelta archivos aquí o</p>
-          <input
-            type="file"
-            className="hidden"
-            id="fileInput"
-            onChange={manejarCargaArchivo}
-          />
-          <label
-            htmlFor="fileInput"
-            className="mt-2 flex items-center justify-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 cursor-pointer"
-          >
-            <FaFileUpload className="mr-2" /> Explorar Archivos
-          </label>
-        </div>
-        {archivoCargado && (
-          <div className="mt-4 p-4 bg-white shadow-md rounded-md flex justify-between items-center">
-            <span className="text-gray-700">{archivoCargado.name}</span>
-            <button
-              className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
-              onClick={guardarArchivo}
-            >
-              Guardar
-            </button>
-          </div>
-        )}
+      {/* Paginación */}
+      <div className="flex justify-between items-center mt-4">
+        <button
+          className="text-sm bg-yellow-500 text-white px-3 py-1 rounded disabled:opacity-50"
+          onClick={() => setPagina((prev) => Math.max(prev - 1, 1))}
+          disabled={pagina === 1}
+        >
+          <FaChevronLeft className="inline mr-1" /> Anterior
+        </button>
+        <span className="text-sm">
+          Página {pagina} de {totalPaginas}
+        </span>
+        <button
+          className="text-sm bg-yellow-500 text-white px-3 py-1 rounded disabled:opacity-50"
+          onClick={() => setPagina((prev) => Math.min(prev + 1, totalPaginas))}
+          disabled={pagina === totalPaginas}
+        >
+          Siguiente <FaChevronRight className="inline ml-1" />
+        </button>
       </div>
     </div>
   );

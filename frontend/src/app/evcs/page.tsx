@@ -18,6 +18,7 @@ import {
 import { RiTeamFill } from "react-icons/ri";
 import * as XLSX from "xlsx";
 import axios from "axios";
+import { UserGroupIcon, CalendarIcon, EyeIcon } from "@heroicons/react/24/solid";
 
 // Interfaces
 interface Entorno {
@@ -66,12 +67,484 @@ interface EVC {
   functional_leader_id?: number;
 }
 
+interface ManualSpending {
+  value_usd: number;
+  concept: string;
+}
+
+const tableOptions = [
+  { label: "Talentos", value: "provider" },
+  { label: "Equipos de Evaluación (EVC)", value: "evc" },
+  { label: "Entornos", value: "entorno" },
+  { label: "Cuatrimestre de EVC", value: "evc_q" },
+];
+
+// Color palette for EVCs
+const evcColors = [
+  '#B3E5FC', // lighter blue
+  '#FFE082', // slightly darker yellow
+  '#FFD59E', // light pastel orange
+];
+
+function ProgressBar({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <div className="mb-2">
+      <div className="flex justify-between text-xs mb-1">
+        <span>{label}:</span>
+        <span className="font-bold">{value}%</span>
+      </div>
+      <div className="w-full h-3 bg-white/20 rounded-full overflow-hidden relative">
+        <div
+          className={`h-3 rounded-full transition-all duration-500 absolute left-0 ${color}`}
+          style={{ width: `${Math.min(value, 100)}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function EvcCard({
+  evc,
+  entornosData,
+  onShowDetails,
+  onManageQuarters,
+  index,
+  selected,
+  onSelect,
+}: {
+  evc: EVC;
+  entornosData: { [key: number]: string };
+  onShowDetails: (evc: EVC) => void;
+  onManageQuarters: (evc: EVC) => void;
+  index: number;
+  selected: boolean;
+  onSelect: (checked: boolean) => void;
+}) {
+  // Assign color from palette
+  const bgColor = evcColors[index % evcColors.length];
+  // Status badge
+  const status = evc.status ? 'Activo' : 'Inactivo';
+  const statusColor = evc.status ? 'bg-green-400 text-green-900' : 'bg-red-500 text-white';
+  
+  // Progress bar calculations
+  const totalAssigned = evc.evc_qs.reduce((sum, q) => sum + (q.allocated_budget || 0), 0);
+  const totalSpent = evc.evc_qs.reduce((sum, q) => sum + (q.total_spendings || 0), 0);
+  const totalAssignedPercentage = evc.evc_qs.reduce((sum, q) => sum + (q.allocated_percentage || 0), 0);
+  const totalSpentPercentage = evc.evc_qs.reduce((sum, q) => sum + (q.percentage || 0), 0);
+  
+  const asignado = totalAssignedPercentage;
+  const gastado = totalSpentPercentage;
+  const progreso = evc.evc_qs.length > 0 ? Math.round(evc.evc_qs.reduce((sum, q) => sum + (q.percentage || 0), 0) / evc.evc_qs.length) : 0;
+  
+  const qActual = evc.evc_qs?.length > 0 ? evc.evc_qs[evc.evc_qs.length - 1].q : 1;
+  
+  return (
+    <div
+      className={`rounded-2xl shadow-lg p-6 w-full text-gray-900 relative flex flex-col min-h-[320px] group transition-all duration-200 ${selected ? 'border-2 border-yellow-400 bg-yellow-50' : ''}`}
+      style={{ background: !selected ? bgColor : undefined }}
+    >
+      {/* Selection checkbox */}
+      <input
+        type="checkbox"
+        className="absolute top-3 right-3 h-4 w-4 accent-yellow-500 z-10 rounded shadow-sm bg-white border border-gray-300 transition-opacity duration-200 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+        checked={selected}
+        onChange={e => onSelect(e.target.checked)}
+        title="Seleccionar EVC"
+        style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}
+      />
+      
+      {/* Checkmark overlay when selected */}
+      {selected && (
+        <span className="absolute top-2 right-2 z-20 bg-yellow-400 text-white rounded-full p-1 shadow pointer-events-none">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+        </span>
+      )}
+      
+      {/* Status badge */}
+      <div className="absolute top-4 right-4">
+        <span className={`text-xs font-semibold px-3 py-1 rounded-full ${statusColor}`}>{status}</span>
+      </div>
+      
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-4">
+        <div className="bg-white/30 rounded-full p-3">
+          <span className="text-3xl text-gray-800"><RiTeamFill /></span>
+        </div>
+        <div>
+          <div className="font-extrabold text-xl md:text-2xl text-gray-900">{evc.name}</div>
+          <div className="text-base md:text-lg font-medium text-gray-800 opacity-90">{evc.description || "Proyecto"}</div>
+        </div>
+      </div>
+      
+      {/* Badges */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        {evc.entorno_id && (
+          <span className="flex items-center gap-1 bg-white/50 text-xs px-3 py-1 rounded-full text-gray-900 font-semibold">
+            {entornosData[evc.entorno_id] || "Entorno"}
+          </span>
+        )}
+        <span className="flex items-center gap-1 bg-white/30 text-xs px-3 py-1 rounded-full text-gray-800">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+          Creado: {new Date(evc.creation_date).toLocaleDateString()}
+        </span>
+      </div>
+      
+      {/* Details Row */}
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <div className="text-xs text-gray-700 font-semibold">Q Actual:</div>
+          <div className="font-extrabold text-xl md:text-2xl text-gray-900">{qActual}</div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            className="flex items-center gap-1 bg-white/30 hover:bg-white/50 text-xs px-4 py-2 rounded-lg transition font-semibold focus:outline-none focus:ring-2 focus:ring-gray-400 text-gray-900"
+            onClick={() => onShowDetails(evc)}
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm6 0c0 5-4.03 9-9 9s-9-4-9-9 4.03-9 9-9 9 4 9 9z" /></svg>
+            Ver
+          </button>
+          <button
+            className="flex items-center gap-1 bg-white/30 hover:bg-white/50 text-xs px-4 py-2 rounded-lg transition font-semibold focus:outline-none focus:ring-2 focus:ring-gray-400 text-gray-900"
+            onClick={() => onManageQuarters(evc)}
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+            Gestionar EVC
+          </button>
+        </div>
+      </div>
+      
+      {/* Progress Bars */}
+      <div className="space-y-2 mt-auto">
+        <ProgressBar label="Asignado" value={asignado} color="bg-green-400" />
+        <ProgressBar label="Gastado" value={gastado} color="bg-orange-400" />
+        <ProgressBar label="Progreso" value={progreso} color="bg-blue-400" />
+      </div>
+    </div>
+  );
+}
+
+function QuarterCard({ quarter, onUpdatePercentage }: { quarter: EVC_Q, onUpdatePercentage: (id: number, percentage: number) => Promise<void> }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(quarter.allocated_percentage);
+  const [uploading, setUploading] = useState(false);
+  const [manualSpendings, setManualSpendings] = useState<{ [quarterId: number]: ManualSpending }>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePercentageSave = async () => {
+    if (editValue >= 0 && editValue <= 100) {
+      await onUpdatePercentage(quarter.id, editValue);
+      setIsEditing(false);
+    }
+  };
+
+  const handleManualSpending = async () => {
+    try {
+      await axios.post(`http://127.0.0.1:8000/evc-financials/manual/${quarter.id}`, manualSpendings[quarter.id]);
+      setManualSpendings(prev => ({ ...prev, [quarter.id]: { value_usd: 0, concept: "" } }));
+      // Refresh quarter data
+      const response = await axios.get(`http://127.0.0.1:8000/evc_qs/${quarter.id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error adding manual spending:", error);
+      throw error;
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("evc_q_id", quarter.id.toString());
+
+    setUploading(true);
+    try {
+      await axios.post(
+        "http://127.0.0.1:8000/evc-financials/evc_financials/upload",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+      // Refresh quarter data
+      const response = await axios.get(`http://127.0.0.1:8000/evc_qs/${quarter.id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      throw error;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-5 shadow flex flex-col">
+      <div className="flex flex-wrap gap-4 mb-2">
+        <div className="text-base font-semibold text-gray-700">Año: <span className="font-bold text-gray-900">{quarter.year}</span></div>
+        <div className="text-base font-semibold text-gray-700">Quarter: <span className="font-bold text-gray-900">Q{quarter.q}</span></div>
+      </div>
+      
+      <div className="mb-4">
+        <div className="flex justify-between items-center mb-1">
+          <span className="text-sm font-medium text-gray-700">Asignado</span>
+          <span className="text-sm font-bold text-gray-900">{quarter.allocated_percentage}%</span>
+        </div>
+        <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden relative">
+          <div className="h-2 bg-green-400 rounded-full absolute left-0 transition-all duration-500" style={{ width: `${Math.min(quarter.allocated_percentage, 100)}%` }} />
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <div className="flex justify-between items-center mb-1">
+          <span className="text-sm font-medium text-gray-700">Gastado</span>
+          <span className="text-sm font-bold text-gray-900">{quarter.percentage || 0}%</span>
+        </div>
+        <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden relative">
+          <div className="h-2 bg-orange-400 rounded-full absolute left-0 transition-all duration-500" style={{ width: `${Math.min(quarter.percentage || 0, 100)}%` }} />
+        </div>
+      </div>
+
+      <div className="mb-2 text-sm text-gray-700">Presupuesto: <span className="font-bold text-gray-900">${quarter.allocated_budget.toLocaleString()}</span></div>
+      
+      <div className="mb-2 text-sm text-gray-700 flex items-center gap-2">
+        Porcentaje asignado: 
+        {isEditing ? (
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="0.1"
+              value={editValue}
+              onChange={(e) => setEditValue(parseFloat(e.target.value))}
+              className="w-20 px-2 py-1 border rounded text-gray-900 font-bold"
+            />
+            <button
+              onClick={handlePercentageSave}
+              className="p-1 text-green-600 hover:text-green-700"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </button>
+            <button
+              onClick={() => {
+                setIsEditing(false);
+                setEditValue(quarter.allocated_percentage);
+              }}
+              className="p-1 text-red-600 hover:text-red-700"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-gray-900">{quarter.allocated_percentage}%</span>
+            <button
+              onClick={() => setIsEditing(true)}
+              className="p-1 text-gray-600 hover:text-gray-700"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="mb-2 text-sm text-gray-700">Presupuesto gastado: <span className="font-bold text-gray-900">${quarter.total_spendings?.toLocaleString() ?? 0}</span></div>
+      
+      <div className="mb-4">
+        <div className="text-sm font-medium text-gray-700 mb-2">Estado:</div>
+        <span className={`px-2 py-1 rounded-full text-xs font-semibold
+          ${quarter.percentage && quarter.percentage >= 100
+            ? 'bg-red-100 text-red-800'
+            : quarter.percentage && quarter.percentage >= 80
+              ? 'bg-orange-100 text-orange-800'
+              : quarter.percentage && quarter.percentage >= 50
+                ? 'bg-yellow-100 text-yellow-800'
+                : 'bg-green-100 text-green-800'}
+        `}>{quarter.budget_message}</span>
+      </div>
+
+      {/* Manual Spending Form */}
+      <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+        <h4 className="text-sm font-medium text-gray-700 mb-2">Agregar Gasto Manual</h4>
+        <div className="space-y-2">
+          <input
+            type="number"
+            placeholder="Valor USD"
+            value={manualSpendings[quarter.id]?.value_usd || ""}
+            onChange={e => setManualSpendings(prev => ({
+              ...prev,
+              [quarter.id]: {
+                ...prev[quarter.id],
+                value_usd: parseFloat(e.target.value)
+              }
+            }))}
+            className="w-full px-3 py-2 border rounded text-sm"
+          />
+          <input
+            type="text"
+            placeholder="Concepto"
+            value={manualSpendings[quarter.id]?.concept || ""}
+            onChange={e => setManualSpendings(prev => ({
+              ...prev,
+              [quarter.id]: {
+                ...prev[quarter.id],
+                concept: e.target.value
+              }
+            }))}
+            className="w-full px-3 py-2 border rounded text-sm"
+          />
+          <button
+            onClick={async () => {
+              const value = manualSpendings[quarter.id]?.value_usd;
+              const concept = manualSpendings[quarter.id]?.concept;
+              if (!value || isNaN(value) || value <= 0) {
+                setManualSpendingStatus((prev: Record<number, { error?: string; success?: string }>) => ({ ...prev, [quarter.id]: { error: "Ingrese un valor válido mayor a 0" } }));
+                return;
+              }
+              if (!concept || concept.trim() === "") {
+                setManualSpendingStatus((prev: Record<number, { error?: string; success?: string }>) => ({ ...prev, [quarter.id]: { error: "Ingrese un concepto" } }));
+                return;
+              }
+              try {
+                await axios.post(`http://127.0.0.1:8000/evc-financials/manual/${quarter.id}`, { value_usd: value, concept });
+                setManualSpendings(prev => ({ ...prev, [quarter.id]: { value_usd: 0, concept: "" } }));
+                setManualSpendingStatus((prev: Record<number, { error?: string; success?: string }>) => ({ ...prev, [quarter.id]: { success: "Gasto manual agregado" } }));
+                setTimeout(() => setManualSpendingStatus(prev => ({ ...prev, [quarter.id]: {} })), 2000);
+              } catch (error) {
+                setManualSpendingStatus((prev: Record<number, { error?: string; success?: string }>) => ({ ...prev, [quarter.id]: { error: "Error al agregar gasto manual" } }));
+              }
+            }}
+            className="w-full px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-sm"
+          >
+            Agregar Gasto
+          </button>
+          {manualSpendingStatus[quarter.id]?.error && <div className="text-red-500 text-xs mt-1">{manualSpendingStatus[quarter.id].error}</div>}
+          {manualSpendingStatus[quarter.id]?.success && <div className="text-green-600 text-xs mt-1">{manualSpendingStatus[quarter.id].success}</div>}
+        </div>
+      </div>
+
+      {/* PDF Upload Drag-and-Drop */}
+      <div className="mt-4">
+        <div
+          className={`w-full px-4 py-8 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${uploadStatus[quarter.id]?.uploading ? 'bg-blue-50' : 'hover:bg-blue-50'}`}
+          onDragOver={e => e.preventDefault()}
+          onDrop={async e => {
+            e.preventDefault();
+            const file = e.dataTransfer.files[0];
+            if (!file) return;
+            setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: true } }));
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("evc_q_id", quarter.id.toString());
+            try {
+              await axios.post(
+                "http://127.0.0.1:8000/evc-financials/evc_financials/upload",
+                formData,
+                { headers: { "Content-Type": "multipart/form-data" } }
+              );
+              setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false, success: "Factura PDF subida" } }));
+              setTimeout(() => setUploadStatus(prev => ({ ...prev, [quarter.id]: {} })), 2000);
+            } catch (error) {
+              setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false, error: "Error al subir factura PDF" } }));
+            }
+          }}
+        >
+          {uploadStatus[quarter.id]?.uploading ? (
+            <>
+              <svg className="animate-spin h-6 w-6 text-blue-500 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span className="text-blue-600">Subiendo...</span>
+            </>
+          ) : (
+            <>
+              <svg className="w-8 h-8 text-blue-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              <span className="text-blue-700">Arrastra y suelta aquí tu factura PDF</span>
+              <input
+                type="file"
+                accept=".pdf"
+                className="hidden"
+                onChange={async e => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: true } }));
+                  const formData = new FormData();
+                  formData.append("file", file);
+                  formData.append("evc_q_id", quarter.id.toString());
+                  try {
+                    await axios.post(
+                      "http://127.0.0.1:8000/evc-financials/evc_financials/upload",
+                      formData,
+                      { headers: { "Content-Type": "multipart/form-data" } }
+                    );
+                    setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false, success: "Factura PDF subida" } }));
+                    setTimeout(() => setUploadStatus(prev => ({ ...prev, [quarter.id]: {} })), 2000);
+                  } catch (error) {
+                    setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false, error: "Error al subir factura PDF" } }));
+                  }
+                }}
+              />
+            </>
+          )}
+          {uploadStatus[quarter.id]?.error && <div className="text-red-500 text-xs mt-1">{uploadStatus[quarter.id].error}</div>}
+          {uploadStatus[quarter.id]?.success && <div className="text-green-600 text-xs mt-1">{uploadStatus[quarter.id].success}</div>}
+        </div>
+      </div>
+
+      {/* Add Talento (Provider) */}
+      <div className="mt-4">
+        <label className="block text-sm font-medium mb-1">Agregar Talento</label>
+        <div className="flex gap-2">
+          <select
+            className="p-2 border rounded w-full"
+            value={providerSelections[quarter.id] || ""}
+            onChange={e => setProviderSelections(prev => ({ ...prev, [quarter.id]: e.target.value }))}
+          >
+            <option value="">-- Seleccionar Talento --</option>
+            {availableProviders.map(provider => (
+              <option key={provider.id} value={provider.id}>{provider.name}</option>
+            ))}
+          </select>
+          <button
+            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+            onClick={async () => {
+              const providerId = providerSelections[quarter.id];
+              if (!providerId) return;
+              try {
+                await axios.post(
+                  "http://127.0.0.1:8000/evc-financials/evc_financials/",
+                  { evc_q_id: quarter.id, provider_id: parseInt(providerId, 10) }
+                );
+                setProviderSelections(prev => ({ ...prev, [quarter.id]: "" }));
+                // Optionally refresh data here
+              } catch (error) {
+                alert("Error al agregar talento");
+              }
+            }}
+          >
+            Agregar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function EvcsPage() {
   // Estados principales
   const [evcs, setEvcs] = useState<EVC[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [alert, setAlert] = useState("");
+  const [alertMsg, setAlertMsg] = useState("");
   const [selectedEvc, setSelectedEvc] = useState<EVC | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [entornosData, setEntornosData] = useState<{ [key: number]: string }>(
@@ -159,6 +632,19 @@ export default function EvcsPage() {
     allocated_budget: "",
     allocated_percentage: "",
   });
+
+  // Add state for selected EVCs for deletion
+  const [selectedEvcsForDelete, setSelectedEvcsForDelete] = useState<number[]>([]);
+  const [showDeleteSelectedModal, setShowDeleteSelectedModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  // Add new state variable for manual spending
+  const [manualSpendings, setManualSpendings] = useState<{ [quarterId: number]: ManualSpending }>({});
+
+  // ... at the top, add state for feedback per quarter ...
+  const [manualSpendingStatus, setManualSpendingStatus] = useState<{ [quarterId: number]: { error?: string; success?: string } }>({});
+  const [uploadStatus, setUploadStatus] = useState<{ [quarterId: number]: { uploading: boolean; error?: string; success?: string } }>({});
+  const [providerSelections, setProviderSelections] = useState<{ [quarterId: number]: string }>({});
 
   // Efectos iniciales
   useEffect(() => {
@@ -357,7 +843,7 @@ export default function EvcsPage() {
       console.log("EVC creada:", response.data);
       fetchEvcs();
       setShowForm(false);
-      setAlert("");
+      setAlertMsg("");
       setNewEvc({
         name: "",
         description: "",
@@ -368,7 +854,7 @@ export default function EvcsPage() {
       });
     } catch (error) {
       console.error("Error creando EVC:", error);
-      setAlert("Error al crear la EVC");
+      setAlertMsg("Error al crear la EVC");
     }
   };
 
@@ -383,31 +869,31 @@ export default function EvcsPage() {
 
       // Check for invalid values
       if (isNaN(year) || isNaN(q) || isNaN(allocated_budget) || isNaN(allocated_percentage)) {
-        setAlert("Por favor complete todos los campos con valores válidos");
+        setAlertMsg("Por favor complete todos los campos con valores válidos");
         return;
       }
 
       // Validate quarter number
       if (q < 1 || q > 4) {
-        setAlert("El quarter debe ser un número entre 1 y 4");
+        setAlertMsg("El quarter debe ser un número entre 1 y 4");
         return;
       }
 
       // Validate year
       const currentYear = new Date().getFullYear();
       if (year < currentYear - 1 || year > currentYear + 1) {
-        setAlert(`El año debe estar entre ${currentYear - 1} y ${currentYear + 1}`);
+        setAlertMsg(`El año debe estar entre ${currentYear - 1} y ${currentYear + 1}`);
         return;
       }
 
       // Validate budget and percentage
       if (allocated_budget <= 0) {
-        setAlert("El presupuesto debe ser mayor a 0");
+        setAlertMsg("El presupuesto debe ser mayor a 0");
         return;
       }
 
       if (allocated_percentage < 0 || allocated_percentage > 100) {
-        setAlert("El porcentaje debe estar entre 0 y 100");
+        setAlertMsg("El porcentaje debe estar entre 0 y 100");
         return;
       }
 
@@ -446,18 +932,18 @@ export default function EvcsPage() {
         allocated_budget: "",
         allocated_percentage: "",
       });
-      setAlert("");
+      setAlertMsg("");
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const errorMsg = error.response?.data?.detail || "Error al crear el quarter";
-        setAlert(errorMsg);
+        setAlertMsg(errorMsg);
         console.error("Error creando quarter:", error.response?.data);
       } else if (error instanceof Error) {
         console.error("Error creando quarter:", error.message);
-        setAlert(error.message);
+        setAlertMsg(error.message);
       } else {
         console.error("Error creando quarter:", error);
-        setAlert("Error al crear el quarter");
+        setAlertMsg("Error al crear el quarter");
       }
     }
   };
@@ -466,7 +952,7 @@ export default function EvcsPage() {
   const createFinancial = async (evcId: number, evc_q_id: number) => {
     const provider_id = financialSelections[evc_q_id];
     if (!provider_id) {
-      setAlert("Seleccione un proveedor");
+      setAlertMsg("Seleccione un proveedor");
       return;
     }
     try {
@@ -489,13 +975,13 @@ export default function EvcsPage() {
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error("Error creando financial:", error.message);
-        setAlert(error.message);
+        setAlertMsg(error.message);
       } else if (axios.isAxiosError(error)) {
         const errorMsg = error.response?.data?.detail || "Error al asignar el proveedor";
-        setAlert(errorMsg);
+        setAlertMsg(errorMsg);
       } else {
         console.error("Error creando financial:", String(error));
-        setAlert("Error al asignar el proveedor");
+        setAlertMsg("Error al asignar el proveedor");
       }
     }
   };
@@ -510,7 +996,7 @@ export default function EvcsPage() {
       setShowDetailModal(false);
     } catch (error) {
       console.error("Error eliminando EVC:", error);
-      setAlert("Error al eliminar la EVC");
+      setAlertMsg("Error al eliminar la EVC");
     }
   };
 
@@ -638,7 +1124,7 @@ export default function EvcsPage() {
         Quarter: `Q${quarter.q}`,
         Presupuesto: quarter.allocated_budget,
         Porcentaje: quarter.allocated_percentage,
-        Proveedores:
+        Talentos:
           quarter.evc_financials?.map((f) => f.provider.name).join(", ") || "",
       })),
     );
@@ -700,7 +1186,7 @@ export default function EvcsPage() {
         } else {
             console.error("Error al subir archivo:", String(err));
         }
-        alert("Error al procesar la factura");
+        setAlertMsg("Error al procesar la factura");
     } finally {
         setUploading(false);
     }
@@ -717,7 +1203,26 @@ export default function EvcsPage() {
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-3xl font-bold">EVCs</h1>
         <div className="flex space-x-2">
-          <button className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600">
+          <label className="flex items-center cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="mr-2 accent-yellow-500"
+              checked={selectedEvcsForDelete.length === (filteredEvcs.length > 0 ? filteredEvcs.length : evcs.length) && (filteredEvcs.length > 0 ? filteredEvcs.length : evcs.length) > 0}
+              onChange={e => {
+                if (e.target.checked) {
+                  setSelectedEvcsForDelete((filteredEvcs.length > 0 ? filteredEvcs : evcs).map(evc => evc.id));
+                } else {
+                  setSelectedEvcsForDelete([]);
+                }
+              }}
+            />
+            Seleccionar todos
+          </label>
+          <button
+            className={`flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 ${selectedEvcsForDelete.length === 0 || deleting ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={selectedEvcsForDelete.length === 0 || deleting}
+            onClick={() => setShowDeleteSelectedModal(true)}
+          >
             <FaTrash className="mr-2" /> Eliminar
           </button>
           <button
@@ -832,10 +1337,10 @@ export default function EvcsPage() {
               </select>
             </div>
           </div>
-          {alert && (
+          {alertMsg && (
             <div className="mt-2 bg-yellow-100 text-yellow-800 p-2 rounded-md flex items-center">
               <FaExclamationTriangle className="mr-2" />
-              {alert}
+              {alertMsg}
             </div>
           )}
           <div className="flex justify-end space-x-4 mt-4">
@@ -985,229 +1490,331 @@ export default function EvcsPage() {
 
       {/* Modal para gestión de quarters */}
       {showQuartersModal && selectedEvc && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-3xl max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold">
-                Gestión de Quarters - {selectedEvc.name}
-              </h2>
-              <FaTimes
-                className="text-red-500 cursor-pointer"
-                onClick={() => setShowQuartersModal(false)}
-              />
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Modern light overlay with blur */}
+          <div className="fixed inset-0 bg-white/70 backdrop-blur-sm transition-all" />
+          <div className="relative bg-white rounded-2xl shadow-2xl p-8 w-full max-w-5xl max-h-[90vh] overflow-y-auto flex flex-col">
+            {/* Sticky close button */}
+            <button
+              className="absolute top-4 right-4 z-10 bg-red-100 hover:bg-red-200 text-red-600 rounded-full p-2 shadow focus:outline-none focus:ring-2 focus:ring-red-400"
+              onClick={() => setShowQuartersModal(false)}
+              aria-label="Cerrar"
+            >
+              <FaTimes className="h-5 w-5" />
+            </button>
+            <div className="mb-6 pr-10">
+              <h2 className="text-3xl font-extrabold text-gray-900 mb-1">Gestión de Quarters - <span className="font-bold text-blue-700">{selectedEvc.name}</span></h2>
             </div>
-
-            {/* Formulario para crear quarter */}
-            <div className="mb-6 bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-lg font-semibold mb-4">
-                Agregar Nuevo Quarter
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Año</label>
-                  <input
-                    type="number"
-                    name="year"
-                    className="p-2 border rounded w-full"
-                    value={newQuarter.year}
-                    onChange={handleQuarterChange}
-                    placeholder="YYYY"
-                  />
+            {/* Stack all info and quarters vertically */}
+            <div className="flex flex-col gap-8">
+              {/* EVC Info in boxes */}
+              <div className="flex flex-col md:flex-row md:flex-wrap gap-4">
+                <div className="rounded-xl bg-gray-50 p-4 shadow-sm flex-1 min-w-[220px]">
+                  <div className="text-xs font-semibold text-gray-500 mb-1">Descripción</div>
+                  <div className="text-base font-bold text-gray-900">{selectedEvc.description}</div>
                 </div>
-                <div>
-                  <label
-                    htmlFor="quarter-select"
-                    className="block text-sm font-medium mb-1"
-                  >
-                    Quarter
-                  </label>
-                  <select
-                    id="quarter-select"
-                    name="q"
-                    className="p-2 border rounded w-full"
-                    value={newQuarter.q}
-                    onChange={handleQuarterChange}
-                    aria-label="Quarter"
-                  >
-                    <option value="">Seleccionar Q</option>
-                    <option value="1">Q1</option>
-                    <option value="2">Q2</option>
-                    <option value="3">Q3</option>
-                    <option value="4">Q4</option>
-                  </select>
+                <div className="rounded-xl bg-gray-50 p-4 shadow-sm flex-1 min-w-[220px]">
+                  <div className="text-xs font-semibold text-gray-500 mb-1">Entorno</div>
+                  <div className="text-base font-bold text-gray-900">{selectedEvc.entorno_id ? (entornosData[selectedEvc.entorno_id] || "Cargando...") : "-"}</div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Presupuesto Asignado
-                  </label>
-                  <input
-                    type="number"
-                    name="allocated_budget"
-                    className="p-2 border rounded w-full"
-                    value={newQuarter.allocated_budget}
-                    onChange={handleQuarterChange}
-                    placeholder="$"
-                  />
+                <div className="rounded-xl bg-gray-50 p-4 shadow-sm flex-1 min-w-[220px]">
+                  <div className="text-xs font-semibold text-gray-500 mb-1">Líder Técnico</div>
+                  <div className="text-base font-bold text-gray-900">{selectedEvc.technical_leader_id ? (technicalLeadersData[selectedEvc.technical_leader_id] || "Cargando...") : "-"}</div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Porcentaje
-                  </label>
-                  <input
-                    type="number"
-                    name="allocated_percentage"
-                    className="p-2 border rounded w-full"
-                    value={newQuarter.allocated_percentage}
-                    onChange={handleQuarterChange}
-                    placeholder="%"
-                  />
+                <div className="rounded-xl bg-gray-50 p-4 shadow-sm flex-1 min-w-[220px]">
+                  <div className="text-xs font-semibold text-gray-500 mb-1">Líder Funcional</div>
+                  <div className="text-base font-bold text-gray-900">{selectedEvc.functional_leader_id ? (functionalLeadersData[selectedEvc.functional_leader_id] || "Cargando...") : "-"}</div>
+                </div>
+                <div className="rounded-xl bg-gray-50 p-4 shadow-sm flex-1 min-w-[220px]">
+                  <div className="text-xs font-semibold text-gray-500 mb-1">Estado</div>
+                  <div className={`text-base font-bold ${selectedEvc.status ? 'text-green-700' : 'text-red-700'}`}>{selectedEvc.status ? "Activo" : "Inactivo"}</div>
+                </div>
+                <div className="rounded-xl bg-gray-50 p-4 shadow-sm flex-1 min-w-[220px]">
+                  <div className="text-xs font-semibold text-gray-500 mb-1">Creado</div>
+                  <div className="text-base font-bold text-gray-900">{new Date(selectedEvc.creation_date).toLocaleDateString()}</div>
+                </div>
+                <div className="rounded-xl bg-gray-50 p-4 shadow-sm flex-1 min-w-[220px]">
+                  <div className="text-xs font-semibold text-gray-500 mb-1">Actualizado</div>
+                  <div className="text-base font-bold text-gray-900">{new Date(selectedEvc.updated_at).toLocaleDateString()}</div>
                 </div>
               </div>
-              <div className="flex justify-end mt-4">
-                <button
-                  className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
-                  onClick={() => createQuarter(selectedEvc.id)}
-                >
-                  Agregar Quarter
-                </button>
-              </div>
-            </div>
-
-            {/* Lista de quarters con gestión de proveedores */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold mb-4">
-                Quarters Existentes
-              </h3>
-              {selectedEvc.evc_qs && selectedEvc.evc_qs.length > 0 ? (
-                selectedEvc.evc_qs.map((quarter) => (
-                  <div key={quarter.id} className="border p-4 rounded-lg">
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <p>
-                        <strong>Año:</strong> {quarter.year}
-                      </p>
-                      <p>
-                        <strong>Quarter:</strong> Q{quarter.q}
-                      </p>
-                      <p>
-                        <strong>Presupuesto:</strong> $
-                        {quarter.allocated_budget.toLocaleString()}
-                      </p>
-                      <p>
-                        <strong>Porcentaje:</strong>{" "}
-                        {quarter.allocated_percentage}%
-                      </p>
-                    </div>
-
-                    {/* Sección de asignación de proveedor */}
-                    <div className="mt-4 pt-4 border-t">
-                      <h4 className="font-medium mb-2">Asignar Proveedor</h4>
-                      <div className="flex gap-4">
-                        <select
-                          className="p-2 border rounded flex-1"
-                          value={financialSelections[quarter.id] || ""}
-                          onChange={(e) => handleFinancialChange(e, quarter.id)}
-                        >
-                          <option value="">Seleccionar Proveedor</option>
-                          {availableProviders.map((provider) => (
-                            <option key={provider.id} value={provider.id}>
-                              {provider.name}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
-                          onClick={() =>
-                            createFinancial(selectedEvc.id, quarter.id)
-                          }
-                        >
-                          Asignar
-                        </button>
-                      </div>
-
-                      {/* Lista de proveedores asignados */}
-                      {quarter.evc_financials &&
-                        quarter.evc_financials.length > 0 && (
-                          <div className="mt-2">
-                            <p className="text-sm font-medium">
-                              Proveedores asignados:
-                            </p>
-                            <div className="flex flex-wrap gap-2 mt-1">
-                              {quarter.evc_financials.map((financial) => (
-                                <span
-                                  key={financial.id}
-                                  className="px-2 py-1 bg-gray-100 rounded text-sm"
-                                >
-                                  {financial.provider.name}
-                                </span>
-                              ))}
-                            </div>
+              {/* Quarters section directly below info boxes */}
+              <div>
+                <h3 className="text-2xl font-bold mb-4 text-gray-900">Quarters Existentes</h3>
+                {selectedEvc.evc_qs && selectedEvc.evc_qs.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {selectedEvc.evc_qs.map((quarter) => (
+                      <div key={quarter.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow flex flex-col">
+                        <div className="flex flex-wrap gap-4 mb-2">
+                          <div className="text-base font-semibold text-gray-700">Año: <span className="font-bold text-gray-900">{quarter.year}</span></div>
+                          <div className="text-base font-semibold text-gray-700">Quarter: <span className="font-bold text-gray-900">Q{quarter.q}</span></div>
+                        </div>
+                        {/* Progress Bars for this quarter */}
+                        <div className="mb-4">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-sm font-medium text-gray-700">Asignado</span>
+                            <span className="text-sm font-bold text-gray-900">{quarter.allocated_percentage}%</span>
                           </div>
-                        )}
-                    </div>
-                    {/* Sección Cargar Factura */}
-                    <div className="border border-dashed border-gray-300 rounded-lg p-4 bg-gray-50 mt-4">
-                        <label className="block text-sm font-medium mb-2 text-gray-700">Cargar Factura</label>
-                        <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-md p-6 bg-white hover:border-yellow-400 transition">
+                          <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden relative">
+                            <div className="h-2 bg-green-400 rounded-full absolute left-0 transition-all duration-500" style={{ width: `${Math.min(quarter.allocated_percentage, 100)}%` }} />
+                          </div>
+                        </div>
+                        <div className="mb-4">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-sm font-medium text-gray-700">Gastado</span>
+                            <span className="text-sm font-bold text-gray-900">{quarter.percentage || 0}%</span>
+                          </div>
+                          <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden relative">
+                            <div className="h-2 bg-orange-400 rounded-full absolute left-0 transition-all duration-500" style={{ width: `${Math.min(quarter.percentage || 0, 100)}%` }} />
+                          </div>
+                        </div>
+                        <div className="mb-2 text-sm text-gray-700">Presupuesto: <span className="font-bold text-gray-900">${quarter.allocated_budget.toLocaleString()}</span></div>
+                        <div className="mb-2 text-sm text-gray-700">Presupuesto gastado: <span className="font-bold text-gray-900">${quarter.total_spendings?.toLocaleString() ?? 0}</span></div>
+                        <div className="mb-2 text-sm text-gray-700">Porcentaje gastado: <span className="font-bold text-gray-900">{quarter.percentage?.toLocaleString() ?? 0}%</span></div>
+                        <div className="mb-2 text-sm text-gray-700">Estado: <span className={`px-2 py-1 rounded-full text-xs font-semibold ml-2
+                          ${quarter.percentage && quarter.percentage >= 100
+                            ? 'bg-red-100 text-red-800'
+                            : quarter.percentage && quarter.percentage >= 80
+                              ? 'bg-orange-100 text-orange-800'
+                              : quarter.percentage && quarter.percentage >= 50
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-green-100 text-green-800'}
+                        `}>{quarter.budget_message}</span></div>
+                        {/* Manual Spending Form */}
+                        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                          <h4 className="text-sm font-medium text-gray-700 mb-2">Agregar Gasto Manual</h4>
+                          <div className="space-y-2">
                             <input
-                                type="file"
-                                ref={(el) => {
-                                    if (el) fileInputRefs.current[quarter.id] = el;
-                                }}
-                                accept=".pdf,.png,.jpg,.jpeg"
-                                onChange={(e) => handleFileUpload(e, quarter.id)}
-                                className="hidden"
+                              type="number"
+                              placeholder="Valor USD"
+                              value={manualSpendings[quarter.id]?.value_usd || ""}
+                              onChange={e => setManualSpendings(prev => ({
+                                ...prev,
+                                [quarter.id]: {
+                                  ...prev[quarter.id],
+                                  value_usd: parseFloat(e.target.value)
+                                }
+                              }))}
+                              className="w-full px-3 py-2 border rounded text-sm"
                             />
-                            <label
-                                onClick={() => triggerFileUpload(quarter.id)}
-                                className="cursor-pointer flex flex-col items-center"
-                            >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="h-10 w-10 text-gray-400 mb-2"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M7 16V4m0 0L3 8m4-4l4 4m5 0v12m0 0l4-4m-4 4l-4-4"
-                                    />
-                                </svg>
-                                <span className="text-gray-600">Haz clic para subir archivo</span>
-                            </label>
-                        </div>
-                        <div className="flex justify-start mt-2">
+                            <input
+                              type="text"
+                              placeholder="Concepto"
+                              value={manualSpendings[quarter.id]?.concept || ""}
+                              onChange={e => setManualSpendings(prev => ({
+                                ...prev,
+                                [quarter.id]: {
+                                  ...prev[quarter.id],
+                                  concept: e.target.value
+                                }
+                              }))}
+                              className="w-full px-3 py-2 border rounded text-sm"
+                            />
                             <button
-                                type="button"
-                                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
-                                onClick={() => triggerFileUpload(quarter.id)}
+                              onClick={async () => {
+                                const value = manualSpendings[quarter.id]?.value_usd;
+                                const concept = manualSpendings[quarter.id]?.concept;
+                                if (!value || isNaN(value) || value <= 0) {
+                                  setManualSpendingStatus((prev: Record<number, { error?: string; success?: string }>) => ({ ...prev, [quarter.id]: { error: "Ingrese un valor válido mayor a 0" } }));
+                                  return;
+                                }
+                                if (!concept || concept.trim() === "") {
+                                  setManualSpendingStatus((prev: Record<number, { error?: string; success?: string }>) => ({ ...prev, [quarter.id]: { error: "Ingrese un concepto" } }));
+                                  return;
+                                }
+                                try {
+                                  await axios.post(`http://127.0.0.1:8000/evc-financials/manual/${quarter.id}`, { value_usd: value, concept });
+                                  setManualSpendings(prev => ({ ...prev, [quarter.id]: { value_usd: 0, concept: "" } }));
+                                  setManualSpendingStatus((prev: Record<number, { error?: string; success?: string }>) => ({ ...prev, [quarter.id]: { success: "Gasto manual agregado" } }));
+                                  setTimeout(() => setManualSpendingStatus(prev => ({ ...prev, [quarter.id]: {} })), 2000);
+                                } catch (error) {
+                                  setManualSpendingStatus((prev: Record<number, { error?: string; success?: string }>) => ({ ...prev, [quarter.id]: { error: "Error al agregar gasto manual" } }));
+                                }
+                              }}
+                              className="w-full px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-sm"
                             >
-                                Cargar Archivo
+                              Agregar Gasto
                             </button>
+                            {manualSpendingStatus[quarter.id]?.error && <div className="text-red-500 text-xs mt-1">{manualSpendingStatus[quarter.id].error}</div>}
+                            {manualSpendingStatus[quarter.id]?.success && <div className="text-green-600 text-xs mt-1">{manualSpendingStatus[quarter.id].success}</div>}
+                          </div>
                         </div>
-
-                        {uploading && (
-                            <p className="text-yellow-600 text-sm">Procesando factura...</p>
-                        )}
-
-                        {extractedValues[quarter.id] !== undefined && (
-                            <p className="text-green-600 text-sm">
-                                Valor extraído: <strong>${extractedValues[quarter.id].toLocaleString()}</strong>
-                            </p>
-                        )}
-                        {uploadedFiles[quarter.id] && (
-                            <p className="text-blue-600 text-sm mt-2">
-                                Archivo cargado: <strong>{uploadedFiles[quarter.id]}</strong>
-                            </p>
-                        )}
-                    </div>
+                        {/* PDF Upload Drag-and-Drop */}
+                        <div className="mt-4">
+                          <div
+                            className={`w-full px-4 py-8 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${uploadStatus[quarter.id]?.uploading ? 'bg-blue-50' : 'hover:bg-blue-50'}`}
+                            onDragOver={e => e.preventDefault()}
+                            onDrop={async e => {
+                              e.preventDefault();
+                              const file = e.dataTransfer.files[0];
+                              if (!file) return;
+                              setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: true } }));
+                              const formData = new FormData();
+                              formData.append("file", file);
+                              formData.append("evc_q_id", quarter.id.toString());
+                              try {
+                                await axios.post(
+                                  "http://127.0.0.1:8000/evc-financials/evc_financials/upload",
+                                  formData,
+                                  { headers: { "Content-Type": "multipart/form-data" } }
+                                );
+                                setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false, success: "Factura PDF subida" } }));
+                                setTimeout(() => setUploadStatus(prev => ({ ...prev, [quarter.id]: {} })), 2000);
+                              } catch (error) {
+                                setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false, error: "Error al subir factura PDF" } }));
+                              }
+                            }}
+                          >
+                            {uploadStatus[quarter.id]?.uploading ? (
+                              <>
+                                <svg className="animate-spin h-6 w-6 text-blue-500 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span className="text-blue-600">Subiendo...</span>
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-8 h-8 text-blue-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                </svg>
+                                <span className="text-blue-700">Arrastra y suelta aquí tu factura PDF</span>
+                                <input
+                                  type="file"
+                                  accept=".pdf"
+                                  className="hidden"
+                                  onChange={async e => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: true } }));
+                                    const formData = new FormData();
+                                    formData.append("file", file);
+                                    formData.append("evc_q_id", quarter.id.toString());
+                                    try {
+                                      await axios.post(
+                                        "http://127.0.0.1:8000/evc-financials/evc_financials/upload",
+                                        formData,
+                                        { headers: { "Content-Type": "multipart/form-data" } }
+                                      );
+                                      setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false, success: "Factura PDF subida" } }));
+                                      setTimeout(() => setUploadStatus(prev => ({ ...prev, [quarter.id]: {} })), 2000);
+                                    } catch (error) {
+                                      setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false, error: "Error al subir factura PDF" } }));
+                                    }
+                                  }}
+                                />
+                              </>
+                            )}
+                            {uploadStatus[quarter.id]?.error && <div className="text-red-500 text-xs mt-1">{uploadStatus[quarter.id].error}</div>}
+                            {uploadStatus[quarter.id]?.success && <div className="text-green-600 text-xs mt-1">{uploadStatus[quarter.id].success}</div>}
+                          </div>
+                        </div>
+                        {/* Add Talento (Provider) */}
+                        <div className="mt-4">
+                          <label className="block text-sm font-medium mb-1">Agregar Talento</label>
+                          <div className="flex gap-2">
+                            <select
+                              className="p-2 border rounded w-full"
+                              value={providerSelections[quarter.id] || ""}
+                              onChange={e => setProviderSelections(prev => ({ ...prev, [quarter.id]: e.target.value }))}
+                            >
+                              <option value="">-- Seleccionar Talento --</option>
+                              {availableProviders.map(provider => (
+                                <option key={provider.id} value={provider.id}>{provider.name}</option>
+                              ))}
+                            </select>
+                            <button
+                              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                              onClick={async () => {
+                                const providerId = providerSelections[quarter.id];
+                                if (!providerId) return;
+                                try {
+                                  await axios.post(
+                                    "http://127.0.0.1:8000/evc-financials/evc_financials/",
+                                    { evc_q_id: quarter.id, provider_id: parseInt(providerId, 10) }
+                                  );
+                                  setProviderSelections(prev => ({ ...prev, [quarter.id]: "" }));
+                                  // Optionally refresh data here
+                                } catch (error) {
+                                  alert("Error al agregar talento");
+                                }
+                              }}
+                            >
+                              Agregar
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))
-              ) : (
-                <p className="text-gray-500">No hay quarters asignados.</p>
-              )}
+                ) : (
+                  <div className="text-gray-400 text-center">No hay quarters asignados.</div>
+                )}
+              </div>
+              {/* Formulario para crear quarter (remains at the end) */}
+              <div className="mb-6 bg-gray-50 p-4 rounded-xl shadow-inner">
+                <h3 className="text-lg font-semibold mb-4">Agregar Nuevo Quarter</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Año</label>
+                    <input
+                      type="number"
+                      name="year"
+                      className="p-2 border rounded w-full"
+                      value={newQuarter.year}
+                      onChange={handleQuarterChange}
+                      placeholder="YYYY"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="quarter-select" className="block text-sm font-medium mb-1">Quarter</label>
+                    <select
+                      id="quarter-select"
+                      name="q"
+                      className="p-2 border rounded w-full"
+                      value={newQuarter.q}
+                      onChange={handleQuarterChange}
+                      aria-label="Quarter"
+                    >
+                      <option value="">Seleccionar Q</option>
+                      <option value="1">Q1</option>
+                      <option value="2">Q2</option>
+                      <option value="3">Q3</option>
+                      <option value="4">Q4</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Presupuesto Asignado</label>
+                    <input
+                      type="number"
+                      name="allocated_budget"
+                      className="p-2 border rounded w-full"
+                      value={newQuarter.allocated_budget}
+                      onChange={handleQuarterChange}
+                      placeholder="$"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Porcentaje</label>
+                    <input
+                      type="number"
+                      name="allocated_percentage"
+                      className="p-2 border rounded w-full"
+                      value={newQuarter.allocated_percentage}
+                      onChange={handleQuarterChange}
+                      placeholder="%"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end mt-4">
+                  <button
+                    className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+                    onClick={() => createQuarter(selectedEvc.id)}
+                  >
+                    Agregar Quarter
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1245,155 +1852,159 @@ export default function EvcsPage() {
 
       {/* Modal para vista detallada */}
       {showDetailModal && selectedEvc && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-3xl max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold">
-                Detalles de {selectedEvc.name}
-              </h2>
-              <FaTimes
-                className="text-red-500 cursor-pointer"
-                onClick={() => setShowDetailModal(false)}
-              />
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Modern light overlay with blur */}
+          <div className="fixed inset-0 bg-white/70 backdrop-blur-sm transition-all" />
+          <div className="relative bg-white rounded-2xl shadow-2xl p-8 w-full max-w-5xl max-h-[90vh] overflow-y-auto flex flex-col">
+            {/* Sticky close button */}
+            <button
+              className="absolute top-4 right-4 z-10 bg-red-100 hover:bg-red-200 text-red-600 rounded-full p-2 shadow focus:outline-none focus:ring-2 focus:ring-red-400"
+              onClick={() => setShowDetailModal(false)}
+              aria-label="Cerrar"
+            >
+              <FaTimes className="h-5 w-5" />
+            </button>
+            <div className="mb-6 pr-10">
+              <h2 className="text-3xl font-extrabold text-gray-900 mb-1">Detalles de la EVC: <span className="font-bold text-blue-700">{selectedEvc.name}</span></h2>
             </div>
-
-            {/* Detalles del EVC */}
-            <div className="mb-6">
-              <p className="flex items-center">
-                <FaLink className="mr-2" />
-                <strong>URL:</strong>{" "}
-                <a
-                  href={`http://127.0.0.1:8000/evcs/evcs/${selectedEvc.id}`}
-                  className="text-blue-500 hover:underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  http://127.0.0.1:8000/evcs/evcs/{selectedEvc.id}
-                </a>
-              </p>
-              <p>
-                <strong>Descripción:</strong> {selectedEvc.description}
-              </p>
-              {selectedEvc.technical_leader_id && (
-                <p className="flex items-center">
-                  <strong className="mr-2">Líder Técnico:</strong>
-                  {technicalLeadersData[selectedEvc.technical_leader_id] ||
-                    "Cargando..."}
-                </p>
-              )}
-              {selectedEvc.functional_leader_id && (
-                <p className="flex items-center">
-                  <strong className="mr-2">Líder Funcional:</strong>
-                  {functionalLeadersData[selectedEvc.functional_leader_id] ||
-                    "Cargando..."}
-                </p>
-              )}
-              {selectedEvc.entorno_id && (
-                <p className="flex items-center">
-                  <strong className="mr-2">Entorno:</strong>
-                  {entornosData[selectedEvc.entorno_id] || "Cargando..."}
-                </p>
-              )}
-              <p>
-                <strong>Estado:</strong>{" "}
-                {selectedEvc.status ? "Activo" : "Inactivo"}
-              </p>
-              <p>
-                <strong>Creado:</strong>{" "}
-                {new Date(selectedEvc.creation_date).toLocaleDateString()}
-              </p>
-              <p>
-                <strong>Actualizado:</strong>{" "}
-                {new Date(selectedEvc.updated_at).toLocaleDateString()}
-              </p>
-            </div>
-
-            {/* Lista de quarters (solo visualización) */}
-            <div className="mt-6">
-              <h3 className="text-xl font-semibold mb-2">Quarters Asignados</h3>
-              {selectedEvc.evc_qs && selectedEvc.evc_qs.length > 0 ? (
-                <div className="space-y-4">
-                  {selectedEvc.evc_qs.map((quarter) => (
-                    <div
-                      key={quarter.id}
-                      className="border p-4 rounded-lg bg-gray-50"
-                    >
-                      <div className="grid grid-cols-2 gap-4 mb-2">
-                        <p>
-                          <strong>Año:</strong> {quarter.year}
-                        </p>
-                        <p>
-                          <strong>Quarter:</strong> Q{quarter.q}
-                        </p>
-                        <p>
-                          <strong>Presupuesto:</strong> $
-                          {quarter.allocated_budget.toLocaleString()}
-                        </p>
-
-                        <p>
-                          <strong>Porcentaje:</strong>{" "}
-                          {quarter.allocated_percentage}%
-                        </p>
-
-                        <p>
-                          <strong>Presupuesto Gastado:</strong> $
-                          {quarter.total_spendings?.toLocaleString()}
-                        </p>
-
-                        <p>
-                          <strong>Porcentaje Gastado:</strong>
-                          {quarter.percentage?.toLocaleString()}%
-                        </p>
-
-                        <p>
-                          <strong>Estado:</strong>{" "}
-                          <span
-                            className={`px-2 py-1 rounded-full text-sm font-medium
-      ${
-        quarter.percentage && quarter.percentage >= 100
-          ? "bg-red-100 text-red-800"
-          : quarter.percentage && quarter.percentage >= 80
-            ? "bg-orange-100 text-orange-800"
-            : quarter.percentage && quarter.percentage >= 50
-              ? "bg-yellow-100 text-yellow-800"
-              : "bg-green-100 text-green-800"
-      }
-    `}
-                          >
-                            {quarter.budget_message}
-                          </span>
-                        </p>
-                      </div>
-                      {quarter.evc_financials &&
-                      quarter.evc_financials.length > 0 ? (
-                        <div className="mt-2">
-                          <p className="text-sm font-medium">
-                            Proveedores asignados:
-                          </p>
-                          <div className="flex flex-wrap gap-2 mt-1">
-                            {quarter.evc_financials.map((financial) => (
-                              <span
-                                key={financial.id}
-                                className="px-2 py-1 bg-gray-200 rounded text-sm"
-                              >
-                                {financial.provider.name}
-                                {financial.provider.company &&
-                                  ` - ${financial.provider.company}`}
-                              </span>
-                            ))}
+            {/* Two-column layout */}
+            <div className="flex flex-col md:flex-row gap-8">
+              {/* Left: EVC Info in boxes */}
+              <div className="flex-1 space-y-4">
+                <div className="rounded-xl bg-gray-50 p-4 shadow-sm">
+                  <div className="text-xs font-semibold text-gray-500 mb-1">Descripción</div>
+                  <div className="text-base font-bold text-gray-900">{selectedEvc.description}</div>
+                </div>
+                <div className="rounded-xl bg-gray-50 p-4 shadow-sm">
+                  <div className="text-xs font-semibold text-gray-500 mb-1">Entorno</div>
+                  <div className="text-base font-bold text-gray-900">{selectedEvc.entorno_id ? (entornosData[selectedEvc.entorno_id] || "Cargando...") : "-"}</div>
+                </div>
+                <div className="rounded-xl bg-gray-50 p-4 shadow-sm">
+                  <div className="text-xs font-semibold text-gray-500 mb-1">Líder Técnico</div>
+                  <div className="text-base font-bold text-gray-900">{selectedEvc.technical_leader_id ? (technicalLeadersData[selectedEvc.technical_leader_id] || "Cargando...") : "-"}</div>
+                </div>
+                <div className="rounded-xl bg-gray-50 p-4 shadow-sm">
+                  <div className="text-xs font-semibold text-gray-500 mb-1">Líder Funcional</div>
+                  <div className="text-base font-bold text-gray-900">{selectedEvc.functional_leader_id ? (functionalLeadersData[selectedEvc.functional_leader_id] || "Cargando...") : "-"}</div>
+                </div>
+                <div className="rounded-xl bg-gray-50 p-4 shadow-sm">
+                  <div className="text-xs font-semibold text-gray-500 mb-1">Estado</div>
+                  <div className={`text-base font-bold ${selectedEvc.status ? 'text-green-700' : 'text-red-700'}`}>{selectedEvc.status ? "Activo" : "Inactivo"}</div>
+                </div>
+                <div className="rounded-xl bg-gray-50 p-4 shadow-sm">
+                  <div className="text-xs font-semibold text-gray-500 mb-1">Creado</div>
+                  <div className="text-base font-bold text-gray-900">{new Date(selectedEvc.creation_date).toLocaleDateString()}</div>
+                </div>
+                <div className="rounded-xl bg-gray-50 p-4 shadow-sm">
+                  <div className="text-xs font-semibold text-gray-500 mb-1">Actualizado</div>
+                  <div className="text-base font-bold text-gray-900">{new Date(selectedEvc.updated_at).toLocaleDateString()}</div>
+                </div>
+              </div>
+              {/* Right: Quarters */}
+              <div className="flex-1">
+                <h3 className="text-2xl font-bold mb-4 text-gray-900">Quarters Asignados</h3>
+                {selectedEvc.evc_qs && selectedEvc.evc_qs.length > 0 ? (
+                  <div className="space-y-4">
+                    {selectedEvc.evc_qs.map((quarter) => (
+                      <div key={quarter.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow flex flex-col">
+                        <div className="flex flex-wrap gap-4 mb-2">
+                          <div className="text-base font-semibold text-gray-700">Año: <span className="font-bold text-gray-900">{quarter.year}</span></div>
+                          <div className="text-base font-semibold text-gray-700">Quarter: <span className="font-bold text-gray-900">Q{quarter.q}</span></div>
+                        </div>
+                        {/* Progress Bars for this quarter */}
+                        <div className="mb-4">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-sm font-medium text-gray-700">Asignado</span>
+                            <span className="text-sm font-bold text-gray-900">{quarter.allocated_percentage}%</span>
+                          </div>
+                          <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden relative">
+                            <div className="h-2 bg-green-400 rounded-full absolute left-0 transition-all duration-500" style={{ width: `${Math.min(quarter.allocated_percentage, 100)}%` }} />
                           </div>
                         </div>
-                      ) : (
-                        <p className="text-sm text-gray-500">
-                          No hay proveedores asignados.
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-500">No hay quarters asignados.</p>
-              )}
+                        <div className="mb-4">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-sm font-medium text-gray-700">Gastado</span>
+                            <span className="text-sm font-bold text-gray-900">{quarter.percentage || 0}%</span>
+                          </div>
+                          <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden relative">
+                            <div className="h-2 bg-orange-400 rounded-full absolute left-0 transition-all duration-500" style={{ width: `${Math.min(quarter.percentage || 0, 100)}%` }} />
+                          </div>
+                        </div>
+                        <div className="mb-2 text-sm text-gray-700">Presupuesto: <span className="font-bold text-gray-900">${quarter.allocated_budget.toLocaleString()}</span></div>
+                        <div className="mb-2 text-sm text-gray-700">Presupuesto gastado: <span className="font-bold text-gray-900">${quarter.total_spendings?.toLocaleString() ?? 0}</span></div>
+                        <div className="mb-2 text-sm text-gray-700">Porcentaje gastado: <span className="font-bold text-gray-900">{quarter.percentage?.toLocaleString() ?? 0}%</span></div>
+                        <div className="mb-2 text-sm text-gray-700">Estado: <span className={`px-2 py-1 rounded-full text-xs font-semibold ml-2
+                          ${quarter.percentage && quarter.percentage >= 100
+                            ? 'bg-red-100 text-red-800'
+                            : quarter.percentage && quarter.percentage >= 80
+                              ? 'bg-orange-100 text-orange-800'
+                              : quarter.percentage && quarter.percentage >= 50
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-green-100 text-green-800'}
+                        `}>{quarter.budget_message}</span></div>
+                        {quarter.evc_financials && quarter.evc_financials.length > 0 ? (
+                          <div className="mt-2">
+                            <div className="text-sm font-medium text-gray-700 mb-1">Talentos asignados:</div>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {quarter.evc_financials.map((financial) => (
+                                <span
+                                  key={financial.id}
+                                  className="px-2 py-1 bg-blue-50 text-blue-800 rounded text-xs font-semibold"
+                                >
+                                  {financial.provider.name}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-xs text-gray-400 mt-2">No hay talentos asignados.</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-gray-400 text-center">No hay quarters asignados.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para eliminar EVCs seleccionados */}
+      {showDeleteSelectedModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black bg-opacity-30" />
+          <div className="relative bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md flex flex-col items-center">
+            <h2 className="text-xl font-bold mb-4 text-center">¿Estás seguro de que deseas eliminar los EVCs seleccionados?</h2>
+            <div className="flex justify-end space-x-4 mt-6 w-full">
+              <button
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+                onClick={() => setShowDeleteSelectedModal(false)}
+                disabled={deleting}
+              >
+                Cancelar
+              </button>
+              <button
+                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+                onClick={async () => {
+                  setDeleting(true);
+                  try {
+                    for (const id of selectedEvcsForDelete) {
+                      await deleteEvc(id);
+                    }
+                    setSelectedEvcsForDelete([]);
+                    setShowDeleteSelectedModal(false);
+                  } catch (err) {
+                    alert('Error al eliminar los EVCs seleccionados');
+                  } finally {
+                    setDeleting(false);
+                  }
+                }}
+                disabled={deleting}
+              >
+                {deleting ? 'Eliminando...' : 'Eliminar'}
+              </button>
             </div>
           </div>
         </div>
@@ -1401,107 +2012,24 @@ export default function EvcsPage() {
 
       {/* Listado de EVCs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {(filteredEvcs.length > 0 ? filteredEvcs : evcs).map((evc: EVC) => (
-          <div
+        {(filteredEvcs.length > 0 ? filteredEvcs : evcs).map((evc: EVC, idx: number) => (
+          <EvcCard
             key={evc.id}
-            className={`p-6 rounded-xl shadow-md flex flex-col ${getEntornoColor(
-              evc.entorno_id,
-            )} 
-                    text-white hover:shadow-xl hover:scale-105 transition-transform duration-300`}
-          >
-            <div className="flex justify-between items-center mb-3">
-              <h2 className="text-2xl font-bold flex items-center">
-                <RiTeamFill className="mr-2" /> {evc.name}
-              </h2>
-              {evc.entorno_id && (
-                <div
-                  className={`${getContainerColor(
-                    evc.entorno_id,
-                  )} rounded-lg px-3 py-1 flex items-center`}
-                >
-                  <FaGlobe className="mr-2 text-white/80" />
-                  <span className="font-medium">
-                    {entornosData[evc.entorno_id] || "Cargando..."}
-                  </span>
-                </div>
-              )}
-              <span
-                className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                  evc.status ? "bg-green-400" : "bg-red-400"
-                }`}
-              >
-                {evc.status ? "Activo" : "Inactivo"}
-              </span>
-            </div>
-            <div className="mb-3 text-lg">
-              <p className="flex items-center">
-                <span className="font-semibold mr-1">Descripción:</span>{" "}
-                {evc.description}
-              </p>
-
-              {evc.evc_qs && evc.evc_qs.length > 0 && (
-                <p className="flex items-center">
-                  <span className="font-semibold mr-1">Quarters:</span>{" "}
-                  {evc.evc_qs.length} asignados
-                </p>
-              )}
-            </div>
-            <div className="mb-3 text-base">
-              <div
-                className={`${getContainerColor(
-                  evc.entorno_id,
-                )} rounded-lg p-3 flex justify-between items-center`}
-              >
-                <div className="flex items-center">
-                  <FaClock className="mr-2" />
-                  <span>
-                    <span className="text-white/70">Creado:</span>{" "}
-                    {new Date(evc.creation_date).toLocaleDateString("es-ES", {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </span>
-                </div>
-                <div className="flex items-center">
-                  <FaHistory className="mr-2" />
-                  <span>
-                    <span className="text-white/70">Actualizado:</span>{" "}
-                    {new Date(evc.updated_at).toLocaleDateString("es-ES", {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end items-center mt-auto space-x-4">
-              <button
-                className="flex items-center cursor-pointer hover:text-white/70 text-base"
-                onClick={() => showEvcDetails(evc)}
-              >
-                <FaEye className="mr-2 text-xl" />
-                Ver detalles
-              </button>
-
-              <button
-                className="flex items-center cursor-pointer hover:text-white/70 text-base"
-                onClick={() => {
-                  setSelectedEvc(evc);
-                  setShowQuartersModal(true);
-                }}
-              >
-                <FaCalendar className="mr-2 text-xl" />
-                Gestionar Quarters
-              </button>
-
-              <FaTrash
-                className="cursor-pointer hover:text-red-300 text-xl"
-                onClick={() => handleDeleteClick(evc)}
-              />
-            </div>
-          </div>
+            evc={evc}
+            entornosData={entornosData}
+            onShowDetails={showEvcDetails}
+            onManageQuarters={() => {
+              setSelectedEvc(evc);
+              setShowQuartersModal(true);
+            }}
+            index={idx}
+            selected={selectedEvcsForDelete.includes(evc.id)}
+            onSelect={checked => {
+              setSelectedEvcsForDelete(prev =>
+                checked ? [...prev, evc.id] : prev.filter(id => id !== evc.id)
+              );
+            }}
+          />
         ))}
         {filteredEvcs.length === 0 && filters.entorno_id && (
           <div className="col-span-3 text-center py-8 text-gray-500">

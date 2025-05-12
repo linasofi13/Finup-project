@@ -5,6 +5,24 @@ const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000",
 });
 
+// Add a global Axios response interceptor for session expiry
+if (typeof window !== "undefined") {
+  let sessionExpired = false;
+  api.interceptors.response.use(
+    response => response,
+    error => {
+      if (error.response && error.response.status === 401 && !sessionExpired) {
+        sessionExpired = true;
+        // Show a modal or alert (replace with a custom modal if desired)
+        window.alert("Tu sesión ha expirado. Por favor, inicia sesión nuevamente.");
+        // Optionally, redirect to login page
+        window.location.href = "/login";
+      }
+      return Promise.reject(error);
+    }
+  );
+}
+
 export interface LoginCredentials {
   email: string;
   password: string;

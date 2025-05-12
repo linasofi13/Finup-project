@@ -6,6 +6,7 @@ from app.models.provider import Provider
 from app.models.evc_q import EVC_Q
 from app.schemas.evc import EVCCreate, EVCUpdate, EVCResponse
 from app.services.rule_evaluator import evaluate_rules
+from app.models.evc_financial import EVC_Financial
 
 
 def create_evc(db: Session, evc_data: EVCCreate):
@@ -13,7 +14,7 @@ def create_evc(db: Session, evc_data: EVCCreate):
     db.add(db_evc)
     db.commit()
     db.refresh(db_evc)
-    evaluate_rules(db, changed_table="evc")
+    evaluate_rules(db, changed_table="evc", changed_id=db_evc.id)
     return db_evc
 
 
@@ -43,14 +44,20 @@ def update_evc(db: Session, evc_id: int, evc_data: EVCUpdate):
             setattr(db_evc, key, value)
         db.commit()
         db.refresh(db_evc)
-        evaluate_rules(db, changed_table="evc")
+        evaluate_rules(db, changed_table="evc", changed_id=db_evc.id)
     return db_evc
 
 
 def delete_evc(db: Session, evc_id: int):
     try:
-        # Eliminar primero las relaciones con EVC_Q
-        db.query(EVC_Q).filter(EVC_Q.evc_id == evc_id).delete()
+        # First, find all quarters for this EVC
+        quarters = db.query(EVC_Q).filter(EVC_Q.evc_id == evc_id).all()
+        quarter_ids = [q.id for q in quarters]
+        if quarter_ids:
+            # Delete all EVC_Financial records for these quarters
+            db.query(EVC_Financial).filter(EVC_Financial.evc_q_id.in_(quarter_ids)).delete(synchronize_session=False)
+        # Now delete the quarters
+        db.query(EVC_Q).filter(EVC_Q.evc_id == evc_id).delete(synchronize_session=False)
         db_evc = get_evc_by_id(db, evc_id)
         if db_evc:
             db.delete(db_evc)

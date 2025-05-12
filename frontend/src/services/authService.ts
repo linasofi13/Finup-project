@@ -9,17 +9,19 @@ const api = axios.create({
 if (typeof window !== "undefined") {
   let sessionExpired = false;
   api.interceptors.response.use(
-    response => response,
-    error => {
+    (response) => response,
+    (error) => {
       if (error.response && error.response.status === 401 && !sessionExpired) {
         sessionExpired = true;
         // Show a modal or alert (replace with a custom modal if desired)
-        window.alert("Tu sesión ha expirado. Por favor, inicia sesión nuevamente.");
+        window.alert(
+          "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.",
+        );
         // Optionally, redirect to login page
         window.location.href = "/login";
       }
       return Promise.reject(error);
-    }
+    },
   );
 }
 

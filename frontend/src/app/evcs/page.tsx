@@ -14,11 +14,14 @@ import {
   FaClock,
   FaHistory,
   FaCalendar,
+  FaSearch,
 } from "react-icons/fa";
 import { RiTeamFill } from "react-icons/ri";
 import * as XLSX from "xlsx";
 import axios from "axios";
 import { UserGroupIcon, CalendarIcon, EyeIcon } from "@heroicons/react/24/solid";
+import Slider from "rc-slider";
+import "rc-slider/assets/index.css";
 
 // Interfaces
 interface Entorno {
@@ -37,6 +40,7 @@ interface Provider {
   name: string;
   company?: string;
   cost_usd?: number;
+  country?: string;
 }
 
 interface EVC_Q {
@@ -239,7 +243,11 @@ function QuarterCard({ quarter, onUpdatePercentage }: { quarter: EVC_Q, onUpdate
 
   const handleManualSpending = async () => {
     try {
-      await axios.post(`http://127.0.0.1:8000/evc-financials/manual/${quarter.id}`, manualSpendings[quarter.id]);
+      await axios.post(`http://127.0.0.1:8000/evc-financials/evc_financials/concept`, {
+        evc_q_id: quarter.id,
+        value_usd: manualSpendings[quarter.id]?.value_usd,
+        concept: manualSpendings[quarter.id]?.concept
+      });
       setManualSpendings(prev => ({ ...prev, [quarter.id]: { value_usd: 0, concept: "" } }));
       // Refresh quarter data
       const response = await axios.get(`http://127.0.0.1:8000/evc_qs/${quarter.id}`);
@@ -367,8 +375,7 @@ function QuarterCard({ quarter, onUpdatePercentage }: { quarter: EVC_Q, onUpdate
               : quarter.percentage && quarter.percentage >= 50
                 ? 'bg-yellow-100 text-yellow-800'
                 : 'bg-green-100 text-green-800'}
-        `}>{quarter.budget_message}</span>
-      </div>
+        `}>{quarter.budget_message}</span></div>
 
       {/* Manual Spending Form */}
       <div className="mt-4 p-4 bg-gray-50 rounded-lg">
@@ -413,7 +420,11 @@ function QuarterCard({ quarter, onUpdatePercentage }: { quarter: EVC_Q, onUpdate
                 return;
               }
               try {
-                await axios.post(`http://127.0.0.1:8000/evc-financials/manual/${quarter.id}`, { value_usd: value, concept });
+                await axios.post(`http://127.0.0.1:8000/evc-financials/evc_financials/concept`, {
+                  evc_q_id: quarter.id,
+                  value_usd: value,
+                  concept
+                });
                 setManualSpendings(prev => ({ ...prev, [quarter.id]: { value_usd: 0, concept: "" } }));
                 setManualSpendingStatus((prev: Record<number, { error?: string; success?: string }>) => ({ ...prev, [quarter.id]: { success: "Gasto manual agregado" } }));
                 setTimeout(() => setManualSpendingStatus(prev => ({ ...prev, [quarter.id]: {} })), 2000);
@@ -503,38 +514,45 @@ function QuarterCard({ quarter, onUpdatePercentage }: { quarter: EVC_Q, onUpdate
 
       {/* Add Talento (Provider) */}
       <div className="mt-4">
-        <label className="block text-sm font-medium mb-1">Agregar Talento</label>
-        <div className="flex gap-2">
-          <select
-            className="p-2 border rounded w-full"
-            value={providerSelections[quarter.id] || ""}
-            onChange={e => setProviderSelections(prev => ({ ...prev, [quarter.id]: e.target.value }))}
-          >
-            <option value="">-- Seleccionar Talento --</option>
-            {availableProviders.map(provider => (
-              <option key={provider.id} value={provider.id}>{provider.name}</option>
-            ))}
-          </select>
+        <div className="flex gap-2 items-center mb-2">
+          <label className="block text-sm font-medium">Agregar Talento</label>
           <button
-            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-            onClick={async () => {
-              const providerId = providerSelections[quarter.id];
-              if (!providerId) return;
-              try {
-                await axios.post(
-                  "http://127.0.0.1:8000/evc-financials/evc_financials/",
-                  { evc_q_id: quarter.id, provider_id: parseInt(providerId, 10) }
-                );
-                setProviderSelections(prev => ({ ...prev, [quarter.id]: "" }));
-                // Optionally refresh data here
-              } catch (error) {
-                alert("Error al agregar talento");
-              }
-            }}
+            className="ml-auto px-2 py-1 bg-green-100 text-green-700 rounded text-xs hover:bg-green-200"
+            onClick={() => setProviderFilterModal({ quarterId: quarter.id, open: true })}
+            type="button"
           >
-            Agregar
+            Filtrar Talentos
           </button>
         </div>
+        <select
+          className="p-2 border rounded w-full"
+          value={providerSelections[quarter.id] || ""}
+          onChange={e => setProviderSelections(prev => ({ ...prev, [quarter.id]: e.target.value }))}
+        >
+          <option value="">-- Seleccionar Talento --</option>
+          {getFilteredProviders(quarter.id).map(provider => (
+            <option key={provider.id} value={provider.id}>{provider.name}</option>
+          ))}
+        </select>
+        <button
+          className="mt-3 px-4 py-2 bg-green-200 text-green-800 rounded hover:bg-green-300 text-sm transition-colors duration-150"
+          onClick={async () => {
+            const providerId = providerSelections[quarter.id];
+            if (!providerId) return;
+            try {
+              await axios.post(
+                "http://127.0.0.1:8000/evc-financials/evc_financials/",
+                { evc_q_id: quarter.id, provider_id: parseInt(providerId, 10) }
+              );
+              setProviderSelections(prev => ({ ...prev, [quarter.id]: "" }));
+              // Optionally refresh data here
+            } catch (error) {
+              alert("Error al agregar talento");
+            }
+          }}
+        >
+          Agregar
+        </button>
       </div>
     </div>
   );
@@ -642,9 +660,42 @@ export default function EvcsPage() {
   const [manualSpendings, setManualSpendings] = useState<{ [quarterId: number]: ManualSpending }>({});
 
   // ... at the top, add state for feedback per quarter ...
-  const [manualSpendingStatus, setManualSpendingStatus] = useState<{ [quarterId: number]: { error?: string; success?: string } }>({});
+  const [manualSpendingStatus, setManualSpendingStatus] = useState<Record<number, { error?: string; success?: string }>>({});
   const [uploadStatus, setUploadStatus] = useState<{ [quarterId: number]: { uploading: boolean; error?: string; success?: string } }>({});
   const [providerSelections, setProviderSelections] = useState<{ [quarterId: number]: string }>({});
+
+  // Add after other useState hooks in EvcsPage
+  const [providerFilterModal, setProviderFilterModal] = useState<{ quarterId: number | null, open: boolean }>({ quarterId: null, open: false });
+  const [activeProviderFilters, setActiveProviderFilters] = useState<{ price: boolean; country: boolean }>({ price: false, country: false });
+  const [providerPriceRange, setProviderPriceRange] = useState<[number, number]>([0, 10000]);
+  const [providerSelectedCountries, setProviderSelectedCountries] = useState<string[]>([]);
+  const [providerCountryOptions, setProviderCountryOptions] = useState<string[]>([]);
+
+  // Compute min/max price for slider
+  const providerPrices = availableProviders.map(p => p.cost_usd ?? 0).filter(v => !isNaN(v));
+  const minProviderPrice = providerPrices.length ? Math.min(...providerPrices) : 0;
+  const maxProviderPrice = providerPrices.length ? Math.max(...providerPrices) : 10000;
+
+  // Get all unique countries
+  useEffect(() => {
+    const countries = Array.from(new Set(availableProviders.map(p => p.country).filter(Boolean))) as string[];
+    setProviderCountryOptions(countries);
+  }, [availableProviders]);
+
+  // Filter providers for a given quarter
+  const getFilteredProviders = (quarterId: number) => {
+    let filtered = [...availableProviders];
+    if (activeProviderFilters.price) {
+      filtered = filtered.filter(p => {
+        const price = p.cost_usd ?? 0;
+        return price >= providerPriceRange[0] && price <= providerPriceRange[1];
+      });
+    }
+    if (activeProviderFilters.country && providerSelectedCountries.length > 0) {
+      filtered = filtered.filter(p => providerSelectedCountries.includes(p.country ?? ''));
+    }
+    return filtered;
+  };
 
   // Efectos iniciales
   useEffect(() => {
@@ -1196,6 +1247,20 @@ export default function EvcsPage() {
     fileInputRefs.current[quarterId]?.click();
   };
 
+  const [gastosModal, setGastosModal] = useState<{ open: boolean; quarter: EVC_Q | null; gastos: any[] }>({ open: false, quarter: null, gastos: [] });
+
+  // Function to fetch all gastos for a quarter
+  const fetchGastosByQuarter = async (quarter: EVC_Q) => {
+    try {
+      const res = await axios.get(`http://127.0.0.1:8000/evc-financials/evc_financials/`);
+      // Filter by quarter id
+      const gastos = res.data.filter((g: any) => g.evc_q_id === quarter.id);
+      setGastosModal({ open: true, quarter, gastos });
+    } catch (err) {
+      setGastosModal({ open: true, quarter, gastos: [] });
+    }
+  };
+
   // Render
   return (
     <div className="p-6 mt-20 bg-white shadow-md rounded-lg flex flex-col">
@@ -1493,7 +1558,7 @@ export default function EvcsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           {/* Modern light overlay with blur */}
           <div className="fixed inset-0 bg-white/70 backdrop-blur-sm transition-all" />
-          <div className="relative bg-white rounded-2xl shadow-2xl p-8 w-full max-w-5xl max-h-[90vh] overflow-y-auto flex flex-col">
+          <div className="relative bg-white rounded-2xl shadow-2xl p-8 w-full max-w-6xl max-h-[90vh] overflow-y-auto flex flex-col">
             {/* Sticky close button */}
             <button
               className="absolute top-4 right-4 z-10 bg-red-100 hover:bg-red-200 text-red-600 rounded-full p-2 shadow focus:outline-none focus:ring-2 focus:ring-red-400"
@@ -1537,17 +1602,46 @@ export default function EvcsPage() {
                   <div className="text-xs font-semibold text-gray-500 mb-1">Actualizado</div>
                   <div className="text-base font-bold text-gray-900">{new Date(selectedEvc.updated_at).toLocaleDateString()}</div>
                 </div>
+                {/* Quarters Asignados section moved here */}
+                <div className="rounded-xl bg-gray-50 p-4 shadow-sm">
+                  <div className="text-xs font-semibold text-gray-500 mb-1">Quarters Asignados</div>
+                  {selectedEvc.evc_qs && selectedEvc.evc_qs.length > 0 ? (
+                    <ul className="space-y-2">
+                      {selectedEvc.evc_qs.map((quarter) => (
+                        <li key={quarter.id} className="flex items-center gap-2">
+                          <span className="font-semibold">Año:</span> {quarter.year} <span className="font-semibold">Q:</span> {quarter.q}
+                          <button
+                            className="ml-2 p-1 bg-gray-200 rounded-full hover:bg-gray-300"
+                            title="Ver gastos asociados"
+                            onClick={() => fetchGastosByQuarter(quarter)}
+                          >
+                            <FaSearch className="text-gray-700 w-4 h-4" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="text-xs text-gray-400">No hay quarters asignados.</div>
+                  )}
+                </div>
               </div>
               {/* Quarters section directly below info boxes */}
               <div>
                 <h3 className="text-2xl font-bold mb-4 text-gray-900">Quarters Existentes</h3>
                 {selectedEvc.evc_qs && selectedEvc.evc_qs.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
                     {selectedEvc.evc_qs.map((quarter) => (
                       <div key={quarter.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow flex flex-col">
-                        <div className="flex flex-wrap gap-4 mb-2">
+                        <div className="flex flex-wrap gap-4 mb-2 items-center">
                           <div className="text-base font-semibold text-gray-700">Año: <span className="font-bold text-gray-900">{quarter.year}</span></div>
                           <div className="text-base font-semibold text-gray-700">Quarter: <span className="font-bold text-gray-900">Q{quarter.q}</span></div>
+                          <button
+                            className="ml-2 p-1 bg-gray-200 rounded-full hover:bg-gray-300"
+                            title="Ver gastos asociados"
+                            onClick={() => fetchGastosByQuarter(quarter)}
+                          >
+                            <FaSearch className="text-gray-700 w-4 h-4" />
+                          </button>
                         </div>
                         {/* Progress Bars for this quarter */}
                         <div className="mb-4">
@@ -1623,7 +1717,11 @@ export default function EvcsPage() {
                                   return;
                                 }
                                 try {
-                                  await axios.post(`http://127.0.0.1:8000/evc-financials/manual/${quarter.id}`, { value_usd: value, concept });
+                                  await axios.post(`http://127.0.0.1:8000/evc-financials/evc_financials/concept`, {
+                                    evc_q_id: quarter.id,
+                                    value_usd: value,
+                                    concept
+                                  });
                                   setManualSpendings(prev => ({ ...prev, [quarter.id]: { value_usd: 0, concept: "" } }));
                                   setManualSpendingStatus((prev: Record<number, { error?: string; success?: string }>) => ({ ...prev, [quarter.id]: { success: "Gasto manual agregado" } }));
                                   setTimeout(() => setManualSpendingStatus(prev => ({ ...prev, [quarter.id]: {} })), 2000);
@@ -1711,38 +1809,45 @@ export default function EvcsPage() {
                         </div>
                         {/* Add Talento (Provider) */}
                         <div className="mt-4">
-                          <label className="block text-sm font-medium mb-1">Agregar Talento</label>
-                          <div className="flex gap-2">
-                            <select
-                              className="p-2 border rounded w-full"
-                              value={providerSelections[quarter.id] || ""}
-                              onChange={e => setProviderSelections(prev => ({ ...prev, [quarter.id]: e.target.value }))}
-                            >
-                              <option value="">-- Seleccionar Talento --</option>
-                              {availableProviders.map(provider => (
-                                <option key={provider.id} value={provider.id}>{provider.name}</option>
-                              ))}
-                            </select>
+                          <div className="flex gap-2 items-center mb-2">
+                            <label className="block text-sm font-medium">Agregar Talento</label>
                             <button
-                              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-                              onClick={async () => {
-                                const providerId = providerSelections[quarter.id];
-                                if (!providerId) return;
-                                try {
-                                  await axios.post(
-                                    "http://127.0.0.1:8000/evc-financials/evc_financials/",
-                                    { evc_q_id: quarter.id, provider_id: parseInt(providerId, 10) }
-                                  );
-                                  setProviderSelections(prev => ({ ...prev, [quarter.id]: "" }));
-                                  // Optionally refresh data here
-                                } catch (error) {
-                                  alert("Error al agregar talento");
-                                }
-                              }}
+                              className="ml-auto px-2 py-1 bg-green-100 text-green-700 rounded text-xs hover:bg-green-200"
+                              onClick={() => setProviderFilterModal({ quarterId: quarter.id, open: true })}
+                              type="button"
                             >
-                              Agregar
+                              Filtrar Talentos
                             </button>
                           </div>
+                          <select
+                            className="p-2 border rounded w-full"
+                            value={providerSelections[quarter.id] || ""}
+                            onChange={e => setProviderSelections(prev => ({ ...prev, [quarter.id]: e.target.value }))}
+                          >
+                            <option value="">-- Seleccionar Talento --</option>
+                            {getFilteredProviders(quarter.id).map(provider => (
+                              <option key={provider.id} value={provider.id}>{provider.name}</option>
+                            ))}
+                          </select>
+                          <button
+                            className="mt-3 px-4 py-2 bg-green-200 text-green-800 rounded hover:bg-green-300 text-sm transition-colors duration-150"
+                            onClick={async () => {
+                              const providerId = providerSelections[quarter.id];
+                              if (!providerId) return;
+                              try {
+                                await axios.post(
+                                  "http://127.0.0.1:8000/evc-financials/evc_financials/",
+                                  { evc_q_id: quarter.id, provider_id: parseInt(providerId, 10) }
+                                );
+                                setProviderSelections(prev => ({ ...prev, [quarter.id]: "" }));
+                                // Optionally refresh data here
+                              } catch (error) {
+                                alert("Error al agregar talento");
+                              }
+                            }}
+                          >
+                            Agregar
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -1900,16 +2005,23 @@ export default function EvcsPage() {
                   <div className="text-base font-bold text-gray-900">{new Date(selectedEvc.updated_at).toLocaleDateString()}</div>
                 </div>
               </div>
-              {/* Right: Quarters */}
+              {/* Right: Quarters (remains as is) */}
               <div className="flex-1">
                 <h3 className="text-2xl font-bold mb-4 text-gray-900">Quarters Asignados</h3>
                 {selectedEvc.evc_qs && selectedEvc.evc_qs.length > 0 ? (
                   <div className="space-y-4">
                     {selectedEvc.evc_qs.map((quarter) => (
                       <div key={quarter.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow flex flex-col">
-                        <div className="flex flex-wrap gap-4 mb-2">
+                        <div className="flex flex-wrap gap-4 mb-2 items-center">
                           <div className="text-base font-semibold text-gray-700">Año: <span className="font-bold text-gray-900">{quarter.year}</span></div>
                           <div className="text-base font-semibold text-gray-700">Quarter: <span className="font-bold text-gray-900">Q{quarter.q}</span></div>
+                          <button
+                            className="ml-2 p-1 bg-gray-200 rounded-full hover:bg-gray-300"
+                            title="Ver gastos asociados"
+                            onClick={() => fetchGastosByQuarter(quarter)}
+                          >
+                            <FaSearch className="text-gray-700 w-4 h-4" />
+                          </button>
                         </div>
                         {/* Progress Bars for this quarter */}
                         <div className="mb-4">
@@ -1968,6 +2080,44 @@ export default function EvcsPage() {
               </div>
             </div>
           </div>
+          {/* Gastos Modal */}
+          {gastosModal.open && gastosModal.quarter && (
+            <div className="fixed inset-0 z-60 flex items-center justify-center">
+              <div className="fixed inset-0 bg-black bg-opacity-40" onClick={() => setGastosModal({ open: false, quarter: null, gastos: [] })} />
+              <div className="relative bg-white rounded-2xl shadow-2xl p-8 w-full max-w-lg max-h-[80vh] overflow-y-auto flex flex-col">
+                <button
+                  className="absolute top-4 right-4 z-10 bg-red-100 hover:bg-red-200 text-red-600 rounded-full p-2 shadow"
+                  onClick={() => setGastosModal({ open: false, quarter: null, gastos: [] })}
+                  aria-label="Cerrar"
+                >
+                  <FaTimes className="h-5 w-5" />
+                </button>
+                <h2 className="text-xl font-bold mb-4">Gastos asociados a Q{gastosModal.quarter.q} - {gastosModal.quarter.year}</h2>
+                {gastosModal.gastos.length === 0 ? (
+                  <div className="text-gray-500 text-center">No hay gastos asociados.</div>
+                ) : (
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="px-4 py-2 text-left">Fecha</th>
+                        <th className="px-4 py-2 text-left">Concepto</th>
+                        <th className="px-4 py-2 text-left">Valor (USD)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {gastosModal.gastos.map((gasto) => (
+                        <tr key={gasto.id} className="border-b">
+                          <td className="px-4 py-2">{gasto.created_at ? new Date(gasto.created_at).toLocaleDateString() : '-'}</td>
+                          <td className="px-4 py-2">{gasto.concept}</td>
+                          <td className="px-4 py-2">${gasto.value_usd?.toLocaleString() ?? '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -2037,6 +2187,127 @@ export default function EvcsPage() {
           </div>
         )}
       </div>
+
+      {providerFilterModal.open && (
+        <div className="fixed inset-0 z-50 flex items-start justify-start">
+          {/* White, semi-transparent overlay */}
+          <div className="fixed inset-0 bg-white/80 backdrop-blur-sm transition-all" />
+          <div
+            className="relative bg-white rounded-2xl shadow-2xl p-10 w-full max-w-2xl flex flex-col items-start mt-32 ml-32"
+            style={{ minHeight: '520px', minWidth: '520px' }}
+          >
+            {/* Close button */}
+            <button
+              className="absolute top-4 right-4 z-10 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-full p-2 shadow focus:outline-none focus:ring-2 focus:ring-gray-400"
+              onClick={() => setProviderFilterModal({ quarterId: null, open: false })}
+              aria-label="Cerrar"
+            >
+              <FaTimes className="h-5 w-5" />
+            </button>
+            <h2 className="text-2xl font-bold mb-6 text-left w-full">Filtrar Talentos</h2>
+            {/* Price Filter */}
+            <div className="w-full mb-6">
+              <label className="flex items-center mb-2">
+                <input
+                  type="checkbox"
+                  checked={activeProviderFilters.price}
+                  onChange={e => setActiveProviderFilters(f => ({ ...f, price: e.target.checked }))}
+                  className="mr-2"
+                />
+                Filtrar por precio
+              </label>
+              {activeProviderFilters.price && (
+                <div className="flex flex-col items-start">
+                  <span className="text-sm mb-2">Rango: ${providerPriceRange[0]} - ${providerPriceRange[1]}</span>
+                  <Slider
+                    range
+                    min={0}
+                    max={15000}
+                    value={providerPriceRange}
+                    onChange={val => setProviderPriceRange(val as [number, number])}
+                    className="w-full"
+                  />
+                </div>
+              )}
+            </div>
+            {/* Country Filter */}
+            <div className="w-full mb-6">
+              <label className="flex items-center mb-2">
+                <input
+                  type="checkbox"
+                  checked={activeProviderFilters.country}
+                  onChange={e => setActiveProviderFilters(f => ({ ...f, country: e.target.checked }))}
+                  className="mr-2"
+                />
+                Filtrar por país
+              </label>
+              {activeProviderFilters.country && (
+                <select
+                  multiple
+                  className="w-full border rounded p-2"
+                  value={providerSelectedCountries}
+                  onChange={e => {
+                    const options = Array.from(e.target.selectedOptions, option => option.value);
+                    setProviderSelectedCountries(options);
+                  }}
+                >
+                  {providerCountryOptions.map(country => (
+                    <option key={country} value={country}>{country}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+            {/* Filtered Providers List */}
+            <div className="w-full overflow-y-auto" style={{ maxHeight: '260px' }}>
+              {getFilteredProviders(providerFilterModal.quarterId ?? 0).length === 0 ? (
+                <div className="text-center text-gray-400 py-4">No hay talentos que coincidan con los filtros.</div>
+              ) : (
+                <ul>
+                  {getFilteredProviders(providerFilterModal.quarterId ?? 0).map(provider => (
+                    <li key={provider.id} className="flex items-center justify-between px-4 py-2 border-b last:border-b-0">
+                      <div>
+                        <div className="font-semibold text-gray-900">{provider.name}</div>
+                        <div className="text-xs text-gray-600">{provider.company} | {provider.country} | ${provider.cost_usd ?? '-'}</div>
+                      </div>
+                      <button
+                        className="ml-6 px-3 py-1 bg-green-200 text-green-800 rounded hover:bg-green-300 text-xs transition-colors duration-150"
+                        style={{ marginLeft: '1.5rem' }}
+                        onClick={() => {
+                          if (providerFilterModal.quarterId != null) {
+                            setProviderSelections(prev => ({ ...prev, [providerFilterModal.quarterId!]: provider.id.toString() }));
+                          }
+                          setProviderFilterModal({ quarterId: null, open: false });
+                        }}
+                      >
+                        Asignar
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            {/* Modal Actions */}
+            <div className="w-full flex justify-end gap-4 mt-6">
+              <button
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                onClick={() => {
+                  setActiveProviderFilters({ price: false, country: false });
+                  setProviderPriceRange([0, 15000]);
+                  setProviderSelectedCountries([]);
+                }}
+              >
+                Limpiar filtros
+              </button>
+              <button
+                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                onClick={() => setProviderFilterModal({ quarterId: null, open: false })}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

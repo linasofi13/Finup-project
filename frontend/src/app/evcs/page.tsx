@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   FaTrash,
   FaFilter,
@@ -45,6 +45,9 @@ interface EVC_Q {
   allocated_budget: number;
   allocated_percentage: number;
   evc_financials?: { id: number; provider: Provider }[];
+  total_spendings?: number;
+  percentage?: number;
+  budget_message?: string;
 }
 
 interface EVC {
@@ -58,7 +61,11 @@ interface EVC {
   technical_leader: TechnicalLeader | null;
   functional_leader: { id: number; name: string } | null;
   evc_qs: EVC_Q[];
+  entorno_id?: number;
+  technical_leader_id?: number;
+  functional_leader_id?: number;
 }
+
 
 export default function EvcsPage() {
   // Estados principales
@@ -100,8 +107,14 @@ export default function EvcsPage() {
   const [availableEntornos, setAvailableEntornos] = useState<Entorno[]>([]);
   const [availableProviders, setAvailableProviders] = useState<Provider[]>([]);
 
+  // Add new state variables for OCR
+  const [uploading, setUploading] = useState(false);
+  const [extractedValues, setExtractedValues] = useState<{ [key: number]: number }>({});
+  const [uploadedFiles, setUploadedFiles] = useState<{ [key: number]: string }>({});
+  const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
+
   // Colores para entornos
-  const entornoColors = {
+  const entornoColors: { [key: number]: string } = {
     1: "bg-[#faa0c5]", // Rosa claro
     2: "bg-[#00c389]", // Verde
     3: "bg-[#fdda24]", // Amarillo
@@ -109,8 +122,19 @@ export default function EvcsPage() {
     5: "bg-[#59CBE8]", // Azul claro
   };
 
+
+  // Update color map types
+  const colorMap: { [key: number]: string } = {
+    1: "bg-[#e497b1]",
+    2: "bg-[#00a974]",
+    3: "bg-[#e3c31f]",
+    4: "bg-[#e66a2d]",
+    5: "bg-[#41b3d3]"
+  };
+
   // Obtener el color del entorno
-  const getEntornoColor = (entorno_id: number | null) => {
+  const getEntornoColor = (entorno_id: number | null | undefined) => {
+
     return entorno_id ? entornoColors[entorno_id] : "bg-[#59CBE8]";
   };
 
@@ -359,30 +383,87 @@ export default function EvcsPage() {
   // Crear EVC_Q
   const createQuarter = async (evcId: number) => {
     try {
+      // Validate inputs
+      const year = parseInt(newQuarter.year, 10);
+      const q = parseInt(newQuarter.q, 10);
+      const allocated_budget = parseFloat(newQuarter.allocated_budget);
+      const allocated_percentage = parseFloat(newQuarter.allocated_percentage);
+
+      // Check for invalid values
+      if (isNaN(year) || isNaN(q) || isNaN(allocated_budget) || isNaN(allocated_percentage)) {
+        setAlert("Por favor complete todos los campos con valores válidos");
+        return;
+      }
+
+      // Validate quarter number
+      if (q < 1 || q > 4) {
+        setAlert("El quarter debe ser un número entre 1 y 4");
+        return;
+      }
+
+      // Validate year
+      const currentYear = new Date().getFullYear();
+      if (year < currentYear - 1 || year > currentYear + 1) {
+        setAlert(`El año debe estar entre ${currentYear - 1} y ${currentYear + 1}`);
+        return;
+      }
+
+      // Validate budget and percentage
+      if (allocated_budget <= 0) {
+        setAlert("El presupuesto debe ser mayor a 0");
+        return;
+      }
+
+      if (allocated_percentage < 0 || allocated_percentage > 100) {
+        setAlert("El porcentaje debe estar entre 0 y 100");
+        return;
+      }
+
       const response = await axios.post(
         "http://127.0.0.1:8000/evc-qs/evc_qs/",
         {
           evc_id: evcId,
-          year: parseInt(newQuarter.year, 10),
-          q: parseInt(newQuarter.q, 10),
-          allocated_budget: parseFloat(newQuarter.allocated_budget),
-          allocated_percentage: parseFloat(newQuarter.allocated_percentage),
-        },
+          year,
+          q,
+          allocated_budget,
+          allocated_percentage,
+        }
       );
+
       console.log("Quarter creado:", response.data);
+      
+      // Fetch the updated EVC with the new quarter
       const updatedEvc = await axios.get(
-        `http://127.0.0.1:8000/evcs/evcs/${evcId}`,
+        `http://127.0.0.1:8000/evcs/evcs/${evcId}`
       );
+      
+      // Update the selected EVC state
       setSelectedEvc(updatedEvc.data);
+      
+      // Update the evcs list to reflect the new quarter
+      setEvcs(prevEvcs => 
+        prevEvcs.map(evc => 
+          evc.id === evcId ? updatedEvc.data : evc
+        )
+      );
+
+      // Reset the form
       setNewQuarter({
         year: "",
         q: "",
         allocated_budget: "",
         allocated_percentage: "",
       });
+      setAlert("");
     } catch (error) {
-      console.error("Error creando quarter:", error);
-      setAlert("Error al crear el quarter");
+      if (axios.isAxiosError(error)) {
+        const errorMsg = error.response?.data?.detail || "Error al crear el quarter";
+        setAlert(errorMsg);
+        console.error("Error creando quarter:", error.response?.data);
+      } else {
+        console.error("Error creando quarter:", error);
+        setAlert("Error al crear el quarter");
+      }
     }
   };
 
@@ -399,22 +480,28 @@ export default function EvcsPage() {
         {
           evc_q_id: evc_q_id,
           provider_id: parseInt(provider_id, 10) || null,
-        },
+        }
       );
       console.log("Financial creado:", response.data);
       const updatedEvc = await axios.get(
-        `http://127.0.0.1:8000/evcs/evcs/${evcId}`,
+        `http://127.0.0.1:8000/evcs/evcs/${evcId}`
       );
       setSelectedEvc(updatedEvc.data);
       setFinancialSelections((prev) => ({
         ...prev,
         [evc_q_id]: "", // Resetear selección para este quarter
       }));
-    } catch (error) {
-      console.error("Error creando financial:", error);
-      const errorMsg =
-        error.response?.data?.detail || "Error al asignar el proveedor";
-      setAlert(errorMsg);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Error creando financial:", error.message);
+        setAlert(error.message);
+      } else if (axios.isAxiosError(error)) {
+        const errorMsg = error.response?.data?.detail || "Error al asignar el proveedor";
+        setAlert(errorMsg);
+      } else {
+        console.error("Error creando financial:", String(error));
+        setAlert("Error al asignar el proveedor");
+      }
     }
   };
 
@@ -574,6 +661,58 @@ export default function EvcsPage() {
     XLSX.writeFile(wb, "evcs_con_quarters.xlsx");
     setShowExportModal(false);
     setSelectedEvcsForExport([]);
+  };
+
+  // Add OCR functionality
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, evc_q_id: number) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+  
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("evc_q_id", evc_q_id.toString());
+  
+    setUploading(true);
+  
+    try {
+        const response = await axios.post(
+            "http://127.0.0.1:8000/evc-financials/evc_financials/upload",
+            formData,
+            {
+                headers: { "Content-Type": "multipart/form-data" },
+            }
+        );
+        setUploadedFiles((prev) => ({
+            ...prev,
+            [evc_q_id]: file.name,
+        }));
+        
+        setExtractedValues((prev) => ({
+            ...prev,
+            [evc_q_id]: response.data.value_usd,
+        }));
+    
+        console.log("Archivo procesado:", response.data);
+    
+        // Actualizar EVC seleccionado
+        if (selectedEvc) {
+            const updatedEvc = await axios.get(`http://127.0.0.1:8000/evcs/evcs/${selectedEvc.id}`);
+            setSelectedEvc(updatedEvc.data);
+        }
+    } catch (err: unknown) {
+        if (err instanceof Error) {
+            console.error("Error al subir archivo:", err.message);
+        } else {
+            console.error("Error al subir archivo:", String(err));
+        }
+        alert("Error al procesar la factura");
+    } finally {
+        setUploading(false);
+    }
+  };
+
+  const triggerFileUpload = (quarterId: number) => {
+    fileInputRefs.current[quarterId]?.click();
   };
 
   // Render
@@ -785,7 +924,6 @@ export default function EvcsPage() {
                 </label>
               ))}
             </div>
-
             <div className="flex justify-end space-x-4">
               <button
                 className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
@@ -1011,6 +1149,65 @@ export default function EvcsPage() {
                           </div>
                         )}
                     </div>
+                    {/* Sección Cargar Factura */}
+                    <div className="border border-dashed border-gray-300 rounded-lg p-4 bg-gray-50 mt-4">
+                        <label className="block text-sm font-medium mb-2 text-gray-700">Cargar Factura</label>
+                        <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-md p-6 bg-white hover:border-yellow-400 transition">
+                            <input
+                                type="file"
+                                ref={(el) => {
+                                    if (el) fileInputRefs.current[quarter.id] = el;
+                                }}
+                                accept=".pdf,.png,.jpg,.jpeg"
+                                onChange={(e) => handleFileUpload(e, quarter.id)}
+                                className="hidden"
+                            />
+                            <label
+                                onClick={() => triggerFileUpload(quarter.id)}
+                                className="cursor-pointer flex flex-col items-center"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-10 w-10 text-gray-400 mb-2"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M7 16V4m0 0L3 8m4-4l4 4m5 0v12m0 0l4-4m-4 4l-4-4"
+                                    />
+                                </svg>
+                                <span className="text-gray-600">Haz clic para subir archivo</span>
+                            </label>
+                        </div>
+                        <div className="flex justify-start mt-2">
+                            <button
+                                type="button"
+                                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+                                onClick={() => triggerFileUpload(quarter.id)}
+                            >
+                                Cargar Archivo
+                            </button>
+                        </div>
+
+                        {uploading && (
+                            <p className="text-yellow-600 text-sm">Procesando factura...</p>
+                        )}
+
+                        {extractedValues[quarter.id] !== undefined && (
+                            <p className="text-green-600 text-sm">
+                                Valor extraído: <strong>${extractedValues[quarter.id].toLocaleString()}</strong>
+                            </p>
+                        )}
+                        {uploadedFiles[quarter.id] && (
+                            <p className="text-blue-600 text-sm mt-2">
+                                Archivo cargado: <strong>{uploadedFiles[quarter.id]}</strong>
+                            </p>
+                        )}
+                    </div>
                   </div>
                 ))
               ) : (
@@ -1145,12 +1342,12 @@ export default function EvcsPage() {
 
                         <p>
                           <strong>Presupuesto Gastado:</strong> $
-                          {quarter.total_spendings.toLocaleString()}
+                          {quarter.total_spendings?.toLocaleString()}
                         </p>
 
                         <p>
                           <strong>Porcentaje Gastado:</strong>
-                          {quarter.percentage.toLocaleString()}%
+                          {quarter.percentage?.toLocaleString()}%
                         </p>
 
                         <p>
@@ -1158,11 +1355,197 @@ export default function EvcsPage() {
                           <span
                             className={`px-2 py-1 rounded-full text-sm font-medium
       ${
-        quarter.percentage >= 100
+        quarter.percentage && quarter.percentage >= 100
           ? "bg-red-100 text-red-800"
-          : quarter.percentage >= 80
+          : quarter.percentage && quarter.percentage >= 80
             ? "bg-orange-100 text-orange-800"
-            : quarter.percentage >= 50
+            : quarter.percentage && quarter.percentage >= 50
+              ? "bg-yellow-100 text-yellow-800"
+              : "bg-green-100 text-green-800"
+      }
+    `}
+                          >
+                            {quarter.budget_message}
+                          </span>
+                        </p>
+                      </div>
+                      {quarter.evc_financials &&
+                      quarter.evc_financials.length > 0 ? (
+                        <div className="mt-2">
+                          <p className="text-sm font-medium">
+                            Proveedores asignados:
+                          </p>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {quarter.evc_financials.map((financial) => (
+                              <span
+                                key={financial.id}
+                                className="px-2 py-1 bg-gray-200 rounded text-sm"
+                              >
+                                {financial.provider.name}
+                                {financial.provider.company &&
+                                  ` - ${financial.provider.company}`}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500">
+                          No hay proveedores asignados.
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500">No hay quarters asignados.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de eliminación */}
+      {showDeleteModal && evcToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">Confirmar Eliminación</h2>
+            <p className="mb-4">
+              ¿Está seguro que desea eliminar la EVC "{evcToDelete.name}"? Esta
+              acción no se puede deshacer.
+            </p>
+            <div className="flex justify-end space-x-4">
+              <button
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setEvcToDelete(null);
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+                onClick={() => deleteEvc(evcToDelete.id)}
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para vista detallada */}
+      {showDetailModal && selectedEvc && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-3xl max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold">
+                Detalles de {selectedEvc.name}
+              </h2>
+              <FaTimes
+                className="text-red-500 cursor-pointer"
+                onClick={() => setShowDetailModal(false)}
+              />
+            </div>
+
+            {/* Detalles del EVC */}
+            <div className="mb-6">
+              <p className="flex items-center">
+                <FaLink className="mr-2" />
+                <strong>URL:</strong>{" "}
+                <a
+                  href={`http://127.0.0.1:8000/evcs/evcs/${selectedEvc.id}`}
+                  className="text-blue-500 hover:underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  http://127.0.0.1:8000/evcs/evcs/{selectedEvc.id}
+                </a>
+              </p>
+              <p>
+                <strong>Descripción:</strong> {selectedEvc.description}
+              </p>
+              {selectedEvc.technical_leader_id && (
+                <p className="flex items-center">
+                  <strong className="mr-2">Líder Técnico:</strong>
+                  {technicalLeadersData[selectedEvc.technical_leader_id] ||
+                    "Cargando..."}
+                </p>
+              )}
+              {selectedEvc.functional_leader_id && (
+                <p className="flex items-center">
+                  <strong className="mr-2">Líder Funcional:</strong>
+                  {functionalLeadersData[selectedEvc.functional_leader_id] ||
+                    "Cargando..."}
+                </p>
+              )}
+              {selectedEvc.entorno_id && (
+                <p className="flex items-center">
+                  <strong className="mr-2">Entorno:</strong>
+                  {entornosData[selectedEvc.entorno_id] || "Cargando..."}
+                </p>
+              )}
+              <p>
+                <strong>Estado:</strong>{" "}
+                {selectedEvc.status ? "Activo" : "Inactivo"}
+              </p>
+              <p>
+                <strong>Creado:</strong>{" "}
+                {new Date(selectedEvc.creation_date).toLocaleDateString()}
+              </p>
+              <p>
+                <strong>Actualizado:</strong>{" "}
+                {new Date(selectedEvc.updated_at).toLocaleDateString()}
+              </p>
+            </div>
+
+            {/* Lista de quarters (solo visualización) */}
+            <div className="mt-6">
+              <h3 className="text-xl font-semibold mb-2">Quarters Asignados</h3>
+              {selectedEvc.evc_qs && selectedEvc.evc_qs.length > 0 ? (
+                <div className="space-y-4">
+                  {selectedEvc.evc_qs.map((quarter) => (
+                    <div
+                      key={quarter.id}
+                      className="border p-4 rounded-lg bg-gray-50"
+                    >
+                      <div className="grid grid-cols-2 gap-4 mb-2">
+                        <p>
+                          <strong>Año:</strong> {quarter.year}
+                        </p>
+                        <p>
+                          <strong>Quarter:</strong> Q{quarter.q}
+                        </p>
+                        <p>
+                          <strong>Presupuesto:</strong> $
+                          {quarter.allocated_budget.toLocaleString()}
+                        </p>
+
+                        <p>
+                          <strong>Porcentaje:</strong>{" "}
+                          {quarter.allocated_percentage}%
+                        </p>
+
+                        <p>
+                          <strong>Presupuesto Gastado:</strong> $
+                          {quarter.total_spendings?.toLocaleString()}
+                        </p>
+
+                        <p>
+                          <strong>Porcentaje Gastado:</strong>
+                          {quarter.percentage?.toLocaleString()}%
+                        </p>
+
+                        <p>
+                          <strong>Estado:</strong>{" "}
+                          <span
+                            className={`px-2 py-1 rounded-full text-sm font-medium
+      ${
+        quarter.percentage && quarter.percentage >= 100
+          ? "bg-red-100 text-red-800"
+          : quarter.percentage && quarter.percentage >= 80
+            ? "bg-orange-100 text-orange-800"
+            : quarter.percentage && quarter.percentage >= 50
               ? "bg-yellow-100 text-yellow-800"
               : "bg-green-100 text-green-800"
       }
@@ -1319,4 +1702,3 @@ export default function EvcsPage() {
       </div>
     </div>
   );
-}

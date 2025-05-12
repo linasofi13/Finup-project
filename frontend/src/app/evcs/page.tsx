@@ -127,6 +127,7 @@ function EvcCard({
   index,
   selected,
   onSelect,
+  onStatusChange,
 }: {
   evc: EVC;
   entornosData: { [key: number]: string };
@@ -135,10 +136,12 @@ function EvcCard({
   index: number;
   selected: boolean;
   onSelect: (checked: boolean) => void;
+  onStatusChange: (evc: EVC) => Promise<void>;
 }) {
   // Assign color from palette
   const bgColor = evcColors[index % evcColors.length];
   // Status badge
+
   const status = evc.status ? "Activo" : "Inactivo";
   const statusColor = evc.status
     ? "bg-green-400 text-green-900"
@@ -209,13 +212,17 @@ function EvcCard({
         </span>
       )}
 
-      {/* Status badge */}
-      <div className="absolute top-4 right-4">
-        <span
-          className={`text-xs font-semibold px-3 py-1 rounded-full ${statusColor}`}
+      {/* Status badge with toggle button */}
+      <div className="absolute top-4 right-4 flex items-center gap-2">
+        <button
+          onClick={async (e) => {
+            e.stopPropagation();
+            await onStatusChange(evc);
+          }}
+          className={`text-xs font-semibold px-3 py-1 rounded-full transition-colors duration-200 hover:opacity-80 ${statusColor}`}
         >
           {status}
-        </span>
+        </button>
       </div>
 
       {/* Header */}
@@ -1337,6 +1344,7 @@ export default function EvcsPage() {
       setSelectedEvc(updatedEvc.data);
 
       // Update the evcs list to reflect the new quarter
+
       setEvcs((prevEvcs) =>
         prevEvcs.map((evc) => (evc.id === evcId ? updatedEvc.data : evc)),
       );
@@ -1636,6 +1644,35 @@ export default function EvcsPage() {
       setGastosModal({ open: true, quarter, gastos });
     } catch (err) {
       setGastosModal({ open: true, quarter, gastos: [] });
+    }
+  };
+
+  // Add status update function
+  const handleStatusChange = async (evc: EVC) => {
+    try {
+      const response = await axios.put(
+        `http://127.0.0.1:8000/evcs/evcs/${evc.id}`,
+        {
+          status: !evc.status,
+        },
+      );
+
+      // Update the EVCs list with the new status
+      setEvcs((prevEvcs) =>
+        prevEvcs.map((e) =>
+          e.id === evc.id ? { ...e, status: !e.status } : e,
+        ),
+      );
+
+      // If this EVC is currently selected, update its status in selectedEvc
+      if (selectedEvc?.id === evc.id) {
+        setSelectedEvc((prev) =>
+          prev ? { ...prev, status: !prev.status } : null,
+        );
+      }
+    } catch (error) {
+      console.error("Error updating EVC status:", error);
+      setAlertMsg("Error al actualizar el estado del EVC");
     }
   };
 
@@ -3023,9 +3060,11 @@ export default function EvcsPage() {
                     : prev.filter((id) => id !== evc.id),
                 );
               }}
+              onStatusChange={handleStatusChange}
             />
           ),
         )}
+
         {filteredEvcs.length === 0 && filters.entorno_id && (
           <div className="col-span-3 text-center py-8 text-gray-500">
             No hay EVCs en el entorno seleccionado.

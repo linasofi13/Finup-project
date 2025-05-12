@@ -44,16 +44,10 @@ interface EVC_Q {
   q: number;
   allocated_budget: number;
   allocated_percentage: number;
+  evc_financials?: { id: number; provider: Provider }[];
   total_spendings?: number;
   percentage?: number;
   budget_message?: string;
-  evc_financials?: { 
-    id: number; 
-    provider: Provider;
-    value_usd?: number;
-    concept?: string;
-    created_at?: string;
-  }[];
 }
 
 interface EVC {
@@ -63,13 +57,13 @@ interface EVC {
   status: boolean;
   creation_date: string;
   updated_at: string;
-  entorno_id: number | null;
-  technical_leader_id: number | null;
-  functional_leader_id: number | null;
   entorno: Entorno | null;
   technical_leader: TechnicalLeader | null;
   functional_leader: { id: number; name: string } | null;
   evc_qs: EVC_Q[];
+  entorno_id?: number;
+  technical_leader_id?: number;
+  functional_leader_id?: number;
 }
 
 export default function EvcsPage() {
@@ -112,7 +106,7 @@ export default function EvcsPage() {
   const [availableEntornos, setAvailableEntornos] = useState<Entorno[]>([]);
   const [availableProviders, setAvailableProviders] = useState<Provider[]>([]);
 
-  // Estados para OCR
+  // Add new state variables for OCR
   const [uploading, setUploading] = useState(false);
   const [extractedValues, setExtractedValues] = useState<{ [key: number]: number }>({});
   const [uploadedFiles, setUploadedFiles] = useState<{ [key: number]: string }>({});
@@ -120,28 +114,30 @@ export default function EvcsPage() {
 
   // Colores para entornos
   const entornoColors: { [key: number]: string } = {
-    1: "bg-[#faa0c5]",  // Rosa claro
-    2: "bg-[#00c389]",  // Verde
-    3: "bg-[#fdda24]",  // Amarillo
-    4: "bg-[#ff7f41]",  // Naranja
-    5: "bg-[#59CBE8]",  // Azul claro
+    1: "bg-[#faa0c5]", // Rosa claro
+    2: "bg-[#00c389]", // Verde
+    3: "bg-[#fdda24]", // Amarillo
+    4: "bg-[#ff7f41]", // Naranja
+    5: "bg-[#59CBE8]", // Azul claro
+  };
+
+  // Update color map types
+  const colorMap: { [key: number]: string } = {
+    1: "bg-[#e497b1]",
+    2: "bg-[#00a974]",
+    3: "bg-[#e3c31f]",
+    4: "bg-[#e66a2d]",
+    5: "bg-[#41b3d3]"
   };
 
   // Obtener el color del entorno
-  const getEntornoColor = (entorno_id: number | null) => {
-    return entorno_id ? entornoColors[entorno_id] || "bg-[#59CBE8]" : "bg-[#59CBE8]";
+  const getEntornoColor = (entorno_id: number | null | undefined) => {
+    return entorno_id ? entornoColors[entorno_id] : "bg-[#59CBE8]";
   };
 
   // Obtener color de acento
-  const getContainerColor = (entorno_id: number | null) => {
-    const colorMap: { [key: number]: string } = {
-      1: "bg-[#e497b1]",
-      2: "bg-[#00a974]",
-      3: "bg-[#e3c31f]",
-      4: "bg-[#e66a2d]",
-      5: "bg-[#41b3d3]"
-    };
-    return entorno_id ? colorMap[entorno_id] || "bg-[#59CBE8]/50" : "bg-[#59CBE8]/50";
+  const getContainerColor = (entorno_id: number | null | undefined) => {
+    return entorno_id ? colorMap[entorno_id] : "bg-[#59CBE8]/50";
   };
 
   // Modelo EVC
@@ -263,14 +259,8 @@ export default function EvcsPage() {
       console.log("EVCs recibidos:", response.data);
       console.log("Primer EVC:", response.data[0]);
       setEvcs(response.data);
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error("Error al cargar EVCs:", error.message);
-      } else if (typeof error === 'string') {
-        console.error("Error al cargar EVCs:", error);
-      } else {
-        console.error("Error al cargar EVCs:", String(error));
-      }
+    } catch (error) {
+      console.error("Error al cargar EVCs:", error);
     }
   };
 
@@ -383,30 +373,87 @@ export default function EvcsPage() {
   // Crear EVC_Q
   const createQuarter = async (evcId: number) => {
     try {
+      // Validate inputs
+      const year = parseInt(newQuarter.year, 10);
+      const q = parseInt(newQuarter.q, 10);
+      const allocated_budget = parseFloat(newQuarter.allocated_budget);
+      const allocated_percentage = parseFloat(newQuarter.allocated_percentage);
+
+      // Check for invalid values
+      if (isNaN(year) || isNaN(q) || isNaN(allocated_budget) || isNaN(allocated_percentage)) {
+        setAlert("Por favor complete todos los campos con valores válidos");
+        return;
+      }
+
+      // Validate quarter number
+      if (q < 1 || q > 4) {
+        setAlert("El quarter debe ser un número entre 1 y 4");
+        return;
+      }
+
+      // Validate year
+      const currentYear = new Date().getFullYear();
+      if (year < currentYear - 1 || year > currentYear + 1) {
+        setAlert(`El año debe estar entre ${currentYear - 1} y ${currentYear + 1}`);
+        return;
+      }
+
+      // Validate budget and percentage
+      if (allocated_budget <= 0) {
+        setAlert("El presupuesto debe ser mayor a 0");
+        return;
+      }
+
+      if (allocated_percentage < 0 || allocated_percentage > 100) {
+        setAlert("El porcentaje debe estar entre 0 y 100");
+        return;
+      }
+
       const response = await axios.post(
         "http://127.0.0.1:8000/evc-qs/evc_qs/",
         {
           evc_id: evcId,
-          year: parseInt(newQuarter.year, 10),
-          q: parseInt(newQuarter.q, 10),
-          allocated_budget: parseFloat(newQuarter.allocated_budget),
-          allocated_percentage: parseFloat(newQuarter.allocated_percentage),
-        },
+          year,
+          q,
+          allocated_budget,
+          allocated_percentage,
+        }
       );
+
       console.log("Quarter creado:", response.data);
+      
+      // Fetch the updated EVC with the new quarter
       const updatedEvc = await axios.get(
-        `http://127.0.0.1:8000/evcs/evcs/${evcId}`,
+        `http://127.0.0.1:8000/evcs/evcs/${evcId}`
       );
+      
+      // Update the selected EVC state
       setSelectedEvc(updatedEvc.data);
+      
+      // Update the evcs list to reflect the new quarter
+      setEvcs(prevEvcs => 
+        prevEvcs.map(evc => 
+          evc.id === evcId ? updatedEvc.data : evc
+        )
+      );
+
+      // Reset the form
       setNewQuarter({
         year: "",
         q: "",
         allocated_budget: "",
         allocated_percentage: "",
       });
+      setAlert("");
     } catch (error) {
-      console.error("Error creando quarter:", error);
-      setAlert("Error al crear el quarter");
+      if (axios.isAxiosError(error)) {
+        const errorMsg = error.response?.data?.detail || "Error al crear el quarter";
+        setAlert(errorMsg);
+        console.error("Error creando quarter:", error.response?.data);
+      } else {
+        console.error("Error creando quarter:", error);
+        setAlert("Error al crear el quarter");
+      }
     }
   };
 
@@ -423,22 +470,28 @@ export default function EvcsPage() {
         {
           evc_q_id: evc_q_id,
           provider_id: parseInt(provider_id, 10) || null,
-        },
+        }
       );
       console.log("Financial creado:", response.data);
       const updatedEvc = await axios.get(
-        `http://127.0.0.1:8000/evcs/evcs/${evcId}`,
+        `http://127.0.0.1:8000/evcs/evcs/${evcId}`
       );
       setSelectedEvc(updatedEvc.data);
       setFinancialSelections((prev) => ({
         ...prev,
         [evc_q_id]: "", // Resetear selección para este quarter
       }));
-    } catch (error) {
-      console.error("Error creando financial:", error);
-      const errorMsg =
-        error.response?.data?.detail || "Error al asignar el proveedor";
-      setAlert(errorMsg);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Error creando financial:", error.message);
+        setAlert(error.message);
+      } else if (axios.isAxiosError(error)) {
+        const errorMsg = error.response?.data?.detail || "Error al asignar el proveedor";
+        setAlert(errorMsg);
+      } else {
+        console.error("Error creando financial:", String(error));
+        setAlert("Error al asignar el proveedor");
+      }
     }
   };
 
@@ -600,7 +653,7 @@ export default function EvcsPage() {
     setSelectedEvcsForExport([]);
   };
 
-  // Funciones para OCR
+  // Add OCR functionality
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, evc_q_id: number) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -628,15 +681,20 @@ export default function EvcsPage() {
             ...prev,
             [evc_q_id]: response.data.value_usd,
         }));
-        
+    
         console.log("Archivo procesado:", response.data);
     
         // Actualizar EVC seleccionado
-        const updatedEvc = await axios.get(`http://127.0.0.1:8000/evcs/evcs/${selectedEvc?.id}`);
-        setSelectedEvc(updatedEvc.data);
-    
-    } catch (err) {
-        console.error("Error al subir archivo:", err);
+        if (selectedEvc) {
+            const updatedEvc = await axios.get(`http://127.0.0.1:8000/evcs/evcs/${selectedEvc.id}`);
+            setSelectedEvc(updatedEvc.data);
+        }
+    } catch (err: unknown) {
+        if (err instanceof Error) {
+            console.error("Error al subir archivo:", err.message);
+        } else {
+            console.error("Error al subir archivo:", String(err));
+        }
         alert("Error al procesar la factura");
     } finally {
         setUploading(false);
@@ -1085,62 +1143,62 @@ export default function EvcsPage() {
 
                     {/* Sección Cargar Factura */}
                     <div className="border border-dashed border-gray-300 rounded-lg p-4 bg-gray-50 mt-4">
-                      <label className="block text-sm font-medium mb-2 text-gray-700">Cargar Factura</label>
-                      <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-md p-6 bg-white hover:border-yellow-400 transition">
-                        <input
-                          type="file"
-                          ref={(el) => {
-                            if (el) fileInputRefs.current[quarter.id] = el;
-                          }}
-                          accept=".pdf,.png,.jpg,.jpeg"
-                          onChange={(e) => handleFileUpload(e, quarter.id)}
-                          className="hidden"
-                        />
-                        <label
-                          onClick={() => triggerFileUpload(quarter.id)}
-                          className="cursor-pointer flex flex-col items-center"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-10 w-10 text-gray-400 mb-2"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M7 16V4m0 0L3 8m4-4l4 4m5 0v12m0 0l4-4m-4 4l-4-4"
+                        <label className="block text-sm font-medium mb-2 text-gray-700">Cargar Factura</label>
+                        <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-md p-6 bg-white hover:border-yellow-400 transition">
+                            <input
+                                type="file"
+                                ref={(el) => {
+                                    if (el) fileInputRefs.current[quarter.id] = el;
+                                }}
+                                accept=".pdf,.png,.jpg,.jpeg"
+                                onChange={(e) => handleFileUpload(e, quarter.id)}
+                                className="hidden"
                             />
-                          </svg>
-                          <span className="text-gray-600">Haz clic para subir archivo</span>
-                        </label>
-                      </div>
-                      <div className="flex justify-start mt-2">
-                        <button
-                          type="button"
-                          className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
-                          onClick={() => triggerFileUpload(quarter.id)}
-                        >
-                          Cargar Archivo
-                        </button>
-                      </div>
+                            <label
+                                onClick={() => triggerFileUpload(quarter.id)}
+                                className="cursor-pointer flex flex-col items-center"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-10 w-10 text-gray-400 mb-2"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M7 16V4m0 0L3 8m4-4l4 4m5 0v12m0 0l4-4m-4 4l-4-4"
+                                    />
+                                </svg>
+                                <span className="text-gray-600">Haz clic para subir archivo</span>
+                            </label>
+                        </div>
+                        <div className="flex justify-start mt-2">
+                            <button
+                                type="button"
+                                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+                                onClick={() => triggerFileUpload(quarter.id)}
+                            >
+                                Cargar Archivo
+                            </button>
+                        </div>
 
-                      {uploading && (
-                        <p className="text-yellow-600 text-sm">Procesando factura...</p>
-                      )}
+                        {uploading && (
+                            <p className="text-yellow-600 text-sm">Procesando factura...</p>
+                        )}
 
-                      {extractedValues[quarter.id] !== undefined && (
-                        <p className="text-green-600 text-sm">
-                          Valor extraído: <strong>${extractedValues[quarter.id].toLocaleString()}</strong>
-                        </p>
-                      )}
-                      {uploadedFiles[quarter.id] && (
-                        <p className="text-blue-600 text-sm mt-2">
-                          Archivo cargado: <strong>{uploadedFiles[quarter.id]}</strong>
-                        </p>
-                      )}
+                        {extractedValues[quarter.id] !== undefined && (
+                            <p className="text-green-600 text-sm">
+                                Valor extraído: <strong>${extractedValues[quarter.id].toLocaleString()}</strong>
+                            </p>
+                        )}
+                        {uploadedFiles[quarter.id] && (
+                            <p className="text-blue-600 text-sm mt-2">
+                                Archivo cargado: <strong>{uploadedFiles[quarter.id]}</strong>
+                            </p>
+                        )}
                     </div>
                   </div>
                 ))

@@ -134,20 +134,12 @@ export default function EvcsPage() {
 
   // Obtener el color del entorno
   const getEntornoColor = (entorno_id: number | null | undefined) => {
-
-    return entorno_id ? entornoColors[entorno_id] : "bg-[#59CBE8]";
+    return entorno_id ? entornoColors[entorno_id] || "bg-[#59CBE8]" : "bg-[#59CBE8]";
   };
 
   // Obtener color de acento
-  const getContainerColor = (entorno_id: number | null) => {
-    const colorMap = {
-      1: "bg-[#e497b1]",
-      2: "bg-[#00a974]",
-      3: "bg-[#e3c31f]",
-      4: "bg-[#e66a2d]",
-      5: "bg-[#41b3d3]",
-    };
-    return entorno_id ? colorMap[entorno_id] : "bg-[#59CBE8]/50";
+  const getContainerColor = (entorno_id: number | null | undefined) => {
+    return entorno_id ? colorMap[entorno_id] || "bg-[#59CBE8]/50" : "bg-[#59CBE8]/50";
   };
 
   // Modelo EVC
@@ -460,6 +452,9 @@ export default function EvcsPage() {
         const errorMsg = error.response?.data?.detail || "Error al crear el quarter";
         setAlert(errorMsg);
         console.error("Error creando quarter:", error.response?.data);
+      } else if (error instanceof Error) {
+        console.error("Error creando quarter:", error.message);
+        setAlert(error.message);
       } else {
         console.error("Error creando quarter:", error);
         setAlert("Error al crear el quarter");
@@ -1404,192 +1399,6 @@ export default function EvcsPage() {
         </div>
       )}
 
-      {/* Modal de eliminación */}
-      {showDeleteModal && evcToDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Confirmar Eliminación</h2>
-            <p className="mb-4">
-              ¿Está seguro que desea eliminar la EVC "{evcToDelete.name}"? Esta
-              acción no se puede deshacer.
-            </p>
-            <div className="flex justify-end space-x-4">
-              <button
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setEvcToDelete(null);
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
-                onClick={() => deleteEvc(evcToDelete.id)}
-              >
-                Eliminar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal para vista detallada */}
-      {showDetailModal && selectedEvc && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-3xl max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold">
-                Detalles de {selectedEvc.name}
-              </h2>
-              <FaTimes
-                className="text-red-500 cursor-pointer"
-                onClick={() => setShowDetailModal(false)}
-              />
-            </div>
-
-            {/* Detalles del EVC */}
-            <div className="mb-6">
-              <p className="flex items-center">
-                <FaLink className="mr-2" />
-                <strong>URL:</strong>{" "}
-                <a
-                  href={`http://127.0.0.1:8000/evcs/evcs/${selectedEvc.id}`}
-                  className="text-blue-500 hover:underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  http://127.0.0.1:8000/evcs/evcs/{selectedEvc.id}
-                </a>
-              </p>
-              <p>
-                <strong>Descripción:</strong> {selectedEvc.description}
-              </p>
-              {selectedEvc.technical_leader_id && (
-                <p className="flex items-center">
-                  <strong className="mr-2">Líder Técnico:</strong>
-                  {technicalLeadersData[selectedEvc.technical_leader_id] ||
-                    "Cargando..."}
-                </p>
-              )}
-              {selectedEvc.functional_leader_id && (
-                <p className="flex items-center">
-                  <strong className="mr-2">Líder Funcional:</strong>
-                  {functionalLeadersData[selectedEvc.functional_leader_id] ||
-                    "Cargando..."}
-                </p>
-              )}
-              {selectedEvc.entorno_id && (
-                <p className="flex items-center">
-                  <strong className="mr-2">Entorno:</strong>
-                  {entornosData[selectedEvc.entorno_id] || "Cargando..."}
-                </p>
-              )}
-              <p>
-                <strong>Estado:</strong>{" "}
-                {selectedEvc.status ? "Activo" : "Inactivo"}
-              </p>
-              <p>
-                <strong>Creado:</strong>{" "}
-                {new Date(selectedEvc.creation_date).toLocaleDateString()}
-              </p>
-              <p>
-                <strong>Actualizado:</strong>{" "}
-                {new Date(selectedEvc.updated_at).toLocaleDateString()}
-              </p>
-            </div>
-
-            {/* Lista de quarters (solo visualización) */}
-            <div className="mt-6">
-              <h3 className="text-xl font-semibold mb-2">Quarters Asignados</h3>
-              {selectedEvc.evc_qs && selectedEvc.evc_qs.length > 0 ? (
-                <div className="space-y-4">
-                  {selectedEvc.evc_qs.map((quarter) => (
-                    <div
-                      key={quarter.id}
-                      className="border p-4 rounded-lg bg-gray-50"
-                    >
-                      <div className="grid grid-cols-2 gap-4 mb-2">
-                        <p>
-                          <strong>Año:</strong> {quarter.year}
-                        </p>
-                        <p>
-                          <strong>Quarter:</strong> Q{quarter.q}
-                        </p>
-                        <p>
-                          <strong>Presupuesto:</strong> $
-                          {quarter.allocated_budget.toLocaleString()}
-                        </p>
-
-                        <p>
-                          <strong>Porcentaje:</strong>{" "}
-                          {quarter.allocated_percentage}%
-                        </p>
-
-                        <p>
-                          <strong>Presupuesto Gastado:</strong> $
-                          {quarter.total_spendings?.toLocaleString()}
-                        </p>
-
-                        <p>
-                          <strong>Porcentaje Gastado:</strong>
-                          {quarter.percentage?.toLocaleString()}%
-                        </p>
-
-                        <p>
-                          <strong>Estado:</strong>{" "}
-                          <span
-                            className={`px-2 py-1 rounded-full text-sm font-medium
-      ${
-        quarter.percentage && quarter.percentage >= 100
-          ? "bg-red-100 text-red-800"
-          : quarter.percentage && quarter.percentage >= 80
-            ? "bg-orange-100 text-orange-800"
-            : quarter.percentage && quarter.percentage >= 50
-              ? "bg-yellow-100 text-yellow-800"
-              : "bg-green-100 text-green-800"
-      }
-    `}
-                          >
-                            {quarter.budget_message}
-                          </span>
-                        </p>
-                      </div>
-                      {quarter.evc_financials &&
-                      quarter.evc_financials.length > 0 ? (
-                        <div className="mt-2">
-                          <p className="text-sm font-medium">
-                            Proveedores asignados:
-                          </p>
-                          <div className="flex flex-wrap gap-2 mt-1">
-                            {quarter.evc_financials.map((financial) => (
-                              <span
-                                key={financial.id}
-                                className="px-2 py-1 bg-gray-200 rounded text-sm"
-                              >
-                                {financial.provider.name}
-                                {financial.provider.company &&
-                                  ` - ${financial.provider.company}`}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-gray-500">
-                          No hay proveedores asignados.
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-500">No hay quarters asignados.</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Listado de EVCs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {(filteredEvcs.length > 0 ? filteredEvcs : evcs).map((evc: EVC) => (
@@ -1702,3 +1511,4 @@ export default function EvcsPage() {
       </div>
     </div>
   );
+}

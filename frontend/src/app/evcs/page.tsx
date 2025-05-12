@@ -142,21 +142,41 @@ function EvcCard({
   const bgColor = evcColors[index % evcColors.length];
   // Status badge
 
-  const status = evc.status ? 'Activo' : 'Inactivo';
-  const statusColor = evc.status ? 'bg-green-400 text-green-900' : 'bg-red-500 text-white';
+  const status = evc.status ? "Activo" : "Inactivo";
+  const statusColor = evc.status
+    ? "bg-green-400 text-green-900"
+    : "bg-red-500 text-white";
 
   // Progress bar calculations
-  const totalAssigned = evc.evc_qs.reduce((sum, q) => sum + (q.allocated_budget || 0), 0);
-  const totalSpent = evc.evc_qs.reduce((sum, q) => sum + (q.total_spendings || 0), 0);
-  const totalAssignedPercentage = evc.evc_qs.reduce((sum, q) => sum + (q.allocated_percentage || 0), 0);
-  const totalSpentPercentage = evc.evc_qs.reduce((sum, q) => sum + (q.percentage || 0), 0);
+  const totalAssigned = evc.evc_qs.reduce(
+    (sum, q) => sum + (q.allocated_budget || 0),
+    0,
+  );
+  const totalSpent = evc.evc_qs.reduce(
+    (sum, q) => sum + (q.total_spendings || 0),
+    0,
+  );
+  const totalAssignedPercentage = evc.evc_qs.reduce(
+    (sum, q) => sum + (q.allocated_percentage || 0),
+    0,
+  );
+  const totalSpentPercentage = evc.evc_qs.reduce(
+    (sum, q) => sum + (q.percentage || 0),
+    0,
+  );
 
   const asignado = totalAssignedPercentage;
   const gastado = totalSpentPercentage;
-  const progreso = evc.evc_qs.length > 0 ? Math.round(evc.evc_qs.reduce((sum, q) => sum + (q.percentage || 0), 0) / evc.evc_qs.length) : 0;
+  const progreso =
+    evc.evc_qs.length > 0
+      ? Math.round(
+          evc.evc_qs.reduce((sum, q) => sum + (q.percentage || 0), 0) /
+            evc.evc_qs.length,
+        )
+      : 0;
 
-  const qActual = evc.evc_qs?.length > 0 ? evc.evc_qs[evc.evc_qs.length - 1].q : 1;
-
+  const qActual =
+    evc.evc_qs?.length > 0 ? evc.evc_qs[evc.evc_qs.length - 1].q : 1;
 
   return (
     <div
@@ -425,7 +445,12 @@ function QuarterCard({
         </div>
       </div>
 
-      <div className="mb-2 text-sm text-gray-700">Presupuesto: <span className="font-bold text-gray-900">${quarter.allocated_budget.toLocaleString()}</span></div>
+      <div className="mb-2 text-sm text-gray-700">
+        Presupuesto:{" "}
+        <span className="font-bold text-gray-900">
+          ${quarter.allocated_budget.toLocaleString()}
+        </span>
+      </div>
 
       <div className="mb-2 text-sm text-gray-700 flex items-center gap-2">
         Porcentaje asignado:
@@ -507,7 +532,12 @@ function QuarterCard({
         )}
       </div>
 
-      <div className="mb-2 text-sm text-gray-700">Presupuesto gastado: <span className="font-bold text-gray-900">${quarter.total_spendings?.toLocaleString() ?? 0}</span></div>
+      <div className="mb-2 text-sm text-gray-700">
+        Presupuesto gastado:{" "}
+        <span className="font-bold text-gray-900">
+          ${quarter.total_spendings?.toLocaleString() ?? 0}
+        </span>
+      </div>
 
       <div className="mb-4">
         <div className="text-sm font-medium text-gray-700 mb-2">Estado:</div>
@@ -1315,10 +1345,8 @@ export default function EvcsPage() {
 
       // Update the evcs list to reflect the new quarter
 
-      setEvcs(prevEvcs =>
-        prevEvcs.map(evc =>
-          evc.id === evcId ? updatedEvc.data : evc
-        )
+      setEvcs((prevEvcs) =>
+        prevEvcs.map((evc) => (evc.id === evcId ? updatedEvc.data : evc)),
       );
 
       // Reset the form
@@ -1562,7 +1590,7 @@ export default function EvcsPage() {
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
-        }
+        },
       );
       setUploadedFiles((prev) => ({
         ...prev,
@@ -1578,7 +1606,9 @@ export default function EvcsPage() {
 
       // Actualizar EVC seleccionado
       if (selectedEvc) {
-        const updatedEvc = await axios.get(`http://127.0.0.1:8000/evcs/evcs/${selectedEvc.id}`);
+        const updatedEvc = await axios.get(
+          `http://127.0.0.1:8000/evcs/evcs/${selectedEvc.id}`,
+        );
         setSelectedEvc(updatedEvc.data);
       }
     } catch (err: unknown) {
@@ -1620,24 +1650,29 @@ export default function EvcsPage() {
   // Add status update function
   const handleStatusChange = async (evc: EVC) => {
     try {
-      const response = await axios.put(`http://127.0.0.1:8000/evcs/evcs/${evc.id}`, {
-        status: !evc.status
-      });
+      const response = await axios.put(
+        `http://127.0.0.1:8000/evcs/evcs/${evc.id}`,
+        {
+          status: !evc.status,
+        },
+      );
 
       // Update the EVCs list with the new status
-      setEvcs(prevEvcs =>
-        prevEvcs.map(e =>
-          e.id === evc.id ? { ...e, status: !e.status } : e
-        )
+      setEvcs((prevEvcs) =>
+        prevEvcs.map((e) =>
+          e.id === evc.id ? { ...e, status: !e.status } : e,
+        ),
       );
 
       // If this EVC is currently selected, update its status in selectedEvc
       if (selectedEvc?.id === evc.id) {
-        setSelectedEvc(prev => prev ? { ...prev, status: !prev.status } : null);
+        setSelectedEvc((prev) =>
+          prev ? { ...prev, status: !prev.status } : null,
+        );
       }
     } catch (error) {
-      console.error('Error updating EVC status:', error);
-      setAlertMsg('Error al actualizar el estado del EVC');
+      console.error("Error updating EVC status:", error);
+      setAlertMsg("Error al actualizar el estado del EVC");
     }
   };
 
@@ -3005,28 +3040,31 @@ export default function EvcsPage() {
 
       {/* Listado de EVCs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {(filteredEvcs.length > 0 ? filteredEvcs : evcs).map((evc: EVC, idx: number) => (
-          <EvcCard
-            key={evc.id}
-            evc={evc}
-            entornosData={entornosData}
-            onShowDetails={showEvcDetails}
-            onManageQuarters={() => {
-              setSelectedEvc(evc);
-              setShowQuartersModal(true);
-            }}
-            index={idx}
-            selected={selectedEvcsForDelete.includes(evc.id)}
-            onSelect={checked => {
-              setSelectedEvcsForDelete(prev =>
-                checked ? [...prev, evc.id] : prev.filter(id => id !== evc.id)
-              );
-            }}
-            onStatusChange={handleStatusChange}
-          />
-        ))}
+        {(filteredEvcs.length > 0 ? filteredEvcs : evcs).map(
+          (evc: EVC, idx: number) => (
+            <EvcCard
+              key={evc.id}
+              evc={evc}
+              entornosData={entornosData}
+              onShowDetails={showEvcDetails}
+              onManageQuarters={() => {
+                setSelectedEvc(evc);
+                setShowQuartersModal(true);
+              }}
+              index={idx}
+              selected={selectedEvcsForDelete.includes(evc.id)}
+              onSelect={(checked) => {
+                setSelectedEvcsForDelete((prev) =>
+                  checked
+                    ? [...prev, evc.id]
+                    : prev.filter((id) => id !== evc.id),
+                );
+              }}
+              onStatusChange={handleStatusChange}
+            />
+          ),
+        )}
 
-        
         {filteredEvcs.length === 0 && filters.entorno_id && (
           <div className="col-span-3 text-center py-8 text-gray-500">
             No hay EVCs en el entorno seleccionado.

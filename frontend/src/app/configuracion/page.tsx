@@ -28,7 +28,7 @@ interface NotificationRule {
 }
 
 const tableOptions = [
-  { label: "Proveedores", value: "provider" },
+  { label: "Talentos", value: "provider" },
   { label: "Equipos de Evaluación (EVC)", value: "evc" },
   { label: "Entornos", value: "entorno" },
   { label: "Cuatrimestre de EVC", value: "evc_q" },
@@ -72,6 +72,7 @@ export default function ConfiguracionPage() {
   const [editedRules, setEditedRules] = useState<
     Record<number, NotificationRule>
   >({});
+  const [selectedRules, setSelectedRules] = useState<number[]>([]);
   const [newRule, setNewRule] = useState<NotificationRule>({
     name: "",
     target_table: "provider",
@@ -82,6 +83,100 @@ export default function ConfiguracionPage() {
     type: "alert",
     active: true,
   });
+
+  // Default EVC notification rules
+  const defaultEVCRules: NotificationRule[] = [
+    {
+      name: "Alto uso de presupuesto EVC",
+      target_table: "evc_q",
+      condition_field: "allocated_percentage",
+      threshold: 70,
+      comparison: "custom:evc_high_usage",
+      message: "Hay EVCs con uso de presupuesto superior al 70%",
+      type: "warning",
+      active: true,
+    },
+    {
+      name: "Uso crítico de presupuesto EVC",
+      target_table: "evc_q",
+      condition_field: "allocated_percentage",
+      threshold: 90,
+      comparison: "custom:evc_critical_usage",
+      message: "¡ALERTA! Hay EVCs con uso de presupuesto superior al 90%",
+      type: "alert",
+      active: true,
+    },
+    {
+      name: "Bajo uso de presupuesto EVC",
+      target_table: "evc_q",
+      condition_field: "allocated_percentage",
+      threshold: 30,
+      comparison: "custom:evc_low_usage",
+      message: "Hay EVCs con uso de presupuesto inferior al 30%",
+      type: "warning",
+      active: true,
+    },
+    {
+      name: "Aumento significativo de presupuesto",
+      target_table: "evc_q",
+      condition_field: "allocated_budget",
+      threshold: 0,
+      comparison: "custom:evc_budget_increase",
+      message: "Se detectó un aumento significativo en el presupuesto de algunos EVCs",
+      type: "warning",
+      active: true,
+    },
+    {
+      name: "Disminución significativa de presupuesto",
+      target_table: "evc_q",
+      condition_field: "allocated_budget",
+      threshold: 0,
+      comparison: "custom:evc_budget_decrease",
+      message: "Se detectó una disminución significativa en el presupuesto de algunos EVCs",
+      type: "warning",
+      active: true,
+    },
+    {
+      name: "EVC sin líder técnico",
+      target_table: "evc",
+      condition_field: "technical_leader_id",
+      threshold: 0,
+      comparison: "custom:evc_no_technical",
+      message: "Hay EVCs sin líder técnico asignado",
+      type: "warning",
+      active: true,
+    },
+    {
+      name: "EVC sin líder funcional",
+      target_table: "evc",
+      condition_field: "functional_leader_id",
+      threshold: 0,
+      comparison: "custom:evc_no_functional",
+      message: "Hay EVCs sin líder funcional asignado",
+      type: "warning",
+      active: true,
+    },
+    {
+      name: "EVC sin entorno",
+      target_table: "evc",
+      condition_field: "entorno_id",
+      threshold: 0,
+      comparison: "custom:evc_no_entorno",
+      message: "Hay EVCs sin entorno asignado",
+      type: "warning",
+      active: true,
+    },
+    {
+      name: "Alerta de costo alto de Talento",
+      target_table: "provider",
+      condition_field: "cost_usd",
+      threshold: 3000,
+      comparison: ">",
+      message: "El talento tiene un costo superior a $3000.",
+      type: "alert",
+      active: true,
+    },
+  ];
 
   useEffect(() => {
     fetchRules();
@@ -98,6 +193,33 @@ export default function ConfiguracionPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Function to create default rules if they don't exist
+  const createDefaultRules = async () => {
+    try {
+      for (const rule of defaultEVCRules) {
+        await axios.post(
+          "http://localhost:8000/notification-rules/notification-rules/",
+          rule,
+        );
+      }
+      fetchRules();
+    } catch (err) {
+      console.error("Error al crear reglas por defecto", err);
+    }
+  };
+
+  // Add button to create default rules
+  const renderDefaultRulesButton = () => {
+    return (
+      <button
+        onClick={createDefaultRules}
+        className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors"
+      >
+        Crear Reglas EVC por Defecto
+      </button>
+    );
   };
 
   const updateRule = async (rule: NotificationRule) => {
@@ -160,6 +282,43 @@ export default function ConfiguracionPage() {
     }
   };
 
+  const deleteSelectedRules = async () => {
+    if (selectedRules.length === 0) return;
+    
+    const confirm = window.confirm(
+      `¿Estás seguro que deseas eliminar ${selectedRules.length} reglas?`,
+    );
+    if (!confirm) return;
+
+    try {
+      await axios.delete(
+        "http://localhost:8000/notification-rules/notification-rules/bulk",
+        { data: { rule_ids: selectedRules } }
+      );
+      setRules(rules.filter((r) => !selectedRules.includes(r.id!)));
+      setSelectedRules([]);
+    } catch (err) {
+      console.error("Error al eliminar las reglas", err);
+      alert("Error al eliminar las reglas. Por favor, intente nuevamente.");
+    }
+  };
+
+  const toggleRuleSelection = (id: number) => {
+    setSelectedRules(prev => 
+      prev.includes(id) 
+        ? prev.filter(ruleId => ruleId !== id)
+        : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedRules.length === rules.length) {
+      setSelectedRules([]);
+    } else {
+      setSelectedRules(rules.map(r => r.id!));
+    }
+  };
+
   const handleNewRuleChange = (field: keyof NotificationRule, value: any) => {
     setNewRule((prev) => ({ ...prev, [field]: value }));
   };
@@ -187,12 +346,22 @@ export default function ConfiguracionPage() {
   };
 
   return (
-    <div className="p-6 mt-20 bg-white shadow-md rounded-lg">
-      <h1 className="text-3xl font-bold mb-4">Configuración de Alertas</h1>
-      <p className="text-sm text-gray-700 mb-6 flex items-center gap-2">
-        <FaInfoCircle /> Puedes configurar reglas como:{" "}
-        <b>"Si el costo de un proveedor supera cierto umbral, enviar alerta"</b>
-      </p>
+    <div className="container mx-auto px-4 py-8 mt-16">
+      <h1 className="text-2xl font-bold mb-6">Configuración de Notificaciones</h1>
+      
+      {/* Add default rules button and bulk delete button */}
+      <div className="mb-6 flex justify-between items-center">
+        {renderDefaultRulesButton()}
+        {selectedRules.length > 0 && (
+          <button
+            onClick={deleteSelectedRules}
+            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors flex items-center"
+          >
+            <FaTrash className="mr-2" />
+            Eliminar {selectedRules.length} reglas seleccionadas
+          </button>
+        )}
+      </div>
 
       {loading ? (
         <p>Cargando...</p>
@@ -201,6 +370,14 @@ export default function ConfiguracionPage() {
           <table className="min-w-[1400px] border border-gray-300 text-sm mb-10">
             <thead className="bg-gray-100">
               <tr>
+                <th className="p-3 border">
+                  <input
+                    type="checkbox"
+                    checked={selectedRules.length === rules.length}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4"
+                  />
+                </th>
                 <th className="p-3 border">Nombre</th>
                 <th className="p-3 border">Tabla</th>
                 <th className="p-3 border">Campo</th>
@@ -219,6 +396,14 @@ export default function ConfiguracionPage() {
 
                 return (
                   <tr key={rule.id} className="align-top">
+                    <td className="border p-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedRules.includes(rule.id!)}
+                        onChange={() => toggleRuleSelection(rule.id!)}
+                        className="w-4 h-4"
+                      />
+                    </td>
                     <td className="border p-2 whitespace-normal break-words">
                       <input
                         disabled={!isEditing}

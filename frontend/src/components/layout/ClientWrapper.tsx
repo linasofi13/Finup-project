@@ -1,11 +1,15 @@
 "use client";
 
-import dynamic from 'next/dynamic';
+import dynamic from "next/dynamic";
 
-const ClientLayout = dynamic(() => import('./ClientLayout'), {
-  ssr: false
+const ClientLayout = dynamic(() => import("./ClientLayout"), {
+  ssr: false,
 });
 
-export default function ClientWrapper({ children }: { children: React.ReactNode }) {
+export default function ClientWrapper({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return <ClientLayout>{children}</ClientLayout>;
-} 
+}

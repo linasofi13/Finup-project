@@ -82,88 +82,130 @@ def evaluate_rules(db: Session, changed_table: str = None, changed_id: int = Non
                 # EVC Budget Usage Alerts
                 elif comparison == "custom:evc_high_usage":
                     if changed_id:
-                        q = db.execute(text("SELECT id, evc_id, allocated_percentage FROM evc_q WHERE id = :id"), {"id": changed_id}).fetchone()
-                        if q and q.allocated_percentage > 70 and q.allocated_percentage <= 90:
+                        q = db.execute(
+                            text(
+                                "SELECT id, evc_id, allocated_percentage FROM evc_q WHERE id = :id"
+                            ),
+                            {"id": changed_id},
+                        ).fetchone()
+                        if (
+                            q
+                            and q.allocated_percentage > 70
+                            and q.allocated_percentage <= 90
+                        ):
                             db.add(
                                 Notification(
                                     message=f"El cuatrimestre (ID: {q.id}) del EVC {q.evc_id} tiene un uso de presupuesto superior al 70%.",
                                     type=rule.type,
-                                    read=False
+                                    read=False,
                                 )
                             )
                     else:
-                        qs = db.execute(text("SELECT id, evc_id, allocated_percentage FROM evc_q WHERE allocated_percentage > 70 AND allocated_percentage <= 90")).fetchall()
+                        qs = db.execute(
+                            text(
+                                "SELECT id, evc_id, allocated_percentage FROM evc_q WHERE allocated_percentage > 70 AND allocated_percentage <= 90"
+                            )
+                        ).fetchall()
                         for q in qs:
                             db.add(
                                 Notification(
                                     message=f"El cuatrimestre (ID: {q.id}) del EVC {q.evc_id} tiene un uso de presupuesto superior al 70%.",
                                     type=rule.type,
-                                    read=False
+                                    read=False,
                                 )
                             )
 
                 elif comparison == "custom:evc_critical_usage":
                     if changed_id:
-                        q = db.execute(text("SELECT id, evc_id, allocated_percentage FROM evc_q WHERE id = :id"), {"id": changed_id}).fetchone()
+                        q = db.execute(
+                            text(
+                                "SELECT id, evc_id, allocated_percentage FROM evc_q WHERE id = :id"
+                            ),
+                            {"id": changed_id},
+                        ).fetchone()
                         if q and q.allocated_percentage > 90:
                             db.add(
                                 Notification(
                                     message=f"El cuatrimestre (ID: {q.id}) del EVC {q.evc_id} tiene un uso de presupuesto superior al 90%.",
                                     type=rule.type,
-                                    read=False
+                                    read=False,
                                 )
                             )
                     else:
-                        qs = db.execute(text("SELECT id, evc_id, allocated_percentage FROM evc_q WHERE allocated_percentage > 90")).fetchall()
+                        qs = db.execute(
+                            text(
+                                "SELECT id, evc_id, allocated_percentage FROM evc_q WHERE allocated_percentage > 90"
+                            )
+                        ).fetchall()
                         for q in qs:
                             db.add(
                                 Notification(
                                     message=f"El cuatrimestre (ID: {q.id}) del EVC {q.evc_id} tiene un uso de presupuesto superior al 90%.",
                                     type=rule.type,
-                                    read=False
+                                    read=False,
                                 )
                             )
 
                 elif comparison == "custom:evc_low_usage":
                     if changed_id:
-                        q = db.execute(text("SELECT id, evc_id, allocated_percentage FROM evc_q WHERE id = :id"), {"id": changed_id}).fetchone()
+                        q = db.execute(
+                            text(
+                                "SELECT id, evc_id, allocated_percentage FROM evc_q WHERE id = :id"
+                            ),
+                            {"id": changed_id},
+                        ).fetchone()
                         if q and q.allocated_percentage < 30:
                             db.add(
                                 Notification(
                                     message=f"El cuatrimestre (ID: {q.id}) del EVC {q.evc_id} tiene un uso de presupuesto inferior al 30%.",
                                     type=rule.type,
-                                    read=False
+                                    read=False,
                                 )
                             )
                     else:
-                        qs = db.execute(text("SELECT id, evc_id, allocated_percentage FROM evc_q WHERE allocated_percentage < 30")).fetchall()
+                        qs = db.execute(
+                            text(
+                                "SELECT id, evc_id, allocated_percentage FROM evc_q WHERE allocated_percentage < 30"
+                            )
+                        ).fetchall()
                         for q in qs:
                             db.add(
                                 Notification(
                                     message=f"El cuatrimestre (ID: {q.id}) del EVC {q.evc_id} tiene un uso de presupuesto inferior al 30%.",
                                     type=rule.type,
-                                    read=False
+                                    read=False,
                                 )
                             )
 
                 # EVC Budget Allocation Alerts
                 elif comparison == "custom:evc_budget_increase":
                     if changed_id:
-                        q = db.execute(text("""
+                        q = db.execute(
+                            text(
+                                """
                             SELECT id, evc_id, year, q, allocated_budget,
                                 LAG(allocated_budget) OVER (PARTITION BY evc_id ORDER BY year, q) as prev_budget
                             FROM evc_q WHERE id = :id
-                        """), {"id": changed_id}).fetchone()
-                        if q and q.prev_budget is not None and q.allocated_budget > q.prev_budget * 1.5:
+                        """
+                            ),
+                            {"id": changed_id},
+                        ).fetchone()
+                        if (
+                            q
+                            and q.prev_budget is not None
+                            and q.allocated_budget > q.prev_budget * 1.5
+                        ):
                             db.add(
                                 Notification(
                                     message=f"El cuatrimestre (ID: {q.id}) del EVC {q.evc_id} tuvo un aumento significativo de presupuesto respecto al anterior.",
                                     type=rule.type,
-                                    read=False
+                                    read=False,
                                 )
                             )
                     else:
-                        qs = db.execute(text("""
+                        qs = db.execute(
+                            text(
+                                """
                             WITH evc_quarters AS (
                                 SELECT 
                                     id, evc_id, year, q, allocated_budget,
@@ -171,33 +213,46 @@ def evaluate_rules(db: Session, changed_table: str = None, changed_id: int = Non
                                 FROM evc_q
                             )
                             SELECT * FROM evc_quarters WHERE allocated_budget > prev_budget * 1.5 AND prev_budget IS NOT NULL
-                        """)).fetchall()
+                        """
+                            )
+                        ).fetchall()
                         for q in qs:
                             db.add(
                                 Notification(
                                     message=f"El cuatrimestre (ID: {q.id}) del EVC {q.evc_id} tuvo un aumento significativo de presupuesto respecto al anterior.",
                                     type=rule.type,
-                                    read=False
+                                    read=False,
                                 )
                             )
 
                 elif comparison == "custom:evc_budget_decrease":
                     if changed_id:
-                        q = db.execute(text("""
+                        q = db.execute(
+                            text(
+                                """
                             SELECT id, evc_id, year, q, allocated_budget,
                                 LAG(allocated_budget) OVER (PARTITION BY evc_id ORDER BY year, q) as prev_budget
                             FROM evc_q WHERE id = :id
-                        """), {"id": changed_id}).fetchone()
-                        if q and q.prev_budget is not None and q.allocated_budget < q.prev_budget * 0.5:
+                        """
+                            ),
+                            {"id": changed_id},
+                        ).fetchone()
+                        if (
+                            q
+                            and q.prev_budget is not None
+                            and q.allocated_budget < q.prev_budget * 0.5
+                        ):
                             db.add(
                                 Notification(
                                     message=f"El cuatrimestre (ID: {q.id}) del EVC {q.evc_id} tuvo una disminución significativa de presupuesto respecto al anterior.",
                                     type=rule.type,
-                                    read=False
+                                    read=False,
                                 )
                             )
                     else:
-                        qs = db.execute(text("""
+                        qs = db.execute(
+                            text(
+                                """
                             WITH evc_quarters AS (
                                 SELECT 
                                     id, evc_id, year, q, allocated_budget,
@@ -205,80 +260,107 @@ def evaluate_rules(db: Session, changed_table: str = None, changed_id: int = Non
                                 FROM evc_q
                             )
                             SELECT * FROM evc_quarters WHERE allocated_budget < prev_budget * 0.5 AND prev_budget IS NOT NULL
-                        """)).fetchall()
+                        """
+                            )
+                        ).fetchall()
                         for q in qs:
                             db.add(
                                 Notification(
                                     message=f"El cuatrimestre (ID: {q.id}) del EVC {q.evc_id} tuvo una disminución significativa de presupuesto respecto al anterior.",
                                     type=rule.type,
-                                    read=False
+                                    read=False,
                                 )
                             )
 
                 # EVC Status Alerts
                 elif comparison == "custom:evc_no_technical":
                     if changed_id:
-                        evc = db.execute(text("SELECT id, name FROM evc WHERE id = :id AND technical_leader_id IS NULL"), {"id": changed_id}).fetchone()
+                        evc = db.execute(
+                            text(
+                                "SELECT id, name FROM evc WHERE id = :id AND technical_leader_id IS NULL"
+                            ),
+                            {"id": changed_id},
+                        ).fetchone()
                         if evc:
                             db.add(
                                 Notification(
                                     message=f"El EVC '{evc.name}' (ID: {evc.id}) no tiene líder técnico asignado.",
                                     type=rule.type,
-                                    read=False
+                                    read=False,
                                 )
                             )
                     else:
-                        evcs = db.execute(text("SELECT id, name FROM evc WHERE technical_leader_id IS NULL")).fetchall()
+                        evcs = db.execute(
+                            text(
+                                "SELECT id, name FROM evc WHERE technical_leader_id IS NULL"
+                            )
+                        ).fetchall()
                         for evc in evcs:
                             db.add(
                                 Notification(
                                     message=f"El EVC '{evc.name}' (ID: {evc.id}) no tiene líder técnico asignado.",
                                     type=rule.type,
-                                    read=False
+                                    read=False,
                                 )
                             )
 
                 elif comparison == "custom:evc_no_functional":
                     if changed_id:
-                        evc = db.execute(text("SELECT id, name FROM evc WHERE id = :id AND functional_leader_id IS NULL"), {"id": changed_id}).fetchone()
+                        evc = db.execute(
+                            text(
+                                "SELECT id, name FROM evc WHERE id = :id AND functional_leader_id IS NULL"
+                            ),
+                            {"id": changed_id},
+                        ).fetchone()
                         if evc:
                             db.add(
                                 Notification(
                                     message=f"El EVC '{evc.name}' (ID: {evc.id}) no tiene líder funcional asignado.",
                                     type=rule.type,
-                                    read=False
+                                    read=False,
                                 )
                             )
                     else:
-                        evcs = db.execute(text("SELECT id, name FROM evc WHERE functional_leader_id IS NULL")).fetchall()
+                        evcs = db.execute(
+                            text(
+                                "SELECT id, name FROM evc WHERE functional_leader_id IS NULL"
+                            )
+                        ).fetchall()
                         for evc in evcs:
                             db.add(
                                 Notification(
                                     message=f"El EVC '{evc.name}' (ID: {evc.id}) no tiene líder funcional asignado.",
                                     type=rule.type,
-                                    read=False
+                                    read=False,
                                 )
                             )
 
                 elif comparison == "custom:evc_no_entorno":
                     if changed_id:
-                        evc = db.execute(text("SELECT id, name FROM evc WHERE id = :id AND entorno_id IS NULL"), {"id": changed_id}).fetchone()
+                        evc = db.execute(
+                            text(
+                                "SELECT id, name FROM evc WHERE id = :id AND entorno_id IS NULL"
+                            ),
+                            {"id": changed_id},
+                        ).fetchone()
                         if evc:
                             db.add(
                                 Notification(
                                     message=f"El EVC '{evc.name}' (ID: {evc.id}) no tiene entorno asignado.",
                                     type=rule.type,
-                                    read=False
+                                    read=False,
                                 )
                             )
                     else:
-                        evcs = db.execute(text("SELECT id, name FROM evc WHERE entorno_id IS NULL")).fetchall()
+                        evcs = db.execute(
+                            text("SELECT id, name FROM evc WHERE entorno_id IS NULL")
+                        ).fetchall()
                         for evc in evcs:
                             db.add(
                                 Notification(
                                     message=f"El EVC '{evc.name}' (ID: {evc.id}) no tiene entorno asignado.",
                                     type=rule.type,
-                                    read=False
+                                    read=False,
                                 )
                             )
 

@@ -369,10 +369,10 @@ export default function BudgetPocketPage() {
                 <TableCell>
                   <span
                     className={`px-2 py-1 rounded-full text-xs ${
-                      pocket.status ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                      pocket.is_available ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
                     }`}
                   >
-                    {pocket.status ? "Activo" : "Inactivo"}
+                    {pocket.is_available ? "Activo" : "No Disponible"}
                   </span>
                 </TableCell>
                 <TableCell>

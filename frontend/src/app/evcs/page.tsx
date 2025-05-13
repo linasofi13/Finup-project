@@ -23,6 +23,7 @@ import { UserGroupIcon, CalendarIcon, EyeIcon } from "@heroicons/react/24/solid"
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
 import { toast } from "sonner";
+import Cookies from "js-cookie";
 
 // Interfaces
 interface Entorno {
@@ -240,7 +241,8 @@ function QuarterCard({
   providerSelections,
   setProviderSelections,
   setProviderFilterModal,
-  getFilteredProviders
+  getFilteredProviders,
+  fetchEvcs
 }: { 
   quarter: EVC_Q, 
   onUpdatePercentage: (id: number, percentage: number) => Promise<void>,
@@ -253,7 +255,8 @@ function QuarterCard({
   providerSelections: { [quarterId: number]: string },
   setProviderSelections: React.Dispatch<React.SetStateAction<{ [quarterId: number]: string }>>,
   setProviderFilterModal: React.Dispatch<React.SetStateAction<{ quarterId: number | null, open: boolean }>>,
-  getFilteredProviders: (quarterId: number) => Provider[]
+  getFilteredProviders: (quarterId: number) => Provider[],
+  fetchEvcs: () => Promise<void>
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(quarter.allocated_percentage);
@@ -267,20 +270,58 @@ function QuarterCard({
     }
   };
 
-  const handleManualSpending = async () => {
+  const handleManualSpending = async (quarterId: number) => {
     try {
-      await axios.post(`http://127.0.0.1:8000/evc-financials/evc_financials/concept`, {
-        evc_q_id: quarter.id,
-        value_usd: manualSpendings[quarter.id]?.value_usd,
-        concept: manualSpendings[quarter.id]?.concept
-      });
-      setManualSpendings(prev => ({ ...prev, [quarter.id]: { value_usd: 0, concept: "" } }));
-      // Refresh quarter data
-      const response = await axios.get(`http://127.0.0.1:8000/evc_qs/${quarter.id}`);
-      return response.data;
+      const spending = manualSpendings[quarterId];
+      if (!spending || !spending.value_usd) {
+        setManualSpendingStatus(prev => ({
+          ...prev,
+          [quarterId]: { error: "Por favor ingrese un valor válido" }
+        }));
+        return;
+      }
+
+      const token = Cookies.get('auth_token');
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/evc_financials/manual/${quarterId}`,
+        spending,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      // Clear the form
+      setManualSpendings(prev => ({
+        ...prev,
+        [quarterId]: { value_usd: 0, concept: "" }
+      }));
+
+      // Show success message
+      setManualSpendingStatus(prev => ({
+        ...prev,
+        [quarterId]: { success: "Gasto agregado exitosamente" }
+      }));
+
+      // Refresh the EVC data to update the progress bars
+      await fetchEvcs();
+
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setManualSpendingStatus(prev => {
+          const newStatus = { ...prev };
+          delete newStatus[quarterId];
+          return newStatus;
+        });
+      }, 3000);
+
     } catch (error) {
       console.error("Error adding manual spending:", error);
-      throw error;
+      setManualSpendingStatus(prev => ({
+        ...prev,
+        [quarterId]: { error: "Error al agregar el gasto" }
+      }));
     }
   };
 
@@ -294,19 +335,92 @@ function QuarterCard({
 
     setUploading(true);
     try {
+      const token = Cookies.get('auth_token');
       await axios.post(
-        "http://127.0.0.1:8000/evc-financials/evc_financials/upload",
+        `${process.env.NEXT_PUBLIC_API_URL}/evc-financials/upload`,
         formData,
         {
-          headers: { "Content-Type": "multipart/form-data" },
+          headers: { 
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`
+          }
         }
       );
-      // Refresh quarter data
-      const response = await axios.get(`http://127.0.0.1:8000/evc_qs/${quarter.id}`);
-      return response.data;
+      
+      // Refresh the EVC data to update the progress bars
+      await fetchEvcs();
+      
+      // Show success message
+      setUploadStatus(prev => ({
+        ...prev,
+        [quarter.id]: { uploading: false, success: "Archivo subido exitosamente" }
+      }));
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setUploadStatus(prev => {
+          const newStatus = { ...prev };
+          delete newStatus[quarter.id];
+          return newStatus;
+        });
+      }, 3000);
+      
     } catch (error) {
       console.error("Error uploading file:", error);
-      throw error;
+      setUploadStatus(prev => ({
+        ...prev,
+        [quarter.id]: { uploading: false, error: "Error al subir el archivo" }
+      }));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleFileUploadDrop = async (file: File) => {
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("evc_q_id", quarter.id.toString());
+
+    setUploading(true);
+    try {
+      const token = Cookies.get('auth_token');
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/evc-financials/upload`,
+        formData,
+        {
+          headers: { 
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      
+      // Refresh the EVC data to update the progress bars
+      await fetchEvcs();
+      
+      // Show success message
+      setUploadStatus(prev => ({
+        ...prev,
+        [quarter.id]: { uploading: false, success: "Archivo subido exitosamente" }
+      }));
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setUploadStatus(prev => {
+          const newStatus = { ...prev };
+          delete newStatus[quarter.id];
+          return newStatus;
+        });
+      }, 3000);
+      
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      setUploadStatus(prev => ({
+        ...prev,
+        [quarter.id]: { uploading: false, error: "Error al subir el archivo" }
+      }));
     } finally {
       setUploading(false);
     }
@@ -434,32 +548,7 @@ function QuarterCard({
             className="w-full px-3 py-2 border rounded text-sm"
           />
           <button
-            onClick={async () => {
-              const value = manualSpendings[quarter.id]?.value_usd;
-              const concept = manualSpendings[quarter.id]?.concept;
-              if (!value || isNaN(value) || value <= 0) {
-                setManualSpendingStatus((prev: Record<number, { error?: string; success?: string }>) => ({ ...prev, [quarter.id]: { error: "Ingrese un valor válido mayor a 0" } }));
-                return;
-              }
-              if (!concept || concept.trim() === "") {
-                setManualSpendingStatus((prev: Record<number, { error?: string; success?: string }>) => ({ ...prev, [quarter.id]: { error: "Ingrese un concepto" } }));
-                return;
-              }
-              try {
-                await axios.post(`http://127.0.0.1:8000/evc-financials/evc_financials/concept`, {
-                  evc_q_id: quarter.id,
-                  value_usd: value,
-                  concept
-                });
-                setManualSpendings(prev => ({ ...prev, [quarter.id]: { value_usd: 0, concept: "" } }));
-                setManualSpendingStatus((prev: Record<number, { error?: string; success?: string }>) => ({ ...prev, [quarter.id]: { success: "Gasto manual agregado" } }));
-                setTimeout(() => {
-                  setManualSpendingStatus(prev => ({ ...prev, [quarter.id]: { } }));
-                }, 2000);
-              } catch (error) {
-                setManualSpendingStatus((prev: Record<number, { error?: string; success?: string }>) => ({ ...prev, [quarter.id]: { error: "Error al agregar gasto manual" } }));
-              }
-            }}
+            onClick={() => handleManualSpending(quarter.id)}
             className="w-full px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-sm"
           >
             Agregar Gasto
@@ -469,35 +558,20 @@ function QuarterCard({
         </div>
       </div>
 
-      {/* PDF Upload Drag-and-Drop */}
+      {/* File Upload Section */}
       <div className="mt-4">
         <div
-          className={`w-full px-4 py-8 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${uploadStatus[quarter.id]?.uploading ? 'bg-blue-50' : 'hover:bg-blue-50'}`}
+          className={`w-full px-4 py-8 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${uploading ? 'bg-blue-50' : 'hover:bg-blue-50'}`}
           onDragOver={e => e.preventDefault()}
           onDrop={async e => {
             e.preventDefault();
             const file = e.dataTransfer.files[0];
-            if (!file) return;
-            setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: true } }));
-            const formData = new FormData();
-            formData.append("file", file);
-            formData.append("evc_q_id", quarter.id.toString());
-            try {
-              await axios.post(
-                "http://127.0.0.1:8000/evc-financials/evc_financials/upload",
-                formData,
-                { headers: { "Content-Type": "multipart/form-data" } }
-              );
-              setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false, success: "Factura PDF subida" } }));
-              setTimeout(() => {
-                setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false } }));
-              }, 2000);
-            } catch (error) {
-              setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false, error: "Error al subir factura PDF" } }));
+            if (file) {
+              await handleFileUploadDrop(file);
             }
           }}
         >
-          {uploadStatus[quarter.id]?.uploading ? (
+          {uploading ? (
             <>
               <svg className="animate-spin h-6 w-6 text-blue-500 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -515,33 +589,18 @@ function QuarterCard({
                 type="file"
                 accept=".pdf"
                 className="hidden"
-                onChange={async e => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: true } }));
-                  const formData = new FormData();
-                  formData.append("file", file);
-                  formData.append("evc_q_id", quarter.id.toString());
-                  try {
-                    await axios.post(
-                      "http://127.0.0.1:8000/evc-financials/evc_financials/upload",
-                      formData,
-                      { headers: { "Content-Type": "multipart/form-data" } }
-                    );
-                    setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false, success: "Factura PDF subida" } }));
-                    setTimeout(() => {
-                      setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false } }));
-                    }, 2000);
-                  } catch (error) {
-                    setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false, error: "Error al subir factura PDF" } }));
-                  }
-                }}
+                onChange={handleFileUpload}
+                ref={fileInputRef}
               />
             </>
           )}
-          {uploadStatus[quarter.id]?.error && <div className="text-red-500 text-xs mt-1">{uploadStatus[quarter.id].error}</div>}
-          {uploadStatus[quarter.id]?.success && <div className="text-green-600 text-xs mt-1">{uploadStatus[quarter.id].success}</div>}
         </div>
+        {uploadStatus[quarter.id]?.error && (
+          <div className="text-red-500 text-xs mt-1">{uploadStatus[quarter.id].error}</div>
+        )}
+        {uploadStatus[quarter.id]?.success && (
+          <div className="text-green-600 text-xs mt-1">{uploadStatus[quarter.id].success}</div>
+        )}
       </div>
 
       {/* Add Talento (Provider) */}
@@ -634,6 +693,25 @@ export default function EvcsPage() {
   const [providerSelectedCountries, setProviderSelectedCountries] = useState<string[]>([]);
   const [providerCountryOptions, setProviderCountryOptions] = useState<string[]>([]);
   const [gastosModal, setGastosModal] = useState<{ open: boolean; quarter: EVC_Q | null; gastos: any[] }>({ open: false, quarter: null, gastos: [] });
+
+  const onUpdatePercentage = async (quarterId: number, percentage: number) => {
+    try {
+      const token = Cookies.get('auth_token');
+      await axios.patch(
+        `${process.env.NEXT_PUBLIC_API_URL}/evc_qs/${quarterId}/percentage`,
+        { allocated_percentage: percentage },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      await fetchEvcs(); // Refresh data after update
+    } catch (error) {
+      console.error("Error updating percentage:", error);
+      toast.error("Error al actualizar el porcentaje");
+    }
+  };
 
   // Add getFilteredProviders function
   const getFilteredProviders = (quarterId: number) => {
@@ -1064,14 +1142,19 @@ export default function EvcsPage() {
   // Eliminar EVC
   const deleteEvc = async (evcId: number) => {
     try {
-      await axios.delete(`http://127.0.0.1:8000/evcs/evcs/${evcId}`);
+      const token = Cookies.get('auth_token');
+      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/evcs/${evcId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
       setEvcs((prev) => prev.filter((e) => e.id !== evcId));
       setShowDeleteModal(false);
       setEvcToDelete(null);
-      setShowDetailModal(false);
+      toast.success("EVC eliminado exitosamente");
     } catch (error) {
-      console.error("Error eliminando EVC:", error);
-      setAlertMsg("Error al eliminar la EVC");
+      console.error("Error deleting EVC:", error);
+      toast.error("Error al eliminar el EVC");
     }
   };
 
@@ -1653,231 +1736,22 @@ export default function EvcsPage() {
                 {selectedEvc.evc_qs && selectedEvc.evc_qs.length > 0 ? (
                   <div className="space-y-4">
                     {selectedEvc.evc_qs.map((quarter) => (
-                      <div key={quarter.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow flex flex-col">
-                        <div className="flex flex-wrap gap-4 mb-2 items-center">
-                          <div className="text-base font-semibold text-gray-700">Año: <span className="font-bold text-gray-900">{quarter.year}</span></div>
-                          <div className="text-base font-semibold text-gray-700">Quarter: <span className="font-bold text-gray-900">Q{quarter.q}</span></div>
-                          <button
-                            className="ml-2 p-1 bg-gray-200 rounded-full hover:bg-gray-300"
-                            title="Ver gastos asociados"
-                            onClick={() => fetchGastosByQuarter(quarter)}
-                          >
-                            <FaSearch className="text-gray-700 w-4 h-4" />
-                          </button>
-                        </div>
-                        {/* Progress Bars for this quarter */}
-                        <div className="mb-4">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium text-gray-700">Asignado</span>
-                            <span className="text-sm font-bold text-gray-900">{quarter.allocated_percentage}%</span>
-                          </div>
-                          <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden relative">
-                            <div className="h-2 bg-green-400 rounded-full absolute left-0 transition-all duration-500" style={{ width: `${Math.min(quarter.allocated_percentage, 100)}%` }} />
-                          </div>
-                        </div>
-                        <div className="mb-4">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium text-gray-700">Gastado</span>
-                            <span className="text-sm font-bold text-gray-900">{quarter.percentage || 0}%</span>
-                          </div>
-                          <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden relative">
-                            <div className="h-2 bg-orange-400 rounded-full absolute left-0 transition-all duration-500" style={{ width: `${Math.min(quarter.percentage || 0, 100)}%` }} />
-                          </div>
-                        </div>
-                        <div className="mb-2 text-sm text-gray-700">Presupuesto: <span className="font-bold text-gray-900">${quarter.allocated_budget.toLocaleString()}</span></div>
-                        <div className="mb-2 text-sm text-gray-700">Presupuesto gastado: <span className="font-bold text-gray-900">${quarter.total_spendings?.toLocaleString() ?? 0}</span></div>
-                        <div className="mb-2 text-sm text-gray-700">Porcentaje gastado: <span className="font-bold text-gray-900">{quarter.percentage?.toLocaleString() ?? 0}%</span></div>
-                        <div className="mb-2 text-sm text-gray-700">Estado: <span className={`px-2 py-1 rounded-full text-xs font-semibold ml-2
-                          ${quarter.percentage && quarter.percentage >= 100
-                            ? 'bg-red-100 text-red-800'
-                            : quarter.percentage && quarter.percentage >= 80
-                              ? 'bg-orange-100 text-orange-800'
-                              : quarter.percentage && quarter.percentage >= 50
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-green-100 text-green-800'}
-                        `}>{quarter.budget_message}</span></div>
-                        {/* Manual Spending Form */}
-                        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                          <h4 className="text-sm font-medium text-gray-700 mb-2">Agregar Gasto Manual</h4>
-                          <div className="space-y-2">
-                            <input
-                              type="number"
-                              placeholder="Valor USD"
-                              value={manualSpendings[quarter.id]?.value_usd || ""}
-                              onChange={e => setManualSpendings(prev => ({
-                                ...prev,
-                                [quarter.id]: {
-                                  ...prev[quarter.id],
-                                  value_usd: parseFloat(e.target.value)
-                                }
-                              }))}
-                              className="w-full px-3 py-2 border rounded text-sm"
-                            />
-                            <input
-                              type="text"
-                              placeholder="Concepto"
-                              value={manualSpendings[quarter.id]?.concept || ""}
-                              onChange={e => setManualSpendings(prev => ({
-                                ...prev,
-                                [quarter.id]: {
-                                  ...prev[quarter.id],
-                                  concept: e.target.value
-                                }
-                              }))}
-                              className="w-full px-3 py-2 border rounded text-sm"
-                            />
-                            <button
-                              onClick={async () => {
-                                const value = manualSpendings[quarter.id]?.value_usd;
-                                const concept = manualSpendings[quarter.id]?.concept;
-                                if (!value || isNaN(value) || value <= 0) {
-                                  setManualSpendingStatus((prev: Record<number, { error?: string; success?: string }>) => ({ ...prev, [quarter.id]: { error: "Ingrese un valor válido mayor a 0" } }));
-                                  return;
-                                }
-                                if (!concept || concept.trim() === "") {
-                                  setManualSpendingStatus((prev: Record<number, { error?: string; success?: string }>) => ({ ...prev, [quarter.id]: { error: "Ingrese un concepto" } }));
-                                  return;
-                                }
-                                try {
-                                  await axios.post(`http://127.0.0.1:8000/evc-financials/evc_financials/concept`, {
-                                    evc_q_id: quarter.id,
-                                    value_usd: value,
-                                    concept
-                                  });
-                                  setManualSpendings(prev => ({ ...prev, [quarter.id]: { value_usd: 0, concept: "" } }));
-                                  setManualSpendingStatus((prev: Record<number, { error?: string; success?: string }>) => ({ ...prev, [quarter.id]: { success: "Gasto manual agregado" } }));
-                                  setTimeout(() => {
-                                    setManualSpendingStatus(prev => ({ ...prev, [quarter.id]: { } }));
-                                  }, 2000);
-                                } catch (error) {
-                                  setManualSpendingStatus((prev: Record<number, { error?: string; success?: string }>) => ({ ...prev, [quarter.id]: { error: "Error al agregar gasto manual" } }));
-                                }
-                              }}
-                              className="w-full px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-sm"
-                            >
-                              Agregar Gasto
-                            </button>
-                            {manualSpendingStatus[quarter.id]?.error && <div className="text-red-500 text-xs mt-1">{manualSpendingStatus[quarter.id].error}</div>}
-                            {manualSpendingStatus[quarter.id]?.success && <div className="text-green-600 text-xs mt-1">{manualSpendingStatus[quarter.id].success}</div>}
-                          </div>
-                        </div>
-                        {/* PDF Upload Drag-and-Drop */}
-                        <div className="mt-4">
-                          <div
-                            className={`w-full px-4 py-8 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${uploadStatus[quarter.id]?.uploading ? 'bg-blue-50' : 'hover:bg-blue-50'}`}
-                            onDragOver={e => e.preventDefault()}
-                            onDrop={async e => {
-                              e.preventDefault();
-                              const file = e.dataTransfer.files[0];
-                              if (!file) return;
-                              setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: true } }));
-                              const formData = new FormData();
-                              formData.append("file", file);
-                              formData.append("evc_q_id", quarter.id.toString());
-                              try {
-                                await axios.post(
-                                  "http://127.0.0.1:8000/evc-financials/evc_financials/upload",
-                                  formData,
-                                  { headers: { "Content-Type": "multipart/form-data" } }
-                                );
-                                setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false, success: "Factura PDF subida" } }));
-                                setTimeout(() => {
-                                  setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false } }));
-                                }, 2000);
-                              } catch (error) {
-                                setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false, error: "Error al subir factura PDF" } }));
-                              }
-                            }}
-                          >
-                            {uploadStatus[quarter.id]?.uploading ? (
-                              <>
-                                <svg className="animate-spin h-6 w-6 text-blue-500 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                <span className="text-blue-600">Subiendo...</span>
-                              </>
-                            ) : (
-                              <>
-                                <svg className="w-8 h-8 text-blue-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                </svg>
-                                <span className="text-blue-700">Arrastra y suelta aquí tu factura PDF</span>
-                                <input
-                                  type="file"
-                                  accept=".pdf"
-                                  className="hidden"
-                                  onChange={async e => {
-                                    const file = e.target.files?.[0];
-                                    if (!file) return;
-                                    setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: true } }));
-                                    const formData = new FormData();
-                                    formData.append("file", file);
-                                    formData.append("evc_q_id", quarter.id.toString());
-                                    try {
-                                      await axios.post(
-                                        "http://127.0.0.1:8000/evc-financials/evc_financials/upload",
-                                        formData,
-                                        { headers: { "Content-Type": "multipart/form-data" } }
-                                      );
-                                      setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false, success: "Factura PDF subida" } }));
-                                      setTimeout(() => {
-                                        setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false } }));
-                                      }, 2000);
-                                    } catch (error) {
-                                      setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false, error: "Error al subir factura PDF" } }));
-                                    }
-                                  }}
-                                />
-                              </>
-                            )}
-                            {uploadStatus[quarter.id]?.error && <div className="text-red-500 text-xs mt-1">{uploadStatus[quarter.id].error}</div>}
-                            {uploadStatus[quarter.id]?.success && <div className="text-green-600 text-xs mt-1">{uploadStatus[quarter.id].success}</div>}
-                          </div>
-                        </div>
-                        {/* Add Talento (Provider) */}
-                        <div className="mt-4">
-                          <div className="flex gap-2 items-center mb-2">
-                            <label className="block text-sm font-medium">Agregar Talento</label>
-                            <button
-                              className="ml-auto px-2 py-1 bg-green-100 text-green-700 rounded text-xs hover:bg-green-200"
-                              onClick={() => setProviderFilterModal({ quarterId: quarter.id, open: true })}
-                              type="button"
-                            >
-                              Filtrar Talentos
-                            </button>
-                          </div>
-                          <select
-                            className="p-2 border rounded w-full"
-                            value={providerSelections[quarter.id] || ""}
-                            onChange={e => setProviderSelections(prev => ({ ...prev, [quarter.id]: e.target.value }))}
-                          >
-                            <option value="">-- Seleccionar Talento --</option>
-                            {getFilteredProviders(quarter.id).map(provider => (
-                              <option key={provider.id} value={provider.id}>{provider.name}</option>
-                            ))}
-                          </select>
-                          <button
-                            className="mt-3 px-4 py-2 bg-green-200 text-green-800 rounded hover:bg-green-300 text-sm transition-colors duration-150"
-                            onClick={async () => {
-                              const providerId = providerSelections[quarter.id];
-                              if (!providerId) return;
-                              try {
-                                await axios.post(
-                                  "http://127.0.0.1:8000/evc-financials/evc_financials/",
-                                  { evc_q_id: quarter.id, provider_id: parseInt(providerId, 10) }
-                                );
-                                setProviderSelections(prev => ({ ...prev, [quarter.id]: "" }));
-                                // Optionally refresh data here
-                              } catch (error) {
-                                alert("Error al agregar talento");
-                              }
-                            }}
-                          >
-                            Agregar
-                          </button>
-                        </div>
-                      </div>
+                      <QuarterCard
+                        key={quarter.id}
+                        quarter={quarter}
+                        onUpdatePercentage={onUpdatePercentage}
+                        manualSpendingStatus={manualSpendingStatus}
+                        setManualSpendingStatus={setManualSpendingStatus}
+                        manualSpendings={manualSpendings}
+                        setManualSpendings={setManualSpendings}
+                        uploadStatus={uploadStatus}
+                        setUploadStatus={setUploadStatus}
+                        providerSelections={providerSelections}
+                        setProviderSelections={setProviderSelections}
+                        setProviderFilterModal={setProviderFilterModal}
+                        getFilteredProviders={getFilteredProviders}
+                        fetchEvcs={fetchEvcs}
+                      />
                     ))}
                   </div>
                 ) : (

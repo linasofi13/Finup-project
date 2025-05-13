@@ -122,7 +122,8 @@ export default function ConfiguracionPage() {
       condition_field: "allocated_budget",
       threshold: 0,
       comparison: "custom:evc_budget_increase",
-      message: "Se detectó un aumento significativo en el presupuesto de algunos EVCs",
+      message:
+        "Se detectó un aumento significativo en el presupuesto de algunos EVCs",
       type: "warning",
       active: true,
     },
@@ -132,7 +133,8 @@ export default function ConfiguracionPage() {
       condition_field: "allocated_budget",
       threshold: 0,
       comparison: "custom:evc_budget_decrease",
-      message: "Se detectó una disminución significativa en el presupuesto de algunos EVCs",
+      message:
+        "Se detectó una disminución significativa en el presupuesto de algunos EVCs",
       type: "warning",
       active: true,
     },
@@ -284,7 +286,7 @@ export default function ConfiguracionPage() {
 
   const deleteSelectedRules = async () => {
     if (selectedRules.length === 0) return;
-    
+
     const confirm = window.confirm(
       `¿Estás seguro que deseas eliminar ${selectedRules.length} reglas?`,
     );
@@ -293,7 +295,7 @@ export default function ConfiguracionPage() {
     try {
       await axios.delete(
         "http://localhost:8000/notification-rules/notification-rules/bulk",
-        { data: { rule_ids: selectedRules } }
+        { data: { rule_ids: selectedRules } },
       );
       setRules(rules.filter((r) => !selectedRules.includes(r.id!)));
       setSelectedRules([]);
@@ -304,10 +306,10 @@ export default function ConfiguracionPage() {
   };
 
   const toggleRuleSelection = (id: number) => {
-    setSelectedRules(prev => 
-      prev.includes(id) 
-        ? prev.filter(ruleId => ruleId !== id)
-        : [...prev, id]
+    setSelectedRules((prev) =>
+      prev.includes(id)
+        ? prev.filter((ruleId) => ruleId !== id)
+        : [...prev, id],
     );
   };
 
@@ -315,7 +317,7 @@ export default function ConfiguracionPage() {
     if (selectedRules.length === rules.length) {
       setSelectedRules([]);
     } else {
-      setSelectedRules(rules.map(r => r.id!));
+      setSelectedRules(rules.map((r) => r.id!));
     }
   };
 
@@ -347,8 +349,10 @@ export default function ConfiguracionPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 mt-16">
-      <h1 className="text-2xl font-bold mb-6">Configuración de Notificaciones</h1>
-      
+      <h1 className="text-2xl font-bold mb-6">
+        Configuración de Notificaciones
+      </h1>
+
       {/* Add default rules button and bulk delete button */}
       <div className="mb-6 flex justify-between items-center">
         {renderDefaultRulesButton()}

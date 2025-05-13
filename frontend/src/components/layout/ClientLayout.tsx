@@ -8,11 +8,7 @@ import Footer from "@/components/layout/Footer";
 import Sidebar from "@/components/layout/Sidebar";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
-const ClientLayout = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
+const ClientLayout = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [routeLoading, setRouteLoading] = useState(false);
@@ -49,4 +45,4 @@ const ClientLayout = ({
   );
 };
 
-export default ClientLayout; 
+export default ClientLayout;

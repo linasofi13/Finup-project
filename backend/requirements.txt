@@ -4,7 +4,7 @@ uvicorn==0.22.0
 # ORM y migraciones
 sqlalchemy==2.0.20
 alembic==1.11.1
-psycopg2-binary==2.9.6  # PostgreSQL driver
+psycopg2-binary==2.9.9  # PostgreSQL driver
 
 # Validación y esquemas
 pydantic==2.6.4
@@ -23,6 +23,6 @@ python-dotenv==1.0.1
 # Herramientas de desarrollo (opcional)
 black==23.12.1
 pytest==7.4.4
-pymupdf==1.23.3
+pymupdf==1.25.5
 Pillow==10.2.0
 pytesseract==0.3.10

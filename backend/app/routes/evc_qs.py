@@ -64,15 +64,21 @@ async def delete_evc_q(evc_q_id: int, db: Session = Depends(get_db)):
     return evc_q_service.delete_evc_q(db, evc_q_id)
 
 
-@router.patch("/evc_qs/{quarter_id}/percentage", response_model=EVC_QResponse, tags=[tag_name])
-async def update_allocated_percentage(quarter_id: int, percentage: float, db: Session = Depends(get_db)):
+@router.patch(
+    "/evc_qs/{quarter_id}/percentage", response_model=EVC_QResponse, tags=[tag_name]
+)
+async def update_allocated_percentage(
+    quarter_id: int, percentage: float, db: Session = Depends(get_db)
+):
     if not 0 <= percentage <= 100:
-        raise HTTPException(status_code=400, detail="Percentage must be between 0 and 100")
-    
+        raise HTTPException(
+            status_code=400, detail="Percentage must be between 0 and 100"
+        )
+
     quarter = db.query(EVC_Q).filter(EVC_Q.id == quarter_id).first()
     if not quarter:
         raise HTTPException(status_code=404, detail="Quarter not found")
-    
+
     quarter.allocated_percentage = percentage
     db.commit()
     db.refresh(quarter)

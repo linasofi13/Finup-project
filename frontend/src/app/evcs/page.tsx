@@ -858,6 +858,14 @@ export default function EvcsPage() {
   const [selectedEvcsForDelete, setSelectedEvcsForDelete] = useState<number[]>([]);
   const [showDeleteSelectedModal, setShowDeleteSelectedModal] = useState(false);
   
+  // Add states for editing fields in detail modal
+  const [isEditingEntorno, setIsEditingEntorno] = useState(false);
+  const [isEditingTechnicalLeader, setIsEditingTechnicalLeader] = useState(false);
+  const [isEditingFunctionalLeader, setIsEditingFunctionalLeader] = useState(false);
+  const [editedEntornoId, setEditedEntornoId] = useState<string>("");
+  const [editedTechnicalLeaderId, setEditedTechnicalLeaderId] = useState<string>("");
+  const [editedFunctionalLeaderId, setEditedFunctionalLeaderId] = useState<string>("");
+  
   // Filter states
   const [filters, setFilters] = useState({
     entorno_id: "",
@@ -1662,6 +1670,117 @@ export default function EvcsPage() {
     setShowFilters(!showFilters);
   };
 
+  // Add function to mark related notifications as read
+  const markRelatedNotificationsAsRead = async (evcId: number, field: string) => {
+    try {
+      // Fetch all unread notifications
+      const response = await axios.get('http://127.0.0.1:8000/notifications/notifications/');
+      const notifications = response.data;
+      
+      // Filter notifications related to this EVC and field
+      const relatedNotifications = notifications.filter((notification: any) => {
+        // Check for notifications about missing leaders or entorno for this specific EVC
+        if (field === "technical_leader_id" && 
+            notification.message.includes(`El EVC`) && 
+            notification.message.includes(`(ID: ${evcId})`) && 
+            notification.message.includes("no tiene líder técnico asignado")) {
+          return true;
+        }
+        if (field === "functional_leader_id" && 
+            notification.message.includes(`El EVC`) && 
+            notification.message.includes(`(ID: ${evcId})`) && 
+            notification.message.includes("no tiene líder funcional asignado")) {
+          return true;
+        }
+        if (field === "entorno_id" && 
+            notification.message.includes(`El EVC`) && 
+            notification.message.includes(`(ID: ${evcId})`) && 
+            notification.message.includes("no tiene entorno asignado")) {
+          return true;
+        }
+        return false;
+      });
+      
+      // Mark each related notification as read
+      const markPromises = relatedNotifications.map((notification: any) => 
+        axios.patch(`http://127.0.0.1:8000/notifications/notifications/${notification.id}/read`)
+      );
+      
+      if (markPromises.length > 0) {
+        await Promise.all(markPromises);
+        console.log(`Marked ${markPromises.length} notifications as read`);
+      }
+    } catch (error) {
+      console.error("Error marking notifications as read:", error);
+    }
+  };
+
+  // Add function to update EVC fields
+  const updateEvcField = async (evcId: number, field: string, value: any) => {
+    try {
+      const token = Cookies.get('auth_token');
+      
+      // First, fetch the current EVC to get all its data
+      const response = await axios.get(
+        `http://127.0.0.1:8000/evcs/${evcId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      
+      const currentEvc = response.data;
+      
+      // Then update with PUT, sending the entire object with the modified field
+      await axios.put(
+        `http://127.0.0.1:8000/evcs/${evcId}`,
+        { 
+          ...currentEvc,
+          [field]: value 
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      
+      // If we're setting a value (not null), mark related notifications as read
+      if (value !== null) {
+        await markRelatedNotificationsAsRead(evcId, field);
+      }
+      
+      // Refetch the EVC to ensure all data is up to date including backend validations
+      const updatedResponse = await axios.get(
+        `http://127.0.0.1:8000/evcs/${evcId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      
+      // Update the selected EVC with the full refreshed data from the server
+      setSelectedEvc(updatedResponse.data);
+      
+      // Update the EVCs list with the updated EVC
+      setEvcs(prevEvcs => 
+        prevEvcs.map(evc => 
+          evc.id === evcId ? updatedResponse.data : evc
+        )
+      );
+      
+      // Also fetch all EVCs to ensure the list is up to date
+      fetchEvcs();
+      
+      toast.success("Campo actualizado exitosamente");
+    } catch (error) {
+      console.error("Error updating EVC field:", error);
+      toast.error("Error al actualizar el campo");
+    }
+  };
+
   // Render
   return (
     <div className="p-6 mt-20 bg-white shadow-md rounded-lg flex flex-col">
@@ -2237,7 +2356,13 @@ export default function EvcsPage() {
             {/* Sticky close button */}
             <button
               className="absolute top-4 right-4 z-10 bg-red-100 hover:bg-red-200 text-red-600 rounded-full p-2 shadow focus:outline-none focus:ring-2 focus:ring-red-400"
-              onClick={() => setShowDetailModal(false)}
+              onClick={() => {
+                setShowDetailModal(false);
+                // Reset edit states
+                setIsEditingEntorno(false);
+                setIsEditingTechnicalLeader(false);
+                setIsEditingFunctionalLeader(false);
+              }}
               aria-label="Cerrar"
             >
               <FaTimes className="h-5 w-5" />
@@ -2255,15 +2380,195 @@ export default function EvcsPage() {
                 </div>
                 <div className="rounded-xl bg-gray-50 p-4 shadow-sm">
                   <div className="text-xs font-semibold text-gray-500 mb-1">Entorno</div>
-                  <div className="text-base font-bold text-gray-900">{selectedEvc.entorno_id ? (entornosData[selectedEvc.entorno_id] || "Cargando...") : "-"}</div>
+                  <div className="flex justify-between items-center">
+                    {isEditingEntorno ? (
+                      <div className="flex items-center gap-2 w-full">
+                        <select
+                          className="p-2 border rounded w-full"
+                          value={editedEntornoId}
+                          onChange={(e) => setEditedEntornoId(e.target.value)}
+                        >
+                          <option value="">-- Sin entorno --</option>
+                          {availableEntornos.map((entorno) => (
+                            <option key={entorno.id} value={entorno.id.toString()}>
+                              {entorno.name}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => {
+                            if (editedEntornoId) {
+                              updateEvcField(selectedEvc.id, "entorno_id", parseInt(editedEntornoId));
+                            } else {
+                              updateEvcField(selectedEvc.id, "entorno_id", null);
+                            }
+                            setIsEditingEntorno(false);
+                          }}
+                          className="p-1 text-green-600 hover:text-green-700"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsEditingEntorno(false);
+                            setEditedEntornoId(selectedEvc.entorno_id?.toString() || "");
+                          }}
+                          className="p-1 text-red-600 hover:text-red-700"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="text-base font-bold text-gray-900">
+                          {selectedEvc.entorno_id ? (entornosData[selectedEvc.entorno_id] || "Cargando...") : "-"}
+                        </div>
+                        <button
+                          onClick={() => {
+                            setIsEditingEntorno(true);
+                            setEditedEntornoId(selectedEvc.entorno_id?.toString() || "");
+                          }}
+                          className="p-1 text-gray-600 hover:text-gray-700"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <div className="rounded-xl bg-gray-50 p-4 shadow-sm">
                   <div className="text-xs font-semibold text-gray-500 mb-1">Líder Técnico</div>
-                  <div className="text-base font-bold text-gray-900">{selectedEvc.technical_leader_id ? (technicalLeadersData[selectedEvc.technical_leader_id] || "Cargando...") : "-"}</div>
+                  <div className="flex justify-between items-center">
+                    {isEditingTechnicalLeader ? (
+                      <div className="flex items-center gap-2 w-full">
+                        <select
+                          className="p-2 border rounded w-full"
+                          value={editedTechnicalLeaderId}
+                          onChange={(e) => setEditedTechnicalLeaderId(e.target.value)}
+                        >
+                          <option value="">-- Sin líder técnico --</option>
+                          {availableTechnicalLeaders.map((leader) => (
+                            <option key={leader.id} value={leader.id.toString()}>
+                              {leader.name}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => {
+                            if (editedTechnicalLeaderId) {
+                              updateEvcField(selectedEvc.id, "technical_leader_id", parseInt(editedTechnicalLeaderId));
+                            } else {
+                              updateEvcField(selectedEvc.id, "technical_leader_id", null);
+                            }
+                            setIsEditingTechnicalLeader(false);
+                          }}
+                          className="p-1 text-green-600 hover:text-green-700"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsEditingTechnicalLeader(false);
+                            setEditedTechnicalLeaderId(selectedEvc.technical_leader_id?.toString() || "");
+                          }}
+                          className="p-1 text-red-600 hover:text-red-700"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="text-base font-bold text-gray-900">
+                          {selectedEvc.technical_leader_id ? (technicalLeadersData[selectedEvc.technical_leader_id] || "Cargando...") : "-"}
+                        </div>
+                        <button
+                          onClick={() => {
+                            setIsEditingTechnicalLeader(true);
+                            setEditedTechnicalLeaderId(selectedEvc.technical_leader_id?.toString() || "");
+                          }}
+                          className="p-1 text-gray-600 hover:text-gray-700"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <div className="rounded-xl bg-gray-50 p-4 shadow-sm">
                   <div className="text-xs font-semibold text-gray-500 mb-1">Líder Funcional</div>
-                  <div className="text-base font-bold text-gray-900">{selectedEvc.functional_leader_id ? (functionalLeadersData[selectedEvc.functional_leader_id] || "Cargando...") : "-"}</div>
+                  <div className="flex justify-between items-center">
+                    {isEditingFunctionalLeader ? (
+                      <div className="flex items-center gap-2 w-full">
+                        <select
+                          className="p-2 border rounded w-full"
+                          value={editedFunctionalLeaderId}
+                          onChange={(e) => setEditedFunctionalLeaderId(e.target.value)}
+                        >
+                          <option value="">-- Sin líder funcional --</option>
+                          {availableFunctionalLeaders.map((leader) => (
+                            <option key={leader.id} value={leader.id.toString()}>
+                              {leader.name}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => {
+                            if (editedFunctionalLeaderId) {
+                              updateEvcField(selectedEvc.id, "functional_leader_id", parseInt(editedFunctionalLeaderId));
+                            } else {
+                              updateEvcField(selectedEvc.id, "functional_leader_id", null);
+                            }
+                            setIsEditingFunctionalLeader(false);
+                          }}
+                          className="p-1 text-green-600 hover:text-green-700"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsEditingFunctionalLeader(false);
+                            setEditedFunctionalLeaderId(selectedEvc.functional_leader_id?.toString() || "");
+                          }}
+                          className="p-1 text-red-600 hover:text-red-700"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="text-base font-bold text-gray-900">
+                          {selectedEvc.functional_leader_id ? (functionalLeadersData[selectedEvc.functional_leader_id] || "Cargando...") : "-"}
+                        </div>
+                        <button
+                          onClick={() => {
+                            setIsEditingFunctionalLeader(true);
+                            setEditedFunctionalLeaderId(selectedEvc.functional_leader_id?.toString() || "");
+                          }}
+                          className="p-1 text-gray-600 hover:text-gray-700"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <div className="rounded-xl bg-gray-50 p-4 shadow-sm">
                   <div className="text-xs font-semibold text-gray-500 mb-1">Estado</div>
@@ -2599,3 +2904,4 @@ export default function EvcsPage() {
     </div>
   );
 }
+

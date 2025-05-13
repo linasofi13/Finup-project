@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.models.budget_pocket import BudgetPocket
 from app.schemas.budget_pocket import BudgetPocketCreate, BudgetPocketUpdate
 from app.models.entorno import Entorno
+from app.models.budget_allocation import BudgetAllocation
 from typing import List, Optional
 import logging
 
@@ -89,9 +90,20 @@ def update_budget_pocket(
 
 
 def delete_budget_pocket(db: Session, budget_pocket_id: int):
-    db_budget_pocket = get_budget_pocket(db, budget_pocket_id)
-    if db_budget_pocket:
-        db.delete(db_budget_pocket)
-        db.commit()
-        return True
-    return False 
+    try:
+        # First, delete all related budget allocations
+        db.query(BudgetAllocation).filter(
+            BudgetAllocation.budget_pocket_id == budget_pocket_id
+        ).delete(synchronize_session=False)
+
+        # Then delete the budget pocket
+        db_budget_pocket = get_budget_pocket(db, budget_pocket_id)
+        if db_budget_pocket:
+            db.delete(db_budget_pocket)
+            db.commit()
+            return True
+        return False
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error deleting budget pocket: {str(e)}")
+        raise 

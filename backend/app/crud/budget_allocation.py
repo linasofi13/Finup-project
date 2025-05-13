@@ -31,6 +31,10 @@ def create_budget_allocation(db: Session, allocation: BudgetAllocationCreate):
     if not budget_pocket.is_available:
         raise HTTPException(status_code=400, detail="Budget pocket is not available for allocation")
     
+    # Ensure total_allocated is not None
+    if budget_pocket.total_allocated is None:
+        budget_pocket.total_allocated = 0
+    
     # Calculate new total allocated
     new_total = budget_pocket.total_allocated + allocation.allocated_value
     

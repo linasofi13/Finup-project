@@ -262,7 +262,7 @@ export default function BudgetPocketPage() {
           )}
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <button className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+              <button className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-blue-400 text-white hover:bg-blue-500 h-10 px-4 py-2">
                 Nueva Bolsa Presupuestal
               </button>
             </DialogTrigger>
@@ -294,7 +294,7 @@ export default function BudgetPocketPage() {
                     <SelectTrigger>
                       <SelectValue placeholder="Seleccione un entorno" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="absolute z-[1000] bg-white border rounded-md shadow-lg">
                       {entornos.map((entorno) => (
                         <SelectItem key={entorno.id} value={entorno.id.toString()}>
                           {entorno.name}
@@ -317,7 +317,7 @@ export default function BudgetPocketPage() {
                 </div>
                 <button
                   type="submit"
-                  className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors"
+                  className="w-full bg-blue-400 text-white py-2 px-4 rounded-md hover:bg-blue-500 transition-colors"
                 >
                   Crear Bolsa Presupuestal
                 </button>

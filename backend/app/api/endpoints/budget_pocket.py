@@ -137,12 +137,15 @@ def allocate_budget_to_evc(
         if not budget_pocket.is_available:
             raise HTTPException(status_code=400, detail="Budget pocket is not available for allocation")
         
+        # Ensure total_allocated is not None
+        total_allocated = budget_pocket.total_allocated or 0
+        
         # Verify the allocation amount doesn't exceed available budget
-        remaining_budget = budget_pocket.agreed_value - budget_pocket.total_allocated
+        remaining_budget = budget_pocket.agreed_value - total_allocated
         if allocation.allocated_value > remaining_budget:
             raise HTTPException(
                 status_code=400,
-                detail=f"Allocation amount exceeds available budget. Available: {remaining_budget}"
+                detail=f"El monto de la asignación excede el presupuesto disponible. Disponible: {remaining_budget}"
             )
         
         # Create the allocation
@@ -154,7 +157,7 @@ def allocate_budget_to_evc(
             db=db,
             budget_pocket_id=budget_pocket_id,
             budget_pocket=BudgetPocketUpdate(
-                total_allocated=budget_pocket.total_allocated + allocation.allocated_value,
+                total_allocated=total_allocated + allocation.allocated_value,
                 is_available=remaining_budget - allocation.allocated_value > 0
             )
         )

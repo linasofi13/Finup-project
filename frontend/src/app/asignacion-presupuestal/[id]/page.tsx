@@ -310,7 +310,7 @@ export default function BudgetAllocationPage() {
                     <SelectTrigger>
                       <SelectValue placeholder="Seleccione un EVC" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="absolute z-50 bg-white shadow-lg">
                       {evcs.map((evc) => (
                         <SelectItem key={evc.id} value={evc.id.toString()}>
                           {evc.name}

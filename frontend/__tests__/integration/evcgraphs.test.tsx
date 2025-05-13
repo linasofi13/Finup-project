@@ -102,7 +102,7 @@ describe("Dashboard EVC Indicators", () => {
     // Configure mocks
     mockAxios.get.mockImplementation((url) => {
       switch (url) {
-        case "http://127.0.0.1:8000/evcs/evcs/":
+        case "http://127.0.0.1:8000/evcs/":
           return Promise.resolve({ data: mockEvcsData });
         case "http://127.0.0.1:8000/evc-qs/evc_qs/":
           return Promise.resolve({ data: mockEvcQsData });
@@ -126,7 +126,7 @@ describe("Dashboard EVC Indicators", () => {
     // 2. Wait for initial data load
     await waitFor(() => {
       expect(mockAxios.get).toHaveBeenCalledWith(
-        "http://127.0.0.1:8000/evcs/evcs/",
+        "http://127.0.0.1:8000/evcs/",
       );
     });
 
@@ -189,7 +189,7 @@ describe("Dashboard EVC Indicators", () => {
 
     // 5. Verify API calls
     expect(mockAxios.get).toHaveBeenCalledWith(
-      "http://127.0.0.1:8000/evcs/evcs/",
+      "http://127.0.0.1:8000/evcs/",
     );
     expect(mockAxios.get).toHaveBeenCalledWith(
       "http://127.0.0.1:8000/evc-qs/evc_qs/",

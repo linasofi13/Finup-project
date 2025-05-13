@@ -25,7 +25,7 @@ describe("Quarter Creation", () => {
   beforeEach(() => {
     // Mock API calls
     mockAxios.get.mockImplementation((url) => {
-      if (url.includes("/evcs/evcs/")) {
+      if (url.includes("/evcs/")) {
         return Promise.resolve({ data: [mockEvc] });
       }
       return Promise.resolve({ data: [] });

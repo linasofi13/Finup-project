@@ -34,12 +34,18 @@ class EVC_Q(EVC_QBase):
         from_attributes = True  # This replaces orm_mode=True in Pydantic v2
 
 
-class EVC_QShortResponse(EVC_QBase):
+class EVC_QShortResponse(BaseModel):
     id: int
-    year: Optional[int] = None
-    q: Optional[int] = None
-    allocated_budget: Optional[float] = None
-    allocated_percentage: Optional[float] = None
+    year: int
+    q: int
+    allocated_budget: float
+    allocated_percentage: float
+    total_spendings: Optional[float] = None
+    percentage: Optional[float] = None
+    budget_message: Optional[str] = None
+
+    class Config:
+        from_attributes = True
 
 
 class EVC_QResponse(EVC_QShortResponse):

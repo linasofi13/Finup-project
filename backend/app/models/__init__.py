@@ -21,6 +21,8 @@ from app.models.provider import Provider
 from app.models.technical_leader import TechnicalLeader
 from app.models.notification import Notification
 from app.models.notification_rule import NotificationRule
+from app.models.budget_pocket import BudgetPocket
+from app.models.budget_allocation import BudgetAllocation
 
 # This ensures all models are registered with SQLAlchemy
 __all__ = [
@@ -39,4 +41,6 @@ __all__ = [
     "User",
     "Notification",
     "NotificationRule",
+    "BudgetPocket",
+    "BudgetAllocation",
 ]

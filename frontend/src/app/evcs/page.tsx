@@ -660,11 +660,6 @@ export default function EvcsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [evcToDelete, setEvcToDelete] = useState<EVC | null>(null);
   const [showQuartersModal, setShowQuartersModal] = useState(false);
-  const [showFilterModal, setShowFilterModal] = useState(false);
-  const [filters, setFilters] = useState({
-    entorno_id: "",
-  });
-  const [filteredEvcs, setFilteredEvcs] = useState<EVC[]>([]);
   const [showExportModal, setShowExportModal] = useState(false);
   const [selectedEvcsForExport, setSelectedEvcsForExport] = useState<number[]>([]);
   const [financialSelections, setFinancialSelections] = useState<{ [key: number]: string }>({});
@@ -674,25 +669,39 @@ export default function EvcsPage() {
   const [availableProviders, setAvailableProviders] = useState<Provider[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [alertMsg, setAlertMsg] = useState("");
-
-  // Add new state variables for OCR
-  const [uploading, setUploading] = useState(false);
-  const [extractedValues, setExtractedValues] = useState<{ [key: number]: number }>({});
-  const [uploadedFiles, setUploadedFiles] = useState<{ [key: number]: string }>({});
-  const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
+  const [deleting, setDeleting] = useState(false);
   const [selectedEvcsForDelete, setSelectedEvcsForDelete] = useState<number[]>([]);
   const [showDeleteSelectedModal, setShowDeleteSelectedModal] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  
+  // Filter states
+  const [filters, setFilters] = useState({
+    entorno_id: "",
+    name: "",
+    description: "",
+    technical_leader_id: "",
+    functional_leader_id: "",
+    status: "",
+  });
+  const [filteredEvcs, setFilteredEvcs] = useState<EVC[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
+  
+  // Add back missing state variables
   const [manualSpendings, setManualSpendings] = useState<{ [quarterId: number]: ManualSpending }>({});
   const [manualSpendingStatus, setManualSpendingStatus] = useState<Record<number, { error?: string; success?: string }>>({});
   const [uploadStatus, setUploadStatus] = useState<{ [quarterId: number]: { uploading: boolean; error?: string; success?: string } }>({});
   const [providerSelections, setProviderSelections] = useState<{ [quarterId: number]: string }>({});
   const [providerFilterModal, setProviderFilterModal] = useState<{ quarterId: number | null, open: boolean }>({ quarterId: null, open: false });
   const [activeProviderFilters, setActiveProviderFilters] = useState<{ price: boolean; country: boolean }>({ price: false, country: false });
-  const [providerPriceRange, setProviderPriceRange] = useState<[number, number]>([0, 10000]);
+  const [providerPriceRange, setProviderPriceRange] = useState<[number, number]>([0, 15000]);
   const [providerSelectedCountries, setProviderSelectedCountries] = useState<string[]>([]);
   const [providerCountryOptions, setProviderCountryOptions] = useState<string[]>([]);
   const [gastosModal, setGastosModal] = useState<{ open: boolean; quarter: EVC_Q | null; gastos: any[] }>({ open: false, quarter: null, gastos: [] });
+  
+  // Add OCR-related states
+  const [uploading, setUploading] = useState(false);
+  const [extractedValues, setExtractedValues] = useState<{ [key: number]: number }>({});
+  const [uploadedFiles, setUploadedFiles] = useState<{ [key: number]: string }>({});
+  const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
 
   const onUpdatePercentage = async (quarterId: number, percentage: number) => {
     try {
@@ -1225,30 +1234,77 @@ export default function EvcsPage() {
 
   // Funciones para manejar filtrado
   const applyFilters = () => {
+    console.log("Applying filters:", filters);
     let result = [...evcs];
 
-    if (filters.entorno_id !== "") {
+    // Filter by name
+    if (filters.name?.trim()) {
+      result = result.filter((evc) => 
+        evc.name.toLowerCase().includes(filters.name.toLowerCase().trim())
+      );
+    }
+
+    // Filter by description
+    if (filters.description?.trim()) {
+      result = result.filter((evc) => 
+        evc.description?.toLowerCase().includes(filters.description.toLowerCase().trim())
+      );
+    }
+
+    // Filter by environment (entorno)
+    if (filters.entorno_id && filters.entorno_id !== "") {
       const entornoIdNumber = parseInt(filters.entorno_id);
+      console.log("Filtering by entorno_id:", entornoIdNumber);
       result = result.filter((evc) => {
-        console.log("Comparing:", {
-          evc_entorno: evc.entorno_id,
-          filter_entorno: entornoIdNumber,
-          equals: evc.entorno_id === entornoIdNumber,
-        });
+        console.log("EVC entorno_id:", evc.entorno_id, "Comparing with:", entornoIdNumber, "Result:", evc.entorno_id === entornoIdNumber);
         return evc.entorno_id === entornoIdNumber;
       });
     }
+
+    // Filter by technical leader
+    if (filters.technical_leader_id && filters.technical_leader_id !== "") {
+      const techLeaderId = parseInt(filters.technical_leader_id);
+      console.log("Filtering by technical_leader_id:", techLeaderId);
+      result = result.filter((evc) => {
+        console.log("EVC technical_leader_id:", evc.technical_leader_id, "Comparing with:", techLeaderId, "Result:", evc.technical_leader_id === techLeaderId);
+        return evc.technical_leader_id === techLeaderId;
+      });
+    }
+
+    // Filter by functional leader
+    if (filters.functional_leader_id && filters.functional_leader_id !== "") {
+      const funcLeaderId = parseInt(filters.functional_leader_id);
+      console.log("Filtering by functional_leader_id:", funcLeaderId);
+      result = result.filter((evc) => {
+        console.log("EVC functional_leader_id:", evc.functional_leader_id, "Comparing with:", funcLeaderId, "Result:", evc.functional_leader_id === funcLeaderId);
+        return evc.functional_leader_id === funcLeaderId;
+      });
+    }
+
+    // Filter by status
+    if (filters.status !== "") {
+      const statusValue = filters.status === "true";
+      console.log("Filtering by status:", statusValue);
+      result = result.filter((evc) => {
+        console.log("EVC status:", evc.status, "Comparing with:", statusValue, "Result:", evc.status === statusValue);
+        return evc.status === statusValue;
+      });
+    }
+    
     console.log("Filtered results:", result);
     setFilteredEvcs(result);
-    setShowFilterModal(false);
   };
 
   const clearFilters = () => {
     setFilters({
       entorno_id: "",
+      name: "",
+      description: "",
+      technical_leader_id: "",
+      functional_leader_id: "",
+      status: "",
     });
     setFilteredEvcs([]);
-    setShowFilterModal(false);
   };
 
   // Función para exportar a Excel
@@ -1366,6 +1422,11 @@ export default function EvcsPage() {
     }
   };
 
+  // Toggle filter section visibility
+  const toggleFilters = () => {
+    setShowFilters(!showFilters);
+  };
+
   // Render
   return (
     <div className="p-6 mt-20 bg-white shadow-md rounded-lg flex flex-col">
@@ -1397,12 +1458,10 @@ export default function EvcsPage() {
           </button>
           <button
             className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
-            onClick={() => setShowFilterModal(true)}
+            onClick={toggleFilters}
           >
             <FaFilter className="mr-2" />
-            {filteredEvcs.length > 0
-              ? `Filtrado (${filteredEvcs.length})`
-              : "Filtrar"}
+            {showFilters ? "Ocultar filtros" : "Filtrar"}
           </button>
           <button
             onClick={() => setShowExportModal(true)}
@@ -1532,6 +1591,129 @@ export default function EvcsPage() {
         </div>
       )}
 
+      {/* Filter Section */}
+      {showFilters && (
+        <div className="bg-white rounded-lg shadow p-4 mb-6 border border-gray-200">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">Filtrar EVCs</h2>
+            <div className="flex space-x-2">
+              <button
+                onClick={clearFilters}
+                className="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm flex items-center"
+              >
+                <FaTimes className="mr-1" /> Limpiar filtros
+              </button>
+              <button
+                onClick={applyFilters}
+                className="px-4 py-1 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 text-sm flex items-center"
+              >
+                <FaFilter className="mr-1" /> Aplicar filtros
+              </button>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm text-gray-700 mb-1">Nombre</label>
+              <input
+                type="text"
+                className="w-full p-2 border rounded-md"
+                placeholder="Buscar por nombre..."
+                value={filters.name}
+                onChange={(e) => {
+                  setFilters(prev => ({ ...prev, name: e.target.value }));
+                }}
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-700 mb-1">Descripción</label>
+              <input
+                type="text"
+                className="w-full p-2 border rounded-md"
+                placeholder="Buscar por descripción..."
+                value={filters.description || ""}
+                onChange={(e) => {
+                  setFilters(prev => ({ ...prev, description: e.target.value }));
+                }}
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-700 mb-1">Entorno</label>
+              <select
+                className="w-full p-2 border rounded-md"
+                value={filters.entorno_id}
+                onChange={(e) => {
+                  console.log("Selected entorno:", e.target.value);
+                  setFilters(prev => ({ ...prev, entorno_id: e.target.value }));
+                }}
+              >
+                <option value="">Todos los entornos</option>
+                {availableEntornos.map((entorno) => (
+                  <option key={entorno.id} value={entorno.id.toString()}>
+                    {entorno.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-700 mb-1">Líder Técnico</label>
+              <select
+                className="w-full p-2 border rounded-md"
+                value={filters.technical_leader_id}
+                onChange={(e) => {
+                  console.log("Selected technical leader:", e.target.value);
+                  setFilters(prev => ({ ...prev, technical_leader_id: e.target.value }));
+                }}
+              >
+                <option value="">Todos los líderes técnicos</option>
+                {availableTechnicalLeaders.map((leader) => (
+                  <option key={leader.id} value={leader.id.toString()}>
+                    {leader.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-700 mb-1">Líder Funcional</label>
+              <select
+                className="w-full p-2 border rounded-md"
+                value={filters.functional_leader_id}
+                onChange={(e) => {
+                  console.log("Selected functional leader:", e.target.value);
+                  setFilters(prev => ({ ...prev, functional_leader_id: e.target.value }));
+                }}
+              >
+                <option value="">Todos los líderes funcionales</option>
+                {availableFunctionalLeaders.map((leader) => (
+                  <option key={leader.id} value={leader.id.toString()}>
+                    {leader.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-700 mb-1">Estado</label>
+              <select
+                className="w-full p-2 border rounded-md"
+                value={filters.status}
+                onChange={(e) => {
+                  console.log("Selected status:", e.target.value);
+                  setFilters(prev => ({ ...prev, status: e.target.value }));
+                }}
+              >
+                <option value="">Todos los estados</option>
+                <option value="true">Activo</option>
+                <option value="false">Inactivo</option>
+              </select>
+            </div>
+          </div>
+          {filteredEvcs.length > 0 && (
+            <div className="mt-3 text-sm text-gray-600">
+              Mostrando {filteredEvcs.length} de {evcs.length} EVCs
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Modal de selección para exportación */}
       {showExportModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -1607,51 +1789,6 @@ export default function EvcsPage() {
                 disabled={selectedEvcsForExport.length === 0}
               >
                 Exportar Seleccionadas
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de filtrado */}
-      {showFilterModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Filtrar EVCs</h2>
-
-            <div className="mb-4">
-              <label className="block font-semibold mb-2">Entorno</label>
-              <select
-                className="p-2 border rounded w-full"
-                value={filters.entorno_id}
-                onChange={(e) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    entorno_id: e.target.value,
-                  }))
-                }
-              >
-                <option value="">Todos los entornos</option>
-                {availableEntornos.map((entorno) => (
-                  <option key={entorno.id} value={entorno.id}>
-                    {entorno.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex justify-end space-x-4">
-              <button
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
-                onClick={clearFilters}
-              >
-                Limpiar filtros
-              </button>
-              <button
-                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
-                onClick={applyFilters}
-              >
-                Aplicar filtros
               </button>
             </div>
           </div>
@@ -2064,7 +2201,7 @@ export default function EvcsPage() {
 
       {/* Listado de EVCs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {(filteredEvcs.length > 0 ? filteredEvcs : evcs).map((evc: EVC, idx: number) => (
+        {(filteredEvcs.length > 0 ? filteredEvcs : Object.values(filters).some(value => value !== "") ? [] : evcs).map((evc: EVC, idx: number) => (
           <EvcCard
             key={evc.id}
             evc={evc}
@@ -2083,9 +2220,9 @@ export default function EvcsPage() {
             }}
           />
         ))}
-        {filteredEvcs.length === 0 && filters.entorno_id && (
+        {filteredEvcs.length === 0 && Object.values(filters).some(value => value !== "") && (
           <div className="col-span-3 text-center py-8 text-gray-500">
-            No hay EVCs en el entorno seleccionado.
+            No se encontraron EVCs que coincidan con los filtros aplicados.
           </div>
         )}
       </div>

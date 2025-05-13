@@ -1021,7 +1021,7 @@ function QuarterCard({
   );
 }
 
-export default function EvcsPage() {
+function EvcsPage() {
   // Estados principales
   const [evcs, setEvcs] = useState<EVC[]>([]);
   const [selectedEvc, setSelectedEvc] = useState<EVC | null>(null);
@@ -1823,6 +1823,7 @@ export default function EvcsPage() {
           headers: { "Content-Type": "multipart/form-data" },
         },
       );
+      
       setUploadedFiles((prev) => ({
         ...prev,
         [evc_q_id]: file.name,
@@ -1838,25 +1839,10 @@ export default function EvcsPage() {
       // Actualizar EVC seleccionado
       if (selectedEvc) {
         const updatedEvc = await axios.get(
-          `http://127.0.0.1:8000/evcs/evcs/${selectedEvc.id}`,
+          `http://127.0.0.1:8000/evcs/${selectedEvc.id}`,
         );
-        setUploadedFiles((prev) => ({
-            ...prev,
-            [evc_q_id]: file.name,
-        }));
-        
-        setExtractedValues((prev) => ({
-            ...prev,
-            [evc_q_id]: response.data.value_usd,
-        }));
-    
-        console.log("Archivo procesado:", response.data);
-    
-        // Actualizar EVC seleccionado
-        if (selectedEvc) {
-            const updatedEvc = await axios.get(`http://127.0.0.1:8000/evcs/${selectedEvc.id}`);
-            setSelectedEvc(updatedEvc.data);
-        }
+        setSelectedEvc(updatedEvc.data);
+      }
     } catch (err: unknown) {
       if (err instanceof Error) {
         console.error("Error al subir archivo:", err.message);
@@ -2000,6 +1986,34 @@ export default function EvcsPage() {
     } catch (error) {
       console.error("Error updating EVC field:", error);
       toast.error("Error al actualizar el campo");
+    }
+  };
+
+  // Update function for changing EVC status
+  const toggleEvcStatus = async (evc: EVC) => {
+    try {
+      const token = Cookies.get('auth_token');
+      await axios.put(
+        `http://127.0.0.1:8000/evcs/${evc.id}`,
+        { ...evc, status: !evc.status },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      
+      // Update EVCs list with the new status
+      setEvcs(prevEvcs => 
+        prevEvcs.map(e => 
+          e.id === evc.id ? { ...e, status: !e.status } : e
+        )
+      );
+      
+      toast.success(`EVC ${evc.name} ${!evc.status ? 'activado' : 'desactivado'} exitosamente`);
+    } catch (error) {
+      console.error("Error updating EVC status:", error);
+      toast.error("Error al actualizar el estado del EVC");
     }
   };
 
@@ -3132,7 +3146,7 @@ export default function EvcsPage() {
             evc={evc}
             entornosData={entornosData}
             onShowDetails={showEvcDetails}
-            onManageQuarters={() => {
+            onManageQuarters={(evc) => {
               setSelectedEvc(evc);
               setShowQuartersModal(true);
             }}
@@ -3143,6 +3157,7 @@ export default function EvcsPage() {
                 checked ? [...prev, evc.id] : prev.filter(id => id !== evc.id)
               );
             }}
+            onStatusChange={toggleEvcStatus}
           />
         ))}
         {filteredEvcs.length === 0 && Object.values(filters).some(value => value !== "") && (
@@ -3323,4 +3338,6 @@ export default function EvcsPage() {
     </div>
   );
 }
+
+export default EvcsPage;
 

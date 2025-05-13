@@ -985,7 +985,7 @@ export default function EvcsPage() {
   // Crear EVC
   const createEvc = async () => {
     try {
-      const response = await axios.post("http://127.0.0.1:8000/evcs/evcs/", {
+      const response = await axios.post("http://127.0.0.1:8000/evcs/", {
         name: newEvc.name,
         description: newEvc.description,
         technical_leader_id: parseInt(newEvc.technical_leader_id, 10) || null,
@@ -1065,7 +1065,7 @@ export default function EvcsPage() {
       
       // Fetch the updated EVC with the new quarter
       const updatedEvc = await axios.get(
-        `http://127.0.0.1:8000/evcs/evcs/${evcId}`
+        `http://127.0.0.1:8000/evcs/${evcId}`
       );
       
       // Update the selected EVC state
@@ -1118,7 +1118,7 @@ export default function EvcsPage() {
       );
       console.log("Financial creado:", response.data);
       const updatedEvc = await axios.get(
-        `http://127.0.0.1:8000/evcs/evcs/${evcId}`
+        `http://127.0.0.1:8000/evcs/${evcId}`
       );
       setSelectedEvc(updatedEvc.data);
       setFinancialSelections((prev) => ({
@@ -1335,7 +1335,7 @@ export default function EvcsPage() {
     
         // Actualizar EVC seleccionado
         if (selectedEvc) {
-            const updatedEvc = await axios.get(`http://127.0.0.1:8000/evcs/evcs/${selectedEvc.id}`);
+            const updatedEvc = await axios.get(`http://127.0.0.1:8000/evcs/${selectedEvc.id}`);
             setSelectedEvc(updatedEvc.data);
         }
     } catch (err: unknown) {

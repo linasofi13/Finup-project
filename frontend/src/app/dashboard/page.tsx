@@ -30,6 +30,7 @@ import {
   AreaChart,
   Area,
 } from "recharts";
+import Cookies from "js-cookie";
 
 // Paletas de colores para los gráficos
 const PIE_COLORS = [
@@ -110,8 +111,18 @@ export default function DashboardPage() {
   const [evcFinancialsData, setEvcFinancialsData] = useState([]);
 
   const fetchEvcs = async () => {
+    const token = Cookies.get('auth_token');
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+    if (!apiUrl) throw new Error('API URL is not configured');
+    if (!token) throw new Error('No authentication token found');
+
     try {
-      const response = await axios.get("http://127.0.0.1:8000/evcs/evcs/");
+      const response = await axios.get(`${apiUrl}/evcs/`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
       setEvcsData(response.data);
     } catch (error) {
       console.error("Error fetching evcs:", error);

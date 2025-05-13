@@ -1,0 +1,19 @@
+{
+  "name": "Finup",
+  "short_name": "Finup",
+  "icons": [
+    {
+      "src": "/images/logo.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/logo.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff",
+  "display": "standalone"
+} 

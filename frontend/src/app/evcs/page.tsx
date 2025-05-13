@@ -22,6 +22,7 @@ import axios from "axios";
 import { UserGroupIcon, CalendarIcon, EyeIcon } from "@heroicons/react/24/solid";
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
+import { toast } from "sonner";
 
 // Interfaces
 interface Entorno {
@@ -227,11 +228,36 @@ function EvcCard({
   );
 }
 
-function QuarterCard({ quarter, onUpdatePercentage }: { quarter: EVC_Q, onUpdatePercentage: (id: number, percentage: number) => Promise<void> }) {
+function QuarterCard({ 
+  quarter, 
+  onUpdatePercentage,
+  manualSpendingStatus,
+  setManualSpendingStatus,
+  manualSpendings,
+  setManualSpendings,
+  uploadStatus,
+  setUploadStatus,
+  providerSelections,
+  setProviderSelections,
+  setProviderFilterModal,
+  getFilteredProviders
+}: { 
+  quarter: EVC_Q, 
+  onUpdatePercentage: (id: number, percentage: number) => Promise<void>,
+  manualSpendingStatus: Record<number, { error?: string; success?: string }>,
+  setManualSpendingStatus: React.Dispatch<React.SetStateAction<Record<number, { error?: string; success?: string }>>>,
+  manualSpendings: { [quarterId: number]: ManualSpending },
+  setManualSpendings: React.Dispatch<React.SetStateAction<{ [quarterId: number]: ManualSpending }>>,
+  uploadStatus: { [quarterId: number]: { uploading: boolean; error?: string; success?: string } },
+  setUploadStatus: React.Dispatch<React.SetStateAction<{ [quarterId: number]: { uploading: boolean; error?: string; success?: string } }>>,
+  providerSelections: { [quarterId: number]: string },
+  setProviderSelections: React.Dispatch<React.SetStateAction<{ [quarterId: number]: string }>>,
+  setProviderFilterModal: React.Dispatch<React.SetStateAction<{ quarterId: number | null, open: boolean }>>,
+  getFilteredProviders: (quarterId: number) => Provider[]
+}) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(quarter.allocated_percentage);
   const [uploading, setUploading] = useState(false);
-  const [manualSpendings, setManualSpendings] = useState<{ [quarterId: number]: ManualSpending }>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePercentageSave = async () => {
@@ -427,7 +453,9 @@ function QuarterCard({ quarter, onUpdatePercentage }: { quarter: EVC_Q, onUpdate
                 });
                 setManualSpendings(prev => ({ ...prev, [quarter.id]: { value_usd: 0, concept: "" } }));
                 setManualSpendingStatus((prev: Record<number, { error?: string; success?: string }>) => ({ ...prev, [quarter.id]: { success: "Gasto manual agregado" } }));
-                setTimeout(() => setManualSpendingStatus(prev => ({ ...prev, [quarter.id]: {} })), 2000);
+                setTimeout(() => {
+                  setManualSpendingStatus(prev => ({ ...prev, [quarter.id]: { } }));
+                }, 2000);
               } catch (error) {
                 setManualSpendingStatus((prev: Record<number, { error?: string; success?: string }>) => ({ ...prev, [quarter.id]: { error: "Error al agregar gasto manual" } }));
               }
@@ -461,7 +489,9 @@ function QuarterCard({ quarter, onUpdatePercentage }: { quarter: EVC_Q, onUpdate
                 { headers: { "Content-Type": "multipart/form-data" } }
               );
               setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false, success: "Factura PDF subida" } }));
-              setTimeout(() => setUploadStatus(prev => ({ ...prev, [quarter.id]: {} })), 2000);
+              setTimeout(() => {
+                setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false } }));
+              }, 2000);
             } catch (error) {
               setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false, error: "Error al subir factura PDF" } }));
             }
@@ -499,7 +529,9 @@ function QuarterCard({ quarter, onUpdatePercentage }: { quarter: EVC_Q, onUpdate
                       { headers: { "Content-Type": "multipart/form-data" } }
                     );
                     setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false, success: "Factura PDF subida" } }));
-                    setTimeout(() => setUploadStatus(prev => ({ ...prev, [quarter.id]: {} })), 2000);
+                    setTimeout(() => {
+                      setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false } }));
+                    }, 2000);
                   } catch (error) {
                     setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false, error: "Error al subir factura PDF" } }));
                   }
@@ -561,19 +593,11 @@ function QuarterCard({ quarter, onUpdatePercentage }: { quarter: EVC_Q, onUpdate
 export default function EvcsPage() {
   // Estados principales
   const [evcs, setEvcs] = useState<EVC[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [alertMsg, setAlertMsg] = useState("");
   const [selectedEvc, setSelectedEvc] = useState<EVC | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [entornosData, setEntornosData] = useState<{ [key: number]: string }>(
-    {},
-  );
-  const [technicalLeadersData, setTechnicalLeadersData] = useState<{
-    [key: number]: string;
-  }>({});
-  const [functionalLeadersData, setFunctionalLeadersData] = useState<{
-    [key: number]: string;
-  }>({});
+  const [entornosData, setEntornosData] = useState<{ [key: number]: string }>({});
+  const [technicalLeadersData, setTechnicalLeadersData] = useState<{ [key: number]: string }>({});
+  const [functionalLeadersData, setFunctionalLeadersData] = useState<{ [key: number]: string }>({});
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [evcToDelete, setEvcToDelete] = useState<EVC | null>(null);
   const [showQuartersModal, setShowQuartersModal] = useState(false);
@@ -583,26 +607,71 @@ export default function EvcsPage() {
   });
   const [filteredEvcs, setFilteredEvcs] = useState<EVC[]>([]);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [selectedEvcsForExport, setSelectedEvcsForExport] = useState<number[]>(
-    [],
-  );
-  const [financialSelections, setFinancialSelections] = useState<{
-    [key: number]: string;
-  }>({});
-  const [availableTechnicalLeaders, setAvailableTechnicalLeaders] = useState<
-    TechnicalLeader[]
-  >([]);
-  const [availableFunctionalLeaders, setAvailableFunctionalLeaders] = useState<
-    { id: number; name: string }[]
-  >([]);
+  const [selectedEvcsForExport, setSelectedEvcsForExport] = useState<number[]>([]);
+  const [financialSelections, setFinancialSelections] = useState<{ [key: number]: string }>({});
+  const [availableTechnicalLeaders, setAvailableTechnicalLeaders] = useState<TechnicalLeader[]>([]);
+  const [availableFunctionalLeaders, setAvailableFunctionalLeaders] = useState<{ id: number; name: string }[]>([]);
   const [availableEntornos, setAvailableEntornos] = useState<Entorno[]>([]);
   const [availableProviders, setAvailableProviders] = useState<Provider[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [alertMsg, setAlertMsg] = useState("");
 
   // Add new state variables for OCR
   const [uploading, setUploading] = useState(false);
   const [extractedValues, setExtractedValues] = useState<{ [key: number]: number }>({});
   const [uploadedFiles, setUploadedFiles] = useState<{ [key: number]: string }>({});
   const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
+  const [selectedEvcsForDelete, setSelectedEvcsForDelete] = useState<number[]>([]);
+  const [showDeleteSelectedModal, setShowDeleteSelectedModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [manualSpendings, setManualSpendings] = useState<{ [quarterId: number]: ManualSpending }>({});
+  const [manualSpendingStatus, setManualSpendingStatus] = useState<Record<number, { error?: string; success?: string }>>({});
+  const [uploadStatus, setUploadStatus] = useState<{ [quarterId: number]: { uploading: boolean; error?: string; success?: string } }>({});
+  const [providerSelections, setProviderSelections] = useState<{ [quarterId: number]: string }>({});
+  const [providerFilterModal, setProviderFilterModal] = useState<{ quarterId: number | null, open: boolean }>({ quarterId: null, open: false });
+  const [activeProviderFilters, setActiveProviderFilters] = useState<{ price: boolean; country: boolean }>({ price: false, country: false });
+  const [providerPriceRange, setProviderPriceRange] = useState<[number, number]>([0, 10000]);
+  const [providerSelectedCountries, setProviderSelectedCountries] = useState<string[]>([]);
+  const [providerCountryOptions, setProviderCountryOptions] = useState<string[]>([]);
+  const [gastosModal, setGastosModal] = useState<{ open: boolean; quarter: EVC_Q | null; gastos: any[] }>({ open: false, quarter: null, gastos: [] });
+
+  // Add getFilteredProviders function
+  const getFilteredProviders = (quarterId: number) => {
+    let filtered = [...availableProviders];
+    if (activeProviderFilters.price) {
+      filtered = filtered.filter(p => {
+        const cost = p.cost_usd ?? 0;
+        return cost >= providerPriceRange[0] && cost <= providerPriceRange[1];
+      });
+    }
+    if (activeProviderFilters.country && providerSelectedCountries.length > 0) {
+      filtered = filtered.filter(p => providerSelectedCountries.includes(p.country ?? ''));
+    }
+    return filtered;
+  };
+
+  // Fix uploadStatus state updates
+  const clearUploadStatus = (quarterId: number) => {
+    setUploadStatus(prev => ({
+      ...prev,
+      [quarterId]: { uploading: false, error: undefined, success: undefined }
+    }));
+  };
+
+  const handleUploadSuccess = (quarterId: number) => {
+    setUploadStatus(prev => ({
+      ...prev,
+      [quarterId]: { uploading: false, success: "Factura PDF subida" }
+    }));
+    setTimeout(() => clearUploadStatus(quarterId), 2000);
+  };
+
+  const handleUploadError = (quarterId: number) => {
+    setUploadStatus(prev => ({
+      ...prev,
+      [quarterId]: { uploading: false, error: "Error al subir factura PDF" }
+    }));
+  };
 
   // Colores para entornos
   const entornoColors: { [key: number]: string } = {
@@ -650,52 +719,6 @@ export default function EvcsPage() {
     allocated_budget: "",
     allocated_percentage: "",
   });
-
-  // Add state for selected EVCs for deletion
-  const [selectedEvcsForDelete, setSelectedEvcsForDelete] = useState<number[]>([]);
-  const [showDeleteSelectedModal, setShowDeleteSelectedModal] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  // Add new state variable for manual spending
-  const [manualSpendings, setManualSpendings] = useState<{ [quarterId: number]: ManualSpending }>({});
-
-  // ... at the top, add state for feedback per quarter ...
-  const [manualSpendingStatus, setManualSpendingStatus] = useState<Record<number, { error?: string; success?: string }>>({});
-  const [uploadStatus, setUploadStatus] = useState<{ [quarterId: number]: { uploading: boolean; error?: string; success?: string } }>({});
-  const [providerSelections, setProviderSelections] = useState<{ [quarterId: number]: string }>({});
-
-  // Add after other useState hooks in EvcsPage
-  const [providerFilterModal, setProviderFilterModal] = useState<{ quarterId: number | null, open: boolean }>({ quarterId: null, open: false });
-  const [activeProviderFilters, setActiveProviderFilters] = useState<{ price: boolean; country: boolean }>({ price: false, country: false });
-  const [providerPriceRange, setProviderPriceRange] = useState<[number, number]>([0, 10000]);
-  const [providerSelectedCountries, setProviderSelectedCountries] = useState<string[]>([]);
-  const [providerCountryOptions, setProviderCountryOptions] = useState<string[]>([]);
-
-  // Compute min/max price for slider
-  const providerPrices = availableProviders.map(p => p.cost_usd ?? 0).filter(v => !isNaN(v));
-  const minProviderPrice = providerPrices.length ? Math.min(...providerPrices) : 0;
-  const maxProviderPrice = providerPrices.length ? Math.max(...providerPrices) : 10000;
-
-  // Get all unique countries
-  useEffect(() => {
-    const countries = Array.from(new Set(availableProviders.map(p => p.country).filter(Boolean))) as string[];
-    setProviderCountryOptions(countries);
-  }, [availableProviders]);
-
-  // Filter providers for a given quarter
-  const getFilteredProviders = (quarterId: number) => {
-    let filtered = [...availableProviders];
-    if (activeProviderFilters.price) {
-      filtered = filtered.filter(p => {
-        const price = p.cost_usd ?? 0;
-        return price >= providerPriceRange[0] && price <= providerPriceRange[1];
-      });
-    }
-    if (activeProviderFilters.country && providerSelectedCountries.length > 0) {
-      filtered = filtered.filter(p => providerSelectedCountries.includes(p.country ?? ''));
-    }
-    return filtered;
-  };
 
   // Efectos iniciales
   useEffect(() => {
@@ -794,12 +817,13 @@ export default function EvcsPage() {
   // Fetch data del backend
   const fetchEvcs = async () => {
     try {
-      const response = await axios.get("http://127.0.0.1:8000/evcs/evcs/");
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/evcs/`);
       console.log("EVCs recibidos:", response.data);
       console.log("Primer EVC:", response.data[0]);
       setEvcs(response.data);
     } catch (error) {
-      console.error("Error al cargar EVCs:", error);
+      console.error("Error fetching EVCs:", error);
+      toast.error("Error al cargar los EVCs");
     }
   };
 
@@ -1246,8 +1270,6 @@ export default function EvcsPage() {
   const triggerFileUpload = (quarterId: number) => {
     fileInputRefs.current[quarterId]?.click();
   };
-
-  const [gastosModal, setGastosModal] = useState<{ open: boolean; quarter: EVC_Q | null; gastos: any[] }>({ open: false, quarter: null, gastos: [] });
 
   // Function to fetch all gastos for a quarter
   const fetchGastosByQuarter = async (quarter: EVC_Q) => {
@@ -1724,7 +1746,9 @@ export default function EvcsPage() {
                                   });
                                   setManualSpendings(prev => ({ ...prev, [quarter.id]: { value_usd: 0, concept: "" } }));
                                   setManualSpendingStatus((prev: Record<number, { error?: string; success?: string }>) => ({ ...prev, [quarter.id]: { success: "Gasto manual agregado" } }));
-                                  setTimeout(() => setManualSpendingStatus(prev => ({ ...prev, [quarter.id]: {} })), 2000);
+                                  setTimeout(() => {
+                                    setManualSpendingStatus(prev => ({ ...prev, [quarter.id]: { } }));
+                                  }, 2000);
                                 } catch (error) {
                                   setManualSpendingStatus((prev: Record<number, { error?: string; success?: string }>) => ({ ...prev, [quarter.id]: { error: "Error al agregar gasto manual" } }));
                                 }
@@ -1757,7 +1781,9 @@ export default function EvcsPage() {
                                   { headers: { "Content-Type": "multipart/form-data" } }
                                 );
                                 setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false, success: "Factura PDF subida" } }));
-                                setTimeout(() => setUploadStatus(prev => ({ ...prev, [quarter.id]: {} })), 2000);
+                                setTimeout(() => {
+                                  setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false } }));
+                                }, 2000);
                               } catch (error) {
                                 setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false, error: "Error al subir factura PDF" } }));
                               }
@@ -1795,7 +1821,9 @@ export default function EvcsPage() {
                                         { headers: { "Content-Type": "multipart/form-data" } }
                                       );
                                       setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false, success: "Factura PDF subida" } }));
-                                      setTimeout(() => setUploadStatus(prev => ({ ...prev, [quarter.id]: {} })), 2000);
+                                      setTimeout(() => {
+                                        setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false } }));
+                                      }, 2000);
                                     } catch (error) {
                                       setUploadStatus(prev => ({ ...prev, [quarter.id]: { uploading: false, error: "Error al subir factura PDF" } }));
                                     }

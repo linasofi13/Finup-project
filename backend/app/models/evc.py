@@ -38,4 +38,5 @@ class EVC(Base):
     functional_leader = relationship("FunctionalLeader", back_populates="evcs")
     entorno = relationship("Entorno", back_populates="evcs")
     evc_qs = relationship("EVC_Q", back_populates="evc")
+    budget_allocations = relationship("BudgetAllocation", back_populates="evc")
     # La relación con providers se maneja a través del backref en EVCProvider

@@ -21,6 +21,7 @@ from app.routes import (
     notification,
     notification_rules,
 )
+from app.api.endpoints import budget_pocket, budget_allocation
 from app.database import engine, Base, SessionLocal
 
 from app import models
@@ -35,7 +36,7 @@ app = FastAPI(title="Finup API")
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En producción, especificar los orígenes permitidos
+    allow_origins=["http://localhost:3000"],  # or ["*"] for all origins (not recommended for production)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -74,15 +75,11 @@ app.include_router(
 #     category_providers.router, prefix="/category-providers", tags=["Category Providers"]
 # )
 app.include_router(providers.router, prefix="/providers", tags=["Providers"])
+app.include_router(budget_pocket.router, prefix="/budget-pockets", tags=["Budget Pockets"])
+app.include_router(budget_allocation.router, prefix="/budget-allocations", tags=["Budget Allocations"])
 # app.include_router(
 #     role_providers.router, prefix="/role-providers", tags=["Role Providers"]
 # )
-
-# Include the evcs router
-# app.include_router(
-#     providers.router, prefix="/providers", tags=["Providers"]
-# )  # Include the providers router
-
 
 @app.get("/")
 def read_root():

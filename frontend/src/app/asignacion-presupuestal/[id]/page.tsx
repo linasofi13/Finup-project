@@ -59,6 +59,8 @@ interface BudgetAllocation {
   evc_id: number;
   created_at: string;
   comments?: string;
+  quarter?: number;
+  year?: number;
 }
 
 export default function BudgetAllocationPage() {
@@ -80,6 +82,8 @@ export default function BudgetAllocationPage() {
   const [selectedEvc, setSelectedEvc] = useState<number | null>(null);
   const [amount, setAmount] = useState<string>('');
   const [isTotalAllocation, setIsTotalAllocation] = useState(false);
+  const [selectedQuarter, setSelectedQuarter] = useState<number>(0);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   useEffect(() => {
     if (id) {
@@ -143,7 +147,7 @@ export default function BudgetAllocationPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedEvc || (!amount && !isTotalAllocation) || !budgetPocket) {
+    if (!selectedEvc || (!amount && !isTotalAllocation) || !budgetPocket || !selectedQuarter) {
       toast.error('Por favor complete todos los campos');
       return;
     }
@@ -155,20 +159,45 @@ export default function BudgetAllocationPage() {
         evc_id: selectedEvc,
         allocated_value: isTotalAllocation ? budgetPocket.agreed_value - totalAllocated : parseFloat(amount),
         is_total_allocation: isTotalAllocation,
-        comments: formData.comments
+        comments: formData.comments,
+        quarter: selectedQuarter,
+        year: selectedYear
       };
 
-      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/budget-pockets/${id}/allocate`, allocationData, {
-        headers: {
-          Authorization: `Bearer ${token}`
+      // First create the budget allocation
+      const allocationResponse = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/budget-pockets/${id}/allocate`,
+        allocationData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
         }
-      });
+      );
+
+      // Then create/update the EVC_Q with the allocated budget
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/evc-qs/evc_qs/`,
+        {
+          evc_id: selectedEvc,
+          year: selectedYear,
+          q: selectedQuarter,
+          allocated_budget: allocationData.allocated_value,
+          allocated_percentage: 0 // This can be updated later if needed
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
       
       toast.success("Asignación creada exitosamente");
       setIsDialogOpen(false);
       setSelectedEvc(null);
       setAmount('');
       setIsTotalAllocation(false);
+      setSelectedQuarter(0);
       setFormData({
         evc_id: "",
         allocated_value: "",
@@ -310,12 +339,41 @@ export default function BudgetAllocationPage() {
                     <SelectTrigger>
                       <SelectValue placeholder="Seleccione un EVC" />
                     </SelectTrigger>
-                    <SelectContent className="absolute z-50 bg-white shadow-lg">
+                    <SelectContent className="absolute z-[1000] bg-white border rounded-md shadow-lg">
                       {evcs.map((evc) => (
                         <SelectItem key={evc.id} value={evc.id.toString()}>
                           {evc.name}
                         </SelectItem>
                       ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="year">Año</Label>
+                  <Input
+                    id="year"
+                    type="number"
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="quarter">Quarter</Label>
+                  <Select
+                    value={selectedQuarter.toString()}
+                    onValueChange={(value) => setSelectedQuarter(parseInt(value))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccione un Quarter" />
+                    </SelectTrigger>
+                    <SelectContent className="absolute z-[1000] bg-white border rounded-md shadow-lg">
+                      <SelectItem value="1">Q1</SelectItem>
+                      <SelectItem value="2">Q2</SelectItem>
+                      <SelectItem value="3">Q3</SelectItem>
+                      <SelectItem value="4">Q4</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

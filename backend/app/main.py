@@ -37,7 +37,9 @@ app = FastAPI(title="Finup API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000"
+        "http://localhost:3000",
+        "http://54.162.18.167:3000",
+        "http://finup.sytes.net:3000",
     ],  # or ["*"] for all origins (not recommended for production)
     allow_credentials=True,
     allow_methods=["*"],

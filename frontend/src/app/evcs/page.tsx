@@ -28,9 +28,7 @@ import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
-
-// API URL from environment variable
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { string } from "yup";
 
 // Interfaces
 interface Entorno {
@@ -200,7 +198,9 @@ function EvcCard({
     evc.evc_qs?.length > 0 ? evc.evc_qs[evc.evc_qs.length - 1].q : 1;
   return (
     <div
-      className={`rounded-2xl shadow-lg p-6 w-full text-gray-900 relative flex flex-col min-h-[320px] group transition-all duration-200 ${selected ? "border-2 border-yellow-400 bg-yellow-50" : ""}`}
+      className={`rounded-2xl shadow-lg p-6 w-full text-gray-900 relative flex flex-col min-h-[320px] group transition-all duration-200 ${
+        selected ? "border-2 border-yellow-400 bg-yellow-50" : ""
+      }`}
       style={{ background: !selected ? bgColor : undefined }}
     >
       {/* Selection checkbox */}
@@ -462,67 +462,51 @@ function QuarterCard({
     quarterId: number,
     spending: ManualSpending,
   ) => {
-    // Validations
-    if (
-      spending.value_usd === undefined ||
-      isNaN(spending.value_usd) ||
-      spending.value_usd <= 0
-    ) {
-      setManualSpendingStatus({
-        ...manualSpendingStatus,
-        [quarterId]: {
-          error: "El monto debe ser un número mayor a cero",
-        },
-      });
-      return;
-    }
-
-    if (!spending.concept || spending.concept.trim() === "") {
-      setManualSpendingStatus({
-        ...manualSpendingStatus,
-        [quarterId]: {
-          error: "Debe ingresar un concepto",
-        },
-      });
-      return;
-    }
-
     try {
-      await axios.post(`${apiUrl}/evc-financials/evc_financials/concept`, {
-        evc_q_id: quarterId,
-        concept: spending.concept,
-        value_usd: spending.value_usd,
-      });
-
-      // Limpiar el formulario y mostrar mensaje de éxito
-      setManualSpendings({
-        ...manualSpendings,
-        [quarterId]: { value_usd: 0, concept: "" },
-      });
-      setManualSpendingStatus({
-        ...manualSpendingStatus,
-        [quarterId]: {
-          success: "Gasto registrado con éxito",
+      const token = Cookies.get("auth_token");
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evc-financials/evc_financials/concept`,
+        {
+          evc_q_id: quarterId,
+          value_usd: spending.value_usd,
+          concept: spending.concept,
         },
-      });
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
-      // Actualizar datos
-      fetchEvcs();
+      // Clear the form
+      setManualSpendings((prev) => ({
+        ...prev,
+        [quarterId]: { value_usd: 0, concept: "" },
+      }));
 
+      // Show success message
+      setManualSpendingStatus((prev) => ({
+        ...prev,
+        [quarterId]: { success: "Gasto agregado exitosamente" },
+      }));
+
+      // Refresh the EVC data to update the progress bars
+      await fetchEvcs();
+
+      // Clear success message after 3 seconds
       setTimeout(() => {
-        setManualSpendingStatus({
-          ...manualSpendingStatus,
-          [quarterId]: {},
+        setManualSpendingStatus((prev) => {
+          const newStatus = { ...prev };
+          delete newStatus[quarterId];
+          return newStatus;
         });
       }, 3000);
     } catch (error) {
-      console.error("Error al registrar gasto manual:", error);
-      setManualSpendingStatus({
-        ...manualSpendingStatus,
-        [quarterId]: {
-          error: "Error al registrar el gasto",
-        },
-      });
+      console.error("Error submitting manual spending:", error);
+      setManualSpendingStatus((prev) => ({
+        ...prev,
+        [quarterId]: { error: "Error al agregar el gasto" },
+      }));
     }
   };
 
@@ -559,7 +543,7 @@ function QuarterCard({
       try {
         // Simulate an OCR service call
         // In production, this would be an actual API call like:
-        // const ocrResponse = await axios.post(`${apiUrl}/ocr/extract-total`, formData);
+        // const ocrResponse = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/ocr/extract-total`, formData);
         // extractedAmount = ocrResponse.data.total;
 
         // For demonstration purposes, we're using the file's last modified date to simulate
@@ -617,30 +601,26 @@ function QuarterCard({
     quarterId: number,
     extractedAmount?: number,
   ) => {
-    const token = Cookies.get("auth_token");
-    if (!token) {
-      console.error("No authentication token found");
-      return;
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("evc_q_id", quarterId.toString());
+
+    // If we have an extracted amount, include it in the form data
+    if (extractedAmount) {
+      formData.append("value_usd", extractedAmount.toString());
     }
 
+    setUploading(true);
     try {
-      setUploadStatus((prev) => ({
-        ...prev,
-        [quarterId]: { uploading: true },
-      }));
+      const token = Cookies.get("auth_token");
 
-      // Create a FormData object to send the file
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("evc_q_id", quarterId.toString());
+      // Log what we're sending to help with debugging
+      console.log(
+        `Uploading invoice with extracted amount: $${extractedAmount}`,
+      );
 
-      if (extractedAmount !== undefined) {
-        formData.append("extracted_amount", extractedAmount.toString());
-      }
-
-      // Upload the file
       await axios.post(
-        `${apiUrl}/evc-financials/evc_financials/upload`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evc-financials/evc_financials/upload`,
         formData,
         {
           headers: {
@@ -650,11 +630,36 @@ function QuarterCard({
         },
       );
 
-      handleUploadSuccess(quarterId);
-      fetchEvcs();
+      // Refresh the EVC data to update the progress bars
+      await fetchEvcs();
+
+      // Show success message with the extracted amount
+      setUploadStatus((prev) => ({
+        ...prev,
+        [quarterId]: {
+          uploading: false,
+          success: `Factura subida exitosamente. Monto: $${
+            extractedAmount?.toLocaleString() ?? "No detectado"
+          }`,
+        },
+      }));
+
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setUploadStatus((prev) => {
+          const newStatus = { ...prev };
+          delete newStatus[quarterId];
+          return newStatus;
+        });
+      }, 3000);
     } catch (error) {
       console.error("Error uploading file:", error);
-      handleUploadError(quarterId);
+      setUploadStatus((prev) => ({
+        ...prev,
+        [quarterId]: { uploading: false, error: "Error al subir el archivo" },
+      }));
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -673,8 +678,12 @@ function QuarterCard({
             </h3>
             <p className="mb-4">
               {showConfirmDialog.type === "manual"
-                ? `El gasto de $${showConfirmDialog.data.value_usd.toLocaleString()} excede el presupuesto disponible de $${(quarter.allocated_budget - (quarter.total_spendings || 0)).toLocaleString()}.`
-                : `La factura contiene un gasto de $${showConfirmDialog.data.extractedAmount.toLocaleString()}, que excede el presupuesto disponible de $${(quarter.allocated_budget - (quarter.total_spendings || 0)).toLocaleString()}.`}
+                ? `El gasto de $${showConfirmDialog.data.value_usd.toLocaleString()} excede el presupuesto disponible de $${(
+                    quarter.allocated_budget - (quarter.total_spendings || 0)
+                  ).toLocaleString()}.`
+                : `La factura contiene un gasto de $${showConfirmDialog.data.extractedAmount.toLocaleString()}, que excede el presupuesto disponible de $${(
+                    quarter.allocated_budget - (quarter.total_spendings || 0)
+                  ).toLocaleString()}.`}
             </p>
             <p className="mb-4 text-sm text-gray-600">
               Registrar este gasto hará que se exceda el presupuesto asignado
@@ -790,7 +799,11 @@ function QuarterCard({
       <div className="mb-4 text-sm text-gray-700">
         Presupuesto disponible:
         <span
-          className={`font-bold ${quarter.allocated_budget - (quarter.total_spendings || 0) > 0 ? "text-green-600" : "text-red-600"}`}
+          className={`font-bold ${
+            quarter.allocated_budget - (quarter.total_spendings || 0) > 0
+              ? "text-green-600"
+              : "text-red-600"
+          }`}
         >
           $
           {(
@@ -997,7 +1010,9 @@ function QuarterCard({
       {/* File Upload Section */}
       <div className="mt-4">
         <div
-          className={`w-full px-4 py-8 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${uploading ? "bg-blue-50" : "hover:bg-blue-50"}`}
+          className={`w-full px-4 py-8 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${
+            uploading ? "bg-blue-50" : "hover:bg-blue-50"
+          }`}
           onDragOver={(e) => e.preventDefault()}
           onDrop={async (e) => {
             e.preventDefault();
@@ -1134,10 +1149,10 @@ function QuarterCard({
             }
 
             try {
-              await axios.post(`${apiUrl}/evc-financials/evc_financials/`, {
-                evc_q_id: quarter.id,
-                provider_id: parseInt(providerId, 10),
-              });
+              await axios.post(
+                `${process.env.NEXT_PUBLIC_API_BASE_URL}/evc-financials/evc_financials/`,
+                { evc_q_id: quarter.id, provider_id: parseInt(providerId, 10) },
+              );
               setProviderSelections((prev) => ({ ...prev, [quarter.id]: "" }));
               // Refresh data
               await fetchEvcs();
@@ -1172,6 +1187,13 @@ function EvcsPage() {
   const [entornosData, setEntornosData] = useState<{ [key: number]: string }>(
     {},
   );
+
+  const [defaultQuarterValues, setDefaultQuarterValues] = useState<{
+    year?: string;
+    budget?: string;
+    quarter?: string;
+  }>({});
+
   const [technicalLeadersData, setTechnicalLeadersData] = useState<{
     [key: number]: string;
   }>({});
@@ -1276,13 +1298,25 @@ function EvcsPage() {
   const [uploadedFiles, setUploadedFiles] = useState<{ [key: number]: string }>(
     {},
   );
+
+  const fetchDefaultQuarterValues = async (evcId: number) => {
+    try {
+      const resp = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evc-qs/default_values/evc/${evcId}`,
+      );
+      setDefaultQuarterValues(resp.data);
+    } catch (error) {
+      setDefaultQuarterValues({});
+    }
+  };
+
   const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
 
   const onUpdatePercentage = async (quarterId: number, percentage: number) => {
     try {
       const token = Cookies.get("auth_token");
       await axios.patch(
-        `${apiUrl}/evc-qs/evc_qs/${quarterId}/percentage`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evc-qs/evc_qs/${quarterId}/percentage`,
         { allocated_percentage: percentage },
         {
           headers: {
@@ -1406,12 +1440,13 @@ function EvcsPage() {
   // Add function to fetch distinct countries
   const fetchDistinctCountries = async () => {
     try {
-      const response = await axios.get(
-        `${apiUrl}/providers/providers/distinct-countries`,
+      const resp = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/providers/providers/distinct-countries`,
       );
-      setProviderCountryOptions(response.data);
+      setProviderCountryOptions(resp.data);
     } catch (error) {
-      console.error("Error fetching countries:", error);
+      console.error("Error al cargar países:", error);
+      setProviderCountryOptions([]);
     }
   };
 
@@ -1419,32 +1454,47 @@ function EvcsPage() {
   const loadTechnicalLeadersData = async () => {
     try {
       const response = await axios.get(
-        `${apiUrl}/technical-leaders/technical-leaders/`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/technical-leaders/technical-leaders/`,
       );
-      setTechnicalLeadersData(response.data);
+      const data: { [key: number]: string } = {};
+      response.data.forEach((leader: TechnicalLeader) => {
+        data[leader.id] = leader.name;
+      });
+      setTechnicalLeadersData(data);
     } catch (error) {
-      console.error("Error loading technical leaders:", error);
+      console.error("Error cargando líderes técnicos:", error);
     }
   };
 
   const loadFunctionalLeadersData = async () => {
     try {
       const response = await axios.get(
-        `${apiUrl}/functional-leaders/functional-leaders`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/functional-leaders/functional-leaders`,
       );
-      setFunctionalLeadersData(response.data);
+      const data: { [key: number]: string } = {};
+      response.data.forEach((leader: any) => {
+        data[leader.id] = leader.name;
+      });
+      setFunctionalLeadersData(data);
     } catch (error) {
-      console.error("Error loading functional leaders:", error);
+      console.error("Error cargando líderes funcionales:", error);
     }
   };
 
   // Cargar data de entornos
   const loadEntornosData = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/entornos/entornos/`);
-      setEntornosData(response.data);
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/entornos/entornos/`,
+      );
+      const data: { [key: number]: string } = {};
+      response.data.forEach((entorno: Entorno) => {
+        data[entorno.id] = entorno.name;
+      });
+      setEntornosData(data);
+      console.log("Entornos cargados:", data);
     } catch (error) {
-      console.error("Error loading entornos:", error);
+      console.error("Error cargando entornos:", error);
     }
   };
 
@@ -1485,213 +1535,317 @@ function EvcsPage() {
   // Fetch data del backend
   const fetchEvcs = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/evcs/`);
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evcs/`,
+      );
+      console.log("EVCs recibidos:", response.data);
+      console.log("Primer EVC:", response.data[0]);
       setEvcs(response.data);
-      setLoading(false);
     } catch (error) {
       console.error("Error fetching EVCs:", error);
-      setLoading(false);
+      toast.error("Error al cargar los EVCs");
     }
   };
 
   const fetchAvailableTechnicalLeaders = async () => {
     try {
-      const response = await axios.get(
-        `${apiUrl}/technical-leaders/technical-leaders/`,
+      const resp = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/technical-leaders/technical-leaders/`,
       );
-      setAvailableTechnicalLeaders(response.data);
+      setAvailableTechnicalLeaders(resp.data);
     } catch (error) {
-      console.error("Error fetching technical leaders:", error);
+      console.error("Error al cargar líderes técnicos:", error);
     }
   };
 
   const fetchAvailableFunctionalLeaders = async () => {
     try {
-      const response = await axios.get(
-        `${apiUrl}/functional-leaders/functional-leaders`,
+      const resp = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/functional-leaders/functional-leaders`,
       );
-      setAvailableFunctionalLeaders(response.data);
+      setAvailableFunctionalLeaders(resp.data);
     } catch (error) {
-      console.error("Error fetching functional leaders:", error);
+      console.error("Error al cargar líderes funcionales:", error);
     }
   };
 
   const fetchAvailableEntornos = async () => {
     try {
-      const resp = await axios.get(`${apiUrl}/entornos/entornos/`);
+      const resp = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/entornos/entornos/`,
+      );
       setAvailableEntornos(resp.data);
     } catch (error) {
-      console.error("Error fetching entornos:", error);
+      console.error("Error al cargar entornos:", error);
     }
   };
 
   const fetchAvailableProviders = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/providers/providers/`);
-      setAvailableProviders(response.data);
+      const resp = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/providers/providers/`,
+      );
+      setAvailableProviders(resp.data);
     } catch (error) {
-      console.error("Error fetching providers:", error);
+      console.error("Error al cargar proveedores:", error);
     }
   };
 
   const fetchProvidersByEvcQ = async (evc_q_id: number) => {
     try {
       const response = await axios.get(
-        `${apiUrl}/evc-financials/evc-financials/${evc_q_id}/providers`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evc-financials/evc-financials/${evc_q_id}/providers`,
       );
-      setFinancialsByQuarter((prev) => ({
-        ...prev,
-        [evc_q_id]: response.data,
-      }));
+      return response.data;
     } catch (error) {
-      console.error("Error fetching providers by EVC quarter:", error);
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return []; // No providers found
+      }
+      console.error(`Error fetching providers for EVC_Q ${evc_q_id}:`, error);
+      return [];
     }
   };
 
   const fetchSpendingsByEvcQ = async (evc_q_id: number) => {
     try {
+      console.log(`Fetching spendings for EVC_Q ID: ${evc_q_id}`);
       const response = await axios.get(
-        `${apiUrl}/evc-financials/evc_financials/${evc_q_id}/spendings`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evc-financials/evc_financials/${evc_q_id}/spendings`,
       );
-      setSpendingsByQuarter((prev) => ({
-        ...prev,
-        [evc_q_id]: response.data,
-      }));
+
+      console.log(`Spendings for EVC_Q ${evc_q_id}:`, response.data);
+      return response.data;
     } catch (error) {
-      console.error("Error fetching spendings by EVC quarter:", error);
+      console.error(`Error fetching spendings for EVC_Q ${evc_q_id}:`, error);
+      return {
+        evc_q_id,
+        total_spendings: 0,
+        percentage: 0,
+        message: "Error fetching spendings",
+      };
     }
   };
 
   // Crear EVC
   const createEvc = async () => {
     try {
-      setCreatingEvc(true);
-
-      // Validate required fields
-      if (!newEvc.name.trim()) {
-        setEvcErrors({ ...evcErrors, name: "El nombre es requerido" });
-        setCreatingEvc(false);
-        return;
-      }
-
-      const response = await axios.post(`${apiUrl}/evcs/`, {
-        name: newEvc.name,
-        description: newEvc.description,
-        technical_leader: newEvc.technical_leader_id,
-        functional_leader: newEvc.functional_leader_id,
-        entorno: newEvc.entorno_id,
-      });
-
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evcs/`,
+        {
+          name: newEvc.name,
+          description: newEvc.description,
+          technical_leader_id: parseInt(newEvc.technical_leader_id, 10) || null,
+          functional_leader_id:
+            parseInt(newEvc.functional_leader_id, 10) || null,
+          entorno_id: parseInt(newEvc.entorno_id, 10) || null,
+          status: newEvc.status,
+        },
+      );
+      console.log("EVC creada:", response.data);
+      fetchEvcs();
+      setShowForm(false);
+      setAlertMsg("");
       setNewEvc({
         name: "",
         description: "",
-        technical_leader_id: null,
-        functional_leader_id: null,
-        entorno_id: null,
+        technical_leader_id: "",
+        functional_leader_id: "",
+        entorno_id: "",
+        status: true,
       });
-      setEvcErrors({});
-      setShowNewEvcModal(false);
-      fetchEvcs();
-      toast.success("EVC creado exitosamente");
     } catch (error) {
-      console.error("Error creating EVC:", error);
-      toast.error("Error al crear el EVC");
-    } finally {
-      setCreatingEvc(false);
+      console.error("Error creando EVC:", error);
+      setAlertMsg("Error al crear la EVC");
     }
   };
 
   // Crear EVC_Q
   const createQuarter = async (evcId: number) => {
     try {
-      // Get existing quarters for this EVC
-      const evc = evcs.find((e) => e.id === evcId);
-      if (!evc) {
-        console.error(`EVC with id ${evcId} not found`);
+      // Prevent multiple submissions
+      if (isCreatingQuarter) return;
+      setIsCreatingQuarter(true);
+      setAlertMsg("");
+
+      // Validate inputs
+      const year = parseInt(newQuarter.year) || defaultQuarterValues.year;
+      const q = parseInt(newQuarter.q) || defaultQuarterValues.quarter;
+      const allocated_budget =
+        parseFloat(newQuarter.allocated_budget) || defaultQuarterValues.budget;
+      const allocated_percentage = parseFloat(newQuarter.allocated_percentage);
+
+      // Check for invalid values
+      if (
+        isNaN(year) ||
+        isNaN(q) ||
+        isNaN(allocated_budget) ||
+        isNaN(allocated_percentage)
+      ) {
+        setAlertMsg("Por favor complete todos los campos con valores válidos");
+        setIsCreatingQuarter(false);
         return;
       }
 
-      // Determine the new quarter based on existing ones
-      const existingQuarters = evc.evc_qs || [];
-      let nextYear = new Date().getFullYear();
-      let nextQ = 1;
+      // Validate quarter number
+      if (q < 1 || q > 4) {
+        setAlertMsg("El quarter debe ser un número entre 1 y 4");
+        setIsCreatingQuarter(false);
+        return;
+      }
 
-      if (existingQuarters.length > 0) {
-        // Sort quarters by year and quarter in descending order
-        const sortedQuarters = [...existingQuarters].sort((a, b) => {
-          if (a.year !== b.year) return b.year - a.year;
-          return b.q - a.q;
-        });
+      // Validate year
+      const currentYear = new Date().getFullYear();
+      if (year < currentYear - 1 || year > currentYear + 1) {
+        setAlertMsg(
+          `El año debe estar entre ${currentYear - 1} y ${currentYear + 1}`,
+        );
+        setIsCreatingQuarter(false);
+        return;
+      }
 
-        const lastQuarter = sortedQuarters[0];
-        nextYear = lastQuarter.year;
-        nextQ = lastQuarter.q + 1;
+      // Validate budget and percentage
+      if (allocated_budget <= 0) {
+        setAlertMsg("El presupuesto debe ser mayor a 0");
+        setIsCreatingQuarter(false);
+        return;
+      }
 
-        // If we're past Q4, move to the next year's Q1
-        if (nextQ > 4) {
-          nextYear++;
-          nextQ = 1;
+      if (allocated_percentage < 0 || allocated_percentage > 100) {
+        setAlertMsg("El porcentaje debe estar entre 0 y 100");
+        setIsCreatingQuarter(false);
+        return;
+      }
+
+      // Check for duplicate quarters
+      if (selectedEvc && selectedEvc.evc_qs) {
+        const isDuplicate = selectedEvc.evc_qs.some(
+          (existingQ) => existingQ.year === year && existingQ.q === q,
+        );
+
+        if (isDuplicate) {
+          setAlertMsg(`Ya existe un quarter Q${q} para el año ${year}`);
+          setIsCreatingQuarter(false);
+          return;
         }
       }
 
-      // Create the new quarter
-      const response = await axios.post(`${apiUrl}/evc-qs/evc_qs/`, {
-        evc_id: evcId,
-        year: nextYear,
-        q: nextQ,
-        allocated_budget: 0,
-        allocated_percentage: 0,
+      // Create the quarter
+      toast.loading("Creando quarter...", { id: "create-quarter" });
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evc-qs/evc_qs/`,
+        {
+          evc_id: evcId,
+          year,
+          q,
+          allocated_budget,
+          allocated_percentage,
+        },
+      );
+
+      console.log("Quarter creado:", response.data);
+
+      // Fetch the updated EVC with the new quarter
+      const updatedEvc = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evcs/${evcId}`,
+      );
+
+      // Update the selected EVC state
+      setSelectedEvc(updatedEvc.data);
+
+      // Update the evcs list to reflect the new quarter
+
+      setEvcs((prevEvcs) =>
+        prevEvcs.map((evc) => (evc.id === evcId ? updatedEvc.data : evc)),
+      );
+
+      // Reset the form
+      setNewQuarter({
+        year: "",
+        q: "",
+        allocated_budget: "",
+        allocated_percentage: "",
       });
 
-      // Update the UI
-      fetchEvcs();
-      toast.success(`Cuatrimestre Q${nextQ} ${nextYear} creado exitosamente`);
+      // Show success message
+      toast.success(`Quarter Q${q} ${year} creado exitosamente`, {
+        id: "create-quarter",
+      });
+      setAlertMsg("");
     } catch (error) {
-      console.error("Error creating quarter:", error);
-      toast.error("Error al crear el cuatrimestre");
+      if (axios.isAxiosError(error)) {
+        const errorMsg =
+          error.response?.data?.detail || "Error al crear el quarter";
+        setAlertMsg(errorMsg);
+        toast.error(errorMsg, { id: "create-quarter" });
+        console.error("Error creando quarter:", error.response?.data);
+      } else if (error instanceof Error) {
+        console.error("Error creando quarter:", error.message);
+        setAlertMsg(error.message);
+        toast.error(error.message, { id: "create-quarter" });
+      } else {
+        console.error("Error creando quarter:", error);
+        setAlertMsg("Error al crear el quarter");
+        toast.error("Error al crear el quarter", { id: "create-quarter" });
+      }
+    } finally {
+      setIsCreatingQuarter(false);
     }
   };
 
   // Crear EVC_Financial
   const createFinancial = async (evcId: number, evc_q_id: number) => {
+    const provider_id = financialSelections[evc_q_id];
+    if (!provider_id) {
+      setAlertMsg("Seleccione un proveedor");
+      return;
+    }
     try {
-      // Create API call for financial
       const response = await axios.post(
-        `${apiUrl}/evc-financials/evc_financials/`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evc-financials/evc_financials/`,
         {
           evc_q_id: evc_q_id,
-          provider_id: parseInt(newFinancial.provider_id),
-          percentage: parseFloat(newFinancial.percentage),
+          provider_id: parseInt(provider_id, 10) || null,
         },
       );
-
-      // Update the selected EVC with the latest data
-      const updatedEvc = await axios.get(`${apiUrl}/evcs/${evcId}`);
-
-      // Update state
-      fetchEvcs();
-      setShowFinancialModal(false);
-    } catch (error) {
-      console.error("Error creating financial:", error);
+      console.log("Financial creado:", response.data);
+      const updatedEvc = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evcs/${evcId}`,
+      );
+      setSelectedEvc(updatedEvc.data);
+      setFinancialSelections((prev) => ({
+        ...prev,
+        [evc_q_id]: "", // Resetear selección para este quarter
+      }));
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Error creando financial:", error.message);
+        setAlertMsg(error.message);
+      } else if (axios.isAxiosError(error)) {
+        const errorMsg =
+          error.response?.data?.detail || "Error al asignar el proveedor";
+        setAlertMsg(errorMsg);
+      } else {
+        console.error("Error creando financial:", String(error));
+        setAlertMsg("Error al asignar el proveedor");
+      }
     }
   };
 
   // Eliminar EVC
   const deleteEvc = async (evcId: number) => {
     try {
-      // Delete EVC from the server
-      await axios.delete(`${apiUrl}/evcs/${evcId}`, {
-        headers: {
-          Authorization: `Bearer ${Cookies.get("auth_token")}`,
+      const token = Cookies.get("auth_token");
+      await axios.delete(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evcs/${evcId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
-
-      // Remove from state
-      setEvcs(evcs.filter((evc) => evc.id !== evcId));
-      setShowDeleteConfirmation(false);
-      setSelectedEvcForDelete(null);
-
-      // Update UI and show success message
+      );
+      setEvcs((prev) => prev.filter((e) => e.id !== evcId));
+      setShowDeleteModal(false);
+      setEvcToDelete(null);
       toast.success("EVC eliminado exitosamente");
     } catch (error) {
       console.error("Error deleting EVC:", error);
@@ -1928,30 +2082,49 @@ function EvcsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    try {
-      // Create form data
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("evc_q_id", evc_q_id.toString());
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("evc_q_id", evc_q_id.toString());
 
-      // Upload the file to the server
+    setUploading(true);
+
+    try {
       const response = await axios.post(
-        `${apiUrl}/evc-financials/evc_financials/upload`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evc-financials/evc_financials/upload`,
         formData,
         {
-          headers: {
-            "Content-Type": "multipart/form-data",
-            Authorization: `Bearer ${Cookies.get("auth_token")}`,
-          },
+          headers: { "Content-Type": "multipart/form-data" },
         },
       );
 
-      // Update UI and show success message
-      fetchEvcs();
-      toast.success("Factura subida exitosamente");
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      toast.error("Error al subir la factura");
+      setUploadedFiles((prev) => ({
+        ...prev,
+        [evc_q_id]: file.name,
+      }));
+
+      setExtractedValues((prev) => ({
+        ...prev,
+        [evc_q_id]: response.data.value_usd,
+      }));
+
+      console.log("Archivo procesado:", response.data);
+
+      // Actualizar EVC seleccionado
+      if (selectedEvc) {
+        const updatedEvc = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/evcs/${selectedEvc.id}`,
+        );
+        setSelectedEvc(updatedEvc.data);
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        console.error("Error al subir archivo:", err.message);
+      } else {
+        console.error("Error al subir archivo:", String(err));
+      }
+      setAlertMsg("Error al procesar la factura");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -1962,16 +2135,14 @@ function EvcsPage() {
   // Function to fetch all gastos for a quarter
   const fetchGastosByQuarter = async (quarter: EVC_Q) => {
     try {
-      const response = await axios.get(
-        `${apiUrl}/evc-financials/evc_financials/`,
-        {
-          params: { evc_q_id: quarter.id },
-        },
+      const res = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evc-financials/evc_financials/`,
       );
-      return response.data;
-    } catch (error) {
-      console.error("Error fetching expenses:", error);
-      return [];
+      // Filter by quarter id
+      const gastos = res.data.filter((g: any) => g.evc_q_id === quarter.id);
+      setGastosModal({ open: true, quarter, gastos });
+    } catch (err) {
+      setGastosModal({ open: true, quarter, gastos: [] });
     }
   };
 
@@ -1986,33 +2157,53 @@ function EvcsPage() {
     field: string,
   ) => {
     try {
-      // Get notifications related to this EVC
-      const relatedNotifications = notifications.filter(
-        (notif) =>
-          notif.evc === evcId && notif.field === field && notif.read === false,
+      // Fetch all unread notifications
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/notifications/`,
       );
+      const notifications = response.data;
 
-      // Mark each as read
-      for (const notification of relatedNotifications) {
-        await axios.patch(
-          `${apiUrl}/notifications/notifications/${notification.id}/read`,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${Cookies.get("auth_token")}`,
-            },
-          },
-        );
-      }
+      // Filter notifications related to this EVC and field
+      const relatedNotifications = notifications.filter((notification: any) => {
+        // Check for notifications about missing leaders or entorno for this specific EVC
+        if (
+          field === "technical_leader_id" &&
+          notification.message.includes(`El EVC`) &&
+          notification.message.includes(`(ID: ${evcId})`) &&
+          notification.message.includes("no tiene líder técnico asignado")
+        ) {
+          return true;
+        }
+        if (
+          field === "functional_leader_id" &&
+          notification.message.includes(`El EVC`) &&
+          notification.message.includes(`(ID: ${evcId})`) &&
+          notification.message.includes("no tiene líder funcional asignado")
+        ) {
+          return true;
+        }
+        if (
+          field === "entorno_id" &&
+          notification.message.includes(`El EVC`) &&
+          notification.message.includes(`(ID: ${evcId})`) &&
+          notification.message.includes("no tiene entorno asignado")
+        ) {
+          return true;
+        }
+        return false;
+      });
 
-      // Update notifications state
-      setNotifications(
-        notifications.map((notif) =>
-          relatedNotifications.some((n) => n.id === notif.id)
-            ? { ...notif, read: true }
-            : notif,
+      // Mark each related notification as read
+      const markPromises = relatedNotifications.map((notification: any) =>
+        axios.patch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/notifications/${notification.id}/read`,
         ),
       );
+
+      if (markPromises.length > 0) {
+        await Promise.all(markPromises);
+        console.log(`Marked ${markPromises.length} notifications as read`);
+      }
     } catch (error) {
       console.error("Error marking notifications as read:", error);
     }
@@ -2021,56 +2212,94 @@ function EvcsPage() {
   // Add function to update EVC fields
   const updateEvcField = async (evcId: number, field: string, value: any) => {
     try {
-      // If this is to clear a field (set to null), handle that specially
-      const updateValue = value === "" ? null : value;
+      const token = Cookies.get("auth_token");
 
-      const response = await axios.get(`${apiUrl}/evcs/${evcId}`, {
-        headers: {
-          Authorization: `Bearer ${Cookies.get("auth_token")}`,
-        },
-      });
-
-      const evc = response.data;
-
-      // Update just the one field
-      await axios.patch(
-        `${apiUrl}/evcs/${evcId}`,
-        { ...evc, [field]: updateValue },
+      // First, fetch the current EVC to get all its data
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evcs/${evcId}`,
         {
           headers: {
-            Authorization: `Bearer ${Cookies.get("auth_token")}`,
+            Authorization: `Bearer ${token}`,
           },
         },
       );
 
-      // Update UI
+      const currentEvc = response.data;
+
+      // Then update with PUT, sending the entire object with the modified field
+      await axios.put(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evcs/${evcId}`,
+        {
+          ...currentEvc,
+          [field]: value,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      // If we're setting a value (not null), mark related notifications as read
+      if (value !== null) {
+        await markRelatedNotificationsAsRead(evcId, field);
+      }
+
+      // Refetch the EVC to ensure all data is up to date including backend validations
+      const updatedResponse = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evcs/${evcId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      // Update the selected EVC with the full refreshed data from the server
+      setSelectedEvc(updatedResponse.data);
+
+      // Update the EVCs list with the updated EVC
+      setEvcs((prevEvcs) =>
+        prevEvcs.map((evc) => (evc.id === evcId ? updatedResponse.data : evc)),
+      );
+
+      // Also fetch all EVCs to ensure the list is up to date
       fetchEvcs();
 
-      // Mark any related notifications as read
-      await markRelatedNotificationsAsRead(evcId, field);
+      toast.success("Campo actualizado exitosamente");
     } catch (error) {
-      console.error(`Error updating ${field} for EVC ${evcId}:`, error);
+      console.error("Error updating EVC field:", error);
+      toast.error("Error al actualizar el campo");
     }
   };
 
   // Update function for changing EVC status
   const toggleEvcStatus = async (evc: EVC) => {
     try {
-      // Toggle status
-      await axios.patch(
-        `${apiUrl}/evcs/${evc.id}`,
-        { status: !evc.status },
+      const token = Cookies.get("auth_token");
+      await axios.put(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evcs/${evc.id}`,
+        { ...evc, status: !evc.status },
         {
           headers: {
-            Authorization: `Bearer ${Cookies.get("auth_token")}`,
+            Authorization: `Bearer ${token}`,
           },
         },
       );
 
-      // Update UI
-      fetchEvcs();
+      // Update EVCs list with the new status
+      setEvcs((prevEvcs) =>
+        prevEvcs.map((e) =>
+          e.id === evc.id ? { ...e, status: !e.status } : e,
+        ),
+      );
+
+      toast.success(
+        `EVC ${evc.name} ${!evc.status ? "activado" : "desactivado"} exitosamente`,
+      );
     } catch (error) {
-      console.error("Error toggling EVC status:", error);
+      console.error("Error updating EVC status:", error);
+      toast.error("Error al actualizar el estado del EVC");
     }
   };
 
@@ -2108,7 +2337,11 @@ function EvcsPage() {
             Seleccionar todos
           </label>
           <button
-            className={`flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 ${selectedEvcsForDelete.length === 0 || deleting ? "opacity-50 cursor-not-allowed" : ""}`}
+            className={`flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 ${
+              selectedEvcsForDelete.length === 0 || deleting
+                ? "opacity-50 cursor-not-allowed"
+                : ""
+            }`}
             disabled={selectedEvcsForDelete.length === 0 || deleting}
             onClick={() => setShowDeleteSelectedModal(true)}
           >
@@ -2545,7 +2778,9 @@ function EvcsPage() {
                     Estado
                   </div>
                   <div
-                    className={`text-base font-bold ${selectedEvc.status ? "text-green-700" : "text-red-700"}`}
+                    className={`text-base font-bold ${
+                      selectedEvc.status ? "text-green-700" : "text-red-700"
+                    }`}
                   >
                     {selectedEvc.status ? "Activo" : "Inactivo"}
                   </div>
@@ -2639,7 +2874,7 @@ function EvcsPage() {
                       className="p-2 border rounded w-full"
                       value={newQuarter.year}
                       onChange={handleQuarterChange}
-                      placeholder="YYYY"
+                      placeholder={defaultQuarterValues.year || "YYYY"}
                     />
                   </div>
                   <div>
@@ -2657,7 +2892,11 @@ function EvcsPage() {
                       onChange={handleQuarterChange}
                       aria-label="Quarter"
                     >
-                      <option value="">Seleccionar Q</option>
+                      <option value="">
+                        {defaultQuarterValues.quarter
+                          ? `Sugerido: Q${defaultQuarterValues.quarter}`
+                          : "Seleccionar Q"}
+                      </option>
                       <option value="1">Q1</option>
                       <option value="2">Q2</option>
                       <option value="3">Q3</option>
@@ -2674,7 +2913,7 @@ function EvcsPage() {
                       className="p-2 border rounded w-full"
                       value={newQuarter.allocated_budget}
                       onChange={handleQuarterChange}
-                      placeholder="$"
+                      placeholder={defaultQuarterValues.budget || "$"}
                     />
                   </div>
                   <div>
@@ -3140,7 +3379,9 @@ function EvcsPage() {
                     Estado
                   </div>
                   <div
-                    className={`text-base font-bold ${selectedEvc.status ? "text-green-700" : "text-red-700"}`}
+                    className={`text-base font-bold ${
+                      selectedEvc.status ? "text-green-700" : "text-red-700"
+                    }`}
                   >
                     {selectedEvc.status ? "Activo" : "Inactivo"}
                   </div>
@@ -3458,6 +3699,7 @@ function EvcsPage() {
             onManageQuarters={(evc) => {
               setSelectedEvc(evc);
               setShowQuartersModal(true);
+              fetchDefaultQuarterValues(evc.id);
             }}
             index={idx}
             selected={selectedEvcsForDelete.includes(evc.id)}

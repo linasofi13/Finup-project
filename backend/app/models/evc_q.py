@@ -12,7 +12,7 @@ class EVC_Q(Base):
     evc_id = Column(Integer, ForeignKey("evc.id"), nullable=False)
     allocated_budget = Column(Float, nullable=True)
     allocated_percentage = Column(Float, nullable=True)
-    creation_date = Column(DateTime, server_default=func.now(), nullable=False)
+    creation_date = Column(DateTime, server_default=func.now(), nullable=True)
 
     # Relationship with EVC
     evc = relationship("EVC", back_populates="evc_qs")

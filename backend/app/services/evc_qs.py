@@ -10,16 +10,17 @@ def predict_next_exp_smoothing(data, alpha=0.5):
         return 0
     if len(data) == 1:
         return data[0]
-    forecast=data[0]
+    forecast = data[0]
     for value in data[1:]:
         forecast = alpha * value + (1 - alpha) * forecast
     return forecast
 
 
 def suggest_next_q(q):
-    if not q or q==4:
+    if not q or q == 4:
         return 1
     return q + 1
+
 
 def create_evc_q(db: Session, evc_q_data: EVC_QCreate):
     db_evc_q = EVC_Q(**evc_q_data.model_dump())
@@ -70,28 +71,28 @@ def delete_evc_q(db: Session, evc_q_id: int):
     return db_evc_q
 
 
-
 def get_default_creation_values(db: Session, evc_id: int) -> dict:
-    year=datetime.now().year
-    evc_data = db.query(
-        EVC_Q.allocated_budget,
-        EVC_Q.creation_date,
-        EVC_Q.q  # Add other fields you need
-    ).filter(
-        EVC_Q.evc_id == evc_id
-    ).order_by(
-        EVC_Q.creation_date.desc()
-    ).all()
+    year = datetime.now().year
+    evc_data = (
+        db.query(
+            EVC_Q.allocated_budget,
+            EVC_Q.creation_date,
+            EVC_Q.q,  # Add other fields you need
+        )
+        .filter(EVC_Q.evc_id == evc_id)
+        .order_by(EVC_Q.creation_date.desc())
+        .all()
+    )
     evc_budget_values = []
-    quarter=None
+    quarter = None
     if evc_data:
         last_instance = evc_data[0]
         evc_budget_values = [row.allocated_budget for row in evc_data]
         quarter = last_instance.q
-    expected_value= predict_next_exp_smoothing(evc_budget_values)
-    next_q= suggest_next_q(quarter)
+    expected_value = predict_next_exp_smoothing(evc_budget_values)
+    next_q = suggest_next_q(quarter)
     return {
-        "year":year,
+        "year": year,
         "budget": expected_value,
         "quarter": next_q,
     }

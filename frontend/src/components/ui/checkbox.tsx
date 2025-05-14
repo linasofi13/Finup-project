@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { cn } from "@/lib/utils"
+import * as React from "react";
+import { cn } from "@/lib/utils";
 
 interface CheckboxProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  className?: string
+  className?: string;
 }
 
 const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
@@ -14,14 +14,14 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
         type="checkbox"
         className={cn(
           "h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary",
-          className
+          className,
         )}
         ref={ref}
         {...props}
       />
-    )
-  }
-)
-Checkbox.displayName = "Checkbox"
+    );
+  },
+);
+Checkbox.displayName = "Checkbox";
 
-export { Checkbox } 
+export { Checkbox };

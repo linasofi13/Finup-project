@@ -125,9 +125,7 @@ describe("Dashboard EVC Indicators", () => {
 
     // 2. Wait for initial data load
     await waitFor(() => {
-      expect(mockAxios.get).toHaveBeenCalledWith(
-        "http://127.0.0.1:8000/evcs/",
-      );
+      expect(mockAxios.get).toHaveBeenCalledWith("http://127.0.0.1:8000/evcs/");
     });
 
     // 3. Click on EVCs tab
@@ -188,9 +186,7 @@ describe("Dashboard EVC Indicators", () => {
     });
 
     // 5. Verify API calls
-    expect(mockAxios.get).toHaveBeenCalledWith(
-      "http://127.0.0.1:8000/evcs/",
-    );
+    expect(mockAxios.get).toHaveBeenCalledWith("http://127.0.0.1:8000/evcs/");
     expect(mockAxios.get).toHaveBeenCalledWith(
       "http://127.0.0.1:8000/evc-qs/evc_qs/",
     );

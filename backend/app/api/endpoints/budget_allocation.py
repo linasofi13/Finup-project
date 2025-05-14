@@ -19,7 +19,9 @@ router = APIRouter()
 
 
 @router.get("/", response_model=List[BudgetAllocationResponse])
-def read_budget_allocations(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def read_budget_allocations(
+    skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
+):
     allocations = crud.get_budget_allocations(db, skip=skip, limit=limit)
     return allocations
 
@@ -33,15 +35,24 @@ def read_budget_allocation(allocation_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/pocket/{budget_pocket_id}", response_model=List[BudgetAllocationResponse])
-def read_budget_allocations_by_pocket(budget_pocket_id: int, db: Session = Depends(get_db)):
+def read_budget_allocations_by_pocket(
+    budget_pocket_id: int, db: Session = Depends(get_db)
+):
     try:
-        allocations = crud.get_budget_allocations_by_pocket(db, budget_pocket_id=budget_pocket_id)
+        allocations = crud.get_budget_allocations_by_pocket(
+            db, budget_pocket_id=budget_pocket_id
+        )
         # Convert SQLAlchemy objects to Pydantic models
-        allocations_data = [BudgetAllocationResponse.model_validate(allocation) for allocation in allocations]
+        allocations_data = [
+            BudgetAllocationResponse.model_validate(allocation)
+            for allocation in allocations
+        ]
         logger.info(f"Allocations by pocket response: {allocations_data}")
         return allocations_data
     except Exception as e:
-        logger.error(f"Error in read_budget_allocations_by_pocket: {str(e)}", exc_info=True)
+        logger.error(
+            f"Error in read_budget_allocations_by_pocket: {str(e)}", exc_info=True
+        )
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -77,4 +88,4 @@ def delete_budget_allocation(allocation_id: int, db: Session = Depends(get_db)):
     success = crud.delete_budget_allocation(db=db, allocation_id=allocation_id)
     if not success:
         raise HTTPException(status_code=404, detail="Budget allocation not found")
-    return {"message": "Budget allocation deleted successfully"} 
+    return {"message": "Budget allocation deleted successfully"}

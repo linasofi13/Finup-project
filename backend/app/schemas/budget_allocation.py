@@ -45,4 +45,4 @@ class BudgetAllocationResponse(BudgetAllocation):
     evc: EVC
 
     class Config:
-        from_attributes = True 
+        from_attributes = True

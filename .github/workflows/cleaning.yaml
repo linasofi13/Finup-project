@@ -1,6 +1,6 @@
 name: Format Code
 
-on: 
+on:
   push:
     branches:
       - main
@@ -28,7 +28,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps
         working-directory: frontend
 
       - name: Run Prettier
@@ -49,6 +49,11 @@ jobs:
           python -m venv venv
           source venv/bin/activate
           pip install --upgrade pip
+          # Install system dependencies for PyMuPDF
+          sudo apt-get update
+          sudo apt-get install -y build-essential python3-dev
+          # Install Python packages with preference for pre-built wheels
+          pip install --only-binary :all: pymupdf==1.25.5
           pip install -r requirements.txt
         working-directory: backend
 
@@ -66,12 +71,12 @@ jobs:
           git config --global user.email "actions@github.com"
           git add .
           git commit -m "Autoformat code with Prettier, ESLint & Black" || echo "No changes to commit"
-          
+
           # Identificar la rama correcta para hacer push
           BRANCH_NAME=${{ github.head_ref || github.ref_name }}
 
           # Actualizar la rama para evitar conflictos
           git pull --rebase origin $BRANCH_NAME
-          
+
           # Hacer push de los cambios formateados a la misma rama
           git push https://x-access-token:${GITHUB_TOKEN}@github.com/linasofi13/Finup-project.git HEAD:$BRANCH_NAME

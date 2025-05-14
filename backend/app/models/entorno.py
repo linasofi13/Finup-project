@@ -21,3 +21,4 @@ class Entorno(Base):
     technical_leader = relationship("TechnicalLeader", back_populates="entornos")
     functional_leader = relationship("FunctionalLeader", back_populates="entornos")
     evcs = relationship("EVC", back_populates="entorno")
+    budget_pockets = relationship("BudgetPocket", back_populates="entorno")

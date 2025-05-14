@@ -93,7 +93,7 @@ const Sidebar = ({ isOpen, toggleSidebar }: SidebarProps) => {
           className="sidebar-link flex items-center gap-3 p-2 rounded-md hover:bg-gray-200 transition-all"
         >
           <FaUser className="sidebar-icon" />
-          {mounted && isOpen && <span>Proveedores</span>}
+          {mounted && isOpen && <span>Talentos</span>}
         </Link>
         <Link
           href="/documentos"

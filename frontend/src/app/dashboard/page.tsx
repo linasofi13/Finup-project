@@ -30,6 +30,7 @@ import {
   AreaChart,
   Area,
 } from "recharts";
+import Cookies from "js-cookie";
 
 // Paletas de colores para los gráficos
 const PIE_COLORS = [
@@ -49,9 +50,40 @@ const BAR_COLORS = [
   "#FF66C4",
 ];
 
+// Define Provider type for type safety
+interface Provider {
+  id: number;
+  name?: string;
+  company?: string;
+  cost_usd: string;
+  country?: string;
+  role?: string;
+  category?: string;
+  line?: string;
+}
+
+// Define EVC and EVC_Q types for type safety
+interface EVC {
+  id: number;
+  name: string;
+  status: boolean;
+  entorno_id?: number;
+}
+
+interface EVC_Q {
+  id: number;
+  evc_id: number;
+  year: number;
+  q: number;
+  allocated_budget: number;
+  allocated_percentage: number;
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [providersData, setProvidersData] = useState([]);
+  const [providersData, setProvidersData] = useState<Provider[]>([]);
+  const [evcsData, setEvcsData] = useState<EVC[]>([]);
+  const [evcQsData, setEvcQsData] = useState<EVC_Q[]>([]);
 
   useEffect(() => {
     fetchProviders();
@@ -76,13 +108,21 @@ export default function DashboardPage() {
   const [seccionSeleccionada, setSeccionSeleccionada] = useState<
     "proveedores" | "evcs"
   >("proveedores");
-  const [evcsData, setEvcsData] = useState([]);
-  const [evcQsData, setEvcQsData] = useState([]);
   const [evcFinancialsData, setEvcFinancialsData] = useState([]);
 
   const fetchEvcs = async () => {
+    const token = Cookies.get("auth_token");
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+    if (!apiUrl) throw new Error("API URL is not configured");
+    if (!token) throw new Error("No authentication token found");
+
     try {
-      const response = await axios.get("http://127.0.0.1:8000/evcs/evcs/");
+      const response = await axios.get(`${apiUrl}/evcs/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setEvcsData(response.data);
     } catch (error) {
       console.error("Error fetching evcs:", error);
@@ -124,15 +164,19 @@ export default function DashboardPage() {
   // 3. Gráficos
 
   // 3.1 Costo promedio por Rol (RadarChart)
-  const costByRoleMap = providersData.reduce((acc, provider) => {
-    const role = provider.role || "N/A";
-    if (!acc[role]) {
-      acc[role] = { total: 0, count: 0 };
-    }
-    acc[role].total += parseFloat(provider.cost_usd) || 0;
-    acc[role].count++;
-    return acc;
-  }, {});
+  const costByRoleMap: Record<string, { total: number; count: number }> =
+    providersData.reduce(
+      (acc, provider) => {
+        const role = provider.role || "N/A";
+        if (!acc[role]) {
+          acc[role] = { total: 0, count: 0 };
+        }
+        acc[role].total += parseFloat(provider.cost_usd) || 0;
+        acc[role].count++;
+        return acc;
+      },
+      {} as Record<string, { total: number; count: number }>,
+    );
   const radarDataRole = Object.entries(costByRoleMap).map(
     ([role, { total, count }]) => ({
       role,
@@ -141,11 +185,14 @@ export default function DashboardPage() {
   );
 
   // 3.2 Proveedores por País (PieChart)
-  const providersByCountryMap = providersData.reduce((acc, provider) => {
-    const country = provider.country || "Desconocido";
-    acc[country] = (acc[country] || 0) + 1;
-    return acc;
-  }, {});
+  const providersByCountryMap: Record<string, number> = providersData.reduce(
+    (acc, provider) => {
+      const country = provider.country || "Desconocido";
+      acc[country] = (acc[country] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
   const pieDataCountry = Object.entries(providersByCountryMap).map(
     ([country, count]) => ({ name: country, value: count }),
   );
@@ -167,43 +214,62 @@ export default function DashboardPage() {
   });
 
   // 3.4 Proveedores por Categoría (PieChart)
-  const categoryMap = providersData.reduce((acc, provider) => {
-    const cat = provider.category || "Sin categoría";
-    acc[cat] = (acc[cat] || 0) + 1;
-    return acc;
-  }, {});
+  const categoryMap: Record<string, number> = providersData.reduce(
+    (acc, provider) => {
+      const cat = provider.category || "Sin categoría";
+      acc[cat] = (acc[cat] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
   const pieDataCategory = Object.entries(categoryMap).map(([cat, count]) => ({
     name: cat,
     value: count,
   }));
 
   // 3.5 Proveedores por Línea (PieChart)
-  const lineMap = providersData.reduce((acc, provider) => {
-    const ln = provider.line || "Sin línea";
-    acc[ln] = (acc[ln] || 0) + 1;
-    return acc;
-  }, {});
+  const lineMap: Record<string, number> = providersData.reduce(
+    (acc, provider) => {
+      const ln = provider.line || "Sin línea";
+      acc[ln] = (acc[ln] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
   const pieDataLine = Object.entries(lineMap).map(([line, count]) => ({
     name: line,
     value: count,
   }));
 
   // 3.6 Costo promedio por Empresa (ScatterChart)
-  const costByCompanyMap = providersData.reduce((acc, provider) => {
-    const comp = provider.company || "Desconocido";
-    if (!acc[comp]) {
-      acc[comp] = { total: 0, count: 0 };
-    }
-    acc[comp].total += parseFloat(provider.cost_usd) || 0;
-    acc[comp].count++;
-    return acc;
-  }, {});
+  const costByCompanyMap: Record<string, { total: number; count: number }> =
+    providersData.reduce(
+      (acc, provider) => {
+        const comp = provider.company || "Desconocido";
+        if (!acc[comp]) {
+          acc[comp] = { total: 0, count: 0 };
+        }
+        acc[comp].total += parseFloat(provider.cost_usd) || 0;
+        acc[comp].count++;
+        return acc;
+      },
+      {} as Record<string, { total: number; count: number }>,
+    );
   const scatterDataCompany = Object.entries(costByCompanyMap).map(
     ([company, { total, count }]) => ({
       company,
       avgCost: count > 0 ? (total / count).toFixed(2) : 0,
     }),
   );
+
+  // 3.7 Top 5 Talentos por Costo (BarChart)
+  const top5Talentos = [...providersData]
+    .sort((a, b) => parseFloat(b.cost_usd) - parseFloat(a.cost_usd))
+    .slice(0, 5)
+    .map((p) => ({
+      name: p.company || p.name || "Talento",
+      cost: parseFloat(p.cost_usd) || 0,
+    }));
 
   return (
     <DashboardLayout title="Dashboard">
@@ -220,7 +286,7 @@ export default function DashboardPage() {
             }`}
             onClick={() => setSeccionSeleccionada("proveedores")}
           >
-            Proveedores
+            Talentos
           </button>
           <button
             className={`px-6 py-2 font-semibold transition-all duration-200 ${
@@ -244,7 +310,7 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="p-4 bg-red-100 rounded-md text-center">
                   <p className="text-xl font-bold">{totalProviders}</p>
-                  <p className="text-sm">Total de Proveedores</p>
+                  <p className="text-sm">Total de Talentos</p>
                 </div>
                 <div className="p-4 bg-blue-100 rounded-md text-center">
                   <p className="text-xl font-bold">{uniqueCountries}</p>
@@ -286,8 +352,8 @@ export default function DashboardPage() {
               </ResponsiveContainer>
             </Card>
 
-            {/* 3. Proveedores por Rango de Costo */}
-            <Card title="Proveedores por Rango de Costo">
+            {/* 3. Talentos por Rango de Costo */}
+            <Card title="Talentos por Rango de Costo">
               <ResponsiveContainer width="100%" height={400}>
                 <LineChart data={lineDataCostRanges}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -305,8 +371,8 @@ export default function DashboardPage() {
               </ResponsiveContainer>
             </Card>
 
-            {/* 4. Proveedores por País (se mantiene PieChart) */}
-            <Card title="Proveedores por País">
+            {/* 4. Talentos por País */}
+            <Card title="Talentos por País">
               <ResponsiveContainer width="100%" height={400}>
                 <PieChart>
                   <Pie
@@ -331,8 +397,8 @@ export default function DashboardPage() {
               </ResponsiveContainer>
             </Card>
 
-            {/* 5. Proveedores por Categoría (BarChart horizontal mejorado) */}
-            <Card title="Proveedores por Categoría">
+            {/* 5. Talentos por Categoría */}
+            <Card title="Talentos por Categoría">
               <ResponsiveContainer width="100%" height={400}>
                 <BarChart
                   layout="vertical"
@@ -343,10 +409,7 @@ export default function DashboardPage() {
                   <XAxis type="number" />
                   <YAxis type="category" dataKey="name" />
                   <Tooltip
-                    formatter={(value) => [
-                      `${value} proveedor(es)`,
-                      "Cantidad",
-                    ]}
+                    formatter={(value) => [`${value} talento(s)`, "Cantidad"]}
                   />
                   <Legend />
                   <Bar dataKey="value" fill="#00C49F" name="Cantidad">
@@ -361,8 +424,8 @@ export default function DashboardPage() {
               </ResponsiveContainer>
             </Card>
 
-            {/* 6. Proveedores por Línea (BarChart vertical en lugar de LineChart) */}
-            <Card title="Proveedores por Línea">
+            {/* 6. Talentos por Línea */}
+            <Card title="Talentos por Línea">
               <ResponsiveContainer width="100%" height={400}>
                 <BarChart
                   data={pieDataLine}
@@ -372,10 +435,7 @@ export default function DashboardPage() {
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip
-                    formatter={(value) => [
-                      `${value} proveedor(es)`,
-                      "Cantidad",
-                    ]}
+                    formatter={(value) => [`${value} talento(s)`, "Cantidad"]}
                   />
                   <Legend />
                   <Bar dataKey="value" fill="#FFBB28" name="Cantidad">
@@ -408,11 +468,36 @@ export default function DashboardPage() {
               </ResponsiveContainer>
             </Card>
 
-            {/* 8. Acciones Rápidas */}
+            {/* 8. Top 5 Talentos por Costo */}
+            <Card title="Top 5 Talentos por Costo">
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart
+                  data={top5Talentos}
+                  layout="vertical"
+                  margin={{ top: 20, right: 40, left: 80, bottom: 20 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" dataKey="cost" />
+                  <YAxis type="category" dataKey="name" />
+                  <Tooltip formatter={(value) => [`$${value}`, "Costo"]} />
+                  <Legend />
+                  <Bar dataKey="cost" fill="#FF8042" name="Costo">
+                    {top5Talentos.map((_, index) => (
+                      <Cell
+                        key={`top5-bar-${index}`}
+                        fill={BAR_COLORS[index % BAR_COLORS.length]}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+
+            {/* 9. Acciones Rápidas */}
             <Card title="Acciones Rápidas">
               <div className="space-y-4">
                 <Button variant="primary" className="w-full">
-                  Ir a Proveedores
+                  Ir a Talentos
                 </Button>
               </div>
             </Card>

@@ -23,7 +23,7 @@ import { finupBucket } from "@/services/supabaseClient";
 //fin de codigo para cargar el archivo a supabase
 // Ajusta la ruta si es necesario
 
-export default function ProveedoresPage() {
+export default function TalentosPage() {
   const [proveedores, setProveedores] = useState([]);
   const [editingProveedor, setEditingProveedor] = useState(null);
   const [newRows, setNewRows] = useState([]);
@@ -85,7 +85,7 @@ export default function ProveedoresPage() {
       );
       setDocList(response.data);
     } catch (error) {
-      console.error("Error obteniendo documentos del proveedor:", error);
+      console.error("Error obteniendo documentos del talento:", error);
     }
   };
 
@@ -93,8 +93,8 @@ export default function ProveedoresPage() {
   const exportToExcel = () => {
     const ws = XLSX.utils.json_to_sheet(proveedores);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Proveedores");
-    XLSX.writeFile(wb, "proveedores.xlsx");
+    XLSX.utils.book_append_sheet(wb, ws, "Talentos");
+    XLSX.writeFile(wb, "talentos.xlsx");
   };
 
   // Manejo de filtros
@@ -149,9 +149,7 @@ export default function ProveedoresPage() {
 
   const handleDeleteSelected = async () => {
     if (
-      !window.confirm(
-        "¿Confirma la eliminación de los registros seleccionados?",
-      )
+      !window.confirm("¿Confirma la eliminación de los talentos seleccionados?")
     )
       return;
     try {
@@ -232,7 +230,7 @@ export default function ProveedoresPage() {
   };
 
   const eliminarProveedor = async (id) => {
-    if (!window.confirm("¿Confirmas la eliminación de este registro?")) return;
+    if (!window.confirm("¿Confirmas la eliminación de este talento?")) return;
     try {
       await axios.delete(`${API_URL}/${id}`);
       setProveedores(proveedores.filter((prov) => prov.id !== id));
@@ -314,10 +312,10 @@ export default function ProveedoresPage() {
     setShowPreviewModal(false);
     try {
       await axios.post(BULK_UPLOAD_URL, filePreview);
-      alert("Proveedores subidos con éxito");
+      alert("Talentos subidos con éxito");
       fetchProveedores();
     } catch (error) {
-      console.error("Error al subir proveedores:", error);
+      console.error("Error al subir talentos:", error);
       alert("Error al procesar la carga. Verifica el formato.");
     } finally {
       setLoading(false);
@@ -334,7 +332,7 @@ export default function ProveedoresPage() {
   const handleUploadDocument = async () => {
     if (!docFile) return alert("Por favor selecciona un archivo.");
     if (!selectedProviderId || selectedProviderId === "0")
-      return alert("Selecciona un proveedor válido.");
+      return alert("Selecciona un talento válido.");
 
     try {
       const fileName = `${Date.now()}-${docFile.name}`;
@@ -359,12 +357,12 @@ export default function ProveedoresPage() {
 
       setDocList((prev) => [...prev, response.data]);
       setUploadMessage(
-        `✅ Documento "${docFile.name}" subido con éxito para el proveedor seleccionado.`,
+        `✅ Documento "${docFile.name}" subido con éxito para el talento seleccionado.`,
       );
       setDocFile(null);
       if (docFileInputRef.current) docFileInputRef.current.value = "";
 
-      // 💡 UX Mejorada: aplicar filtro automáticamente al proveedor recién usado
+      // 💡 UX Mejorada: aplicar filtro automáticamente al talento recién usado
       setFilterProviderId(selectedProviderId);
     } catch (err) {
       console.error("Error en subida:", err);
@@ -401,7 +399,7 @@ export default function ProveedoresPage() {
 
   return (
     <div className="p-6 mt-20 bg-white shadow-md rounded-lg flex flex-col space-y-8">
-      {/* Sección: Tabla de Proveedores y Acciones */}
+      {/* Sección: Tabla de Talentos y Acciones */}
       <div>
         <div className="flex justify-between items-center mb-4">
           <div className="flex space-x-2">
@@ -409,7 +407,7 @@ export default function ProveedoresPage() {
               onClick={handleAddNewRow}
               className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 flex items-center"
             >
-              <FaPlus className="mr-2" /> Añadir Registro
+              <FaPlus className="mr-2" /> Añadir Talento
             </button>
             <button
               onClick={exportToExcel}
@@ -423,7 +421,7 @@ export default function ProveedoresPage() {
               onClick={handleDeleteSelected}
               className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 flex items-center"
             >
-              <FaTrash className="mr-2" /> Eliminar seleccionados
+              <FaTrash className="mr-2" /> Eliminar talentos seleccionados
             </button>
           )}
         </div>
@@ -444,7 +442,7 @@ export default function ProveedoresPage() {
                 </th>
                 <th className="p-3 text-left border">Nombre</th>
                 <th className="p-3 text-left border">Rol</th>
-                <th className="p-3 text-left border">Proveedor</th>
+                <th className="p-3 text-left border">Empresa</th>
                 <th className="p-3 text-left border">País</th>
                 <th className="p-3 text-left border">Costo USD</th>
                 <th className="p-3 text-left border">Categoría</th>
@@ -743,7 +741,7 @@ export default function ProveedoresPage() {
                       value={row.company}
                       onChange={(e) => handleNewRowInputChange(row.tempId, e)}
                       className="w-full border p-1 rounded"
-                      placeholder="Proveedor"
+                      placeholder="Empresa"
                     />
                   </td>
                   <td className="p-3 border">
@@ -816,7 +814,7 @@ export default function ProveedoresPage() {
         </div>
         {/* Carga Masiva */}
         <div className="mt-8 p-6 bg-gray-50 rounded-lg shadow-md w-full">
-          <h2 className="text-lg font-semibold">Carga Masiva de Proveedores</h2>
+          <h2 className="text-lg font-semibold">Carga Masiva de Talentos</h2>
           <p className="text-sm text-gray-600 mb-2">
             Formatos soportados: .xlsx, .xls
           </p>
@@ -840,9 +838,9 @@ export default function ProveedoresPage() {
 
       {/* Sección de Documentación unificada con mejor UX */}
       <div className="mt-8 space-y-6 bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-bold">Documentación del Proveedor</h2>
+        <h2 className="text-xl font-bold">Documentación del Talento</h2>
         <p className="text-sm text-gray-600">
-          Selecciona un proveedor para ver y subir documentos asociados.
+          Selecciona un talento para ver y subir documentos asociados.
         </p>
 
         {/* Notificación personalizada */}
@@ -855,7 +853,7 @@ export default function ProveedoresPage() {
         {/* Selector único para subir y filtrar */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Proveedor
+            Talento
           </label>
           <select
             className="w-full border p-2 rounded"
@@ -866,7 +864,7 @@ export default function ProveedoresPage() {
               setFilterProviderId(id); // sincroniza filtro con selección
             }}
           >
-            <option value="">-- Selecciona un proveedor --</option>
+            <option value="">-- Selecciona un talento --</option>
             {proveedores.map((prov) => (
               <option key={prov.id} value={prov.id}>
                 {prov.name} ({prov.company})
@@ -915,7 +913,7 @@ export default function ProveedoresPage() {
               doc.provider_id === parseInt(filterProviderId),
           ).length === 0 ? (
             <p className="text-sm italic text-gray-500">
-              No hay documentos registrados para el proveedor seleccionado.
+              No hay documentos registrados para el talento seleccionado.
             </p>
           ) : (
             <ul className="space-y-2 animate-fade-in">
@@ -939,7 +937,7 @@ export default function ProveedoresPage() {
                         <p className="text-xs text-gray-500">
                           {prov
                             ? `${prov.name} - ${prov.company}`
-                            : "Proveedor no encontrado"}
+                            : "Talento no encontrado"}
                         </p>
                         <a
                           href={doc.file_url}
@@ -978,7 +976,7 @@ export default function ProveedoresPage() {
               data-testid="preview-modal-title"
               className="text-xl font-bold mb-4"
             >
-              Previsualizar Carga Masiva
+              Previsualizar Carga Masiva de Talentos
             </h2>
             <div className="overflow-x-auto mb-4">
               <table className="min-w-full border border-gray-300 rounded-lg">
@@ -987,7 +985,7 @@ export default function ProveedoresPage() {
                     {[
                       "Nombre",
                       "Rol",
-                      "Proveedor",
+                      "Empresa",
                       "País",
                       "Costo USD",
                       "Categoría",

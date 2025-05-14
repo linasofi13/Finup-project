@@ -1,38 +1,24 @@
-"use client";
-import { useState } from "react";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { AuthProvider, useAuth } from "@/context/AuthContext";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
-import Sidebar from "@/components/layout/Sidebar";
-import { metadata } from "./metadata";
+import { AuthProvider } from "@/context/AuthContext";
+import ClientWrapper from "@/components/layout/ClientWrapper";
+import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
-function AppContent({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-
-  return (
-    <div className="flex">
-      {user && (
-        <Sidebar
-          isOpen={isSidebarOpen}
-          toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-        />
-      )}
-      <div
-        className="flex flex-col flex-grow min-h-screen transition-all duration-300"
-        style={{ marginLeft: user ? (isSidebarOpen ? "16rem" : "5rem") : "0" }}
-      >
-        <Header isSidebarOpen={!!user && isSidebarOpen} />
-        <main className="flex-grow p-6">{children}</main>
-        <Footer />
-      </div>
-    </div>
-  );
-}
+export const metadata = {
+  title: "Finup",
+  description: "Sistema de gestión de presupuestos",
+  icons: {
+    icon: [
+      { url: "/images/logo.png", sizes: "32x32", type: "image/png" },
+      { url: "/images/logo.png", sizes: "16x16", type: "image/png" },
+    ],
+    shortcut: "/images/logo.png",
+    apple: "/images/logo.png",
+  },
+  manifest: "/manifest.json",
+};
 
 export default function RootLayout({
   children,
@@ -40,10 +26,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es">
+    <html lang="es" className={inter.className}>
       <body>
         <AuthProvider>
-          <AppContent>{children}</AppContent>
+          <ClientWrapper>{children}</ClientWrapper>
+          <Toaster />
         </AuthProvider>
       </body>
     </html>

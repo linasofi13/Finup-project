@@ -9,8 +9,7 @@ def create_evc_q(db: Session, evc_q_data: EVC_QCreate):
     db.add(db_evc_q)
     db.commit()
     db.refresh(db_evc_q)
-
-    evaluate_rules(db, changed_table="evc_q")
+    evaluate_rules(db, changed_table="evc_q", changed_id=db_evc_q.id)
     return db_evc_q
 
 
@@ -42,9 +41,7 @@ def update_evc_q(db: Session, evc_q_id: int, evc_q_data: EVC_QUpdate):
             setattr(db_evc_q, key, value)
         db.commit()
         db.refresh(db_evc_q)
-
-        evaluate_rules(db, changed_table="evc_q")
-
+        evaluate_rules(db, changed_table="evc_q", changed_id=db_evc_q.id)
     return db_evc_q
 
 

@@ -10,7 +10,10 @@ from app.schemas.budget_pocket import (
     BudgetPocketUpdate,
     BudgetPocketResponse,
 )
-from app.schemas.budget_allocation import BudgetAllocationCreate, BudgetAllocationResponse
+from app.schemas.budget_allocation import (
+    BudgetAllocationCreate,
+    BudgetAllocationResponse,
+)
 import logging
 
 # Configure logging
@@ -53,10 +56,14 @@ def read_budget_pockets_by_entorno(entorno_id: int, db: Session = Depends(get_db
     try:
         budget_pockets = crud.get_budget_pockets_by_entorno(db, entorno_id=entorno_id)
         # Log the response data for debugging
-        logger.info(f"Budget pockets by entorno response: {[p.__dict__ for p in budget_pockets]}")
+        logger.info(
+            f"Budget pockets by entorno response: {[p.__dict__ for p in budget_pockets]}"
+        )
         return budget_pockets
     except Exception as e:
-        logger.error(f"Error in read_budget_pockets_by_entorno: {str(e)}", exc_info=True)
+        logger.error(
+            f"Error in read_budget_pockets_by_entorno: {str(e)}", exc_info=True
+        )
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -65,7 +72,9 @@ def read_budget_pockets_by_year(year: int, db: Session = Depends(get_db)):
     try:
         budget_pockets = crud.get_budget_pockets_by_year(db, year=year)
         # Log the response data for debugging
-        logger.info(f"Budget pockets by year response: {[p.__dict__ for p in budget_pockets]}")
+        logger.info(
+            f"Budget pockets by year response: {[p.__dict__ for p in budget_pockets]}"
+        )
         return budget_pockets
     except Exception as e:
         logger.error(f"Error in read_budget_pockets_by_year: {str(e)}", exc_info=True)
@@ -126,46 +135,48 @@ def delete_budget_pocket(budget_pocket_id: int, db: Session = Depends(get_db)):
 def allocate_budget_to_evc(
     budget_pocket_id: int,
     allocation: BudgetAllocationCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     try:
         # Verify budget pocket exists and is available
         budget_pocket = crud.get_budget_pocket(db, budget_pocket_id)
         if not budget_pocket:
             raise HTTPException(status_code=404, detail="Budget pocket not found")
-        
+
         if not budget_pocket.is_available:
-            raise HTTPException(status_code=400, detail="Budget pocket is not available for allocation")
-        
+            raise HTTPException(
+                status_code=400, detail="Budget pocket is not available for allocation"
+            )
+
         # Ensure total_allocated is not None
         total_allocated = budget_pocket.total_allocated or 0
-        
+
         # Verify the allocation amount doesn't exceed available budget
         remaining_budget = budget_pocket.agreed_value - total_allocated
         if allocation.allocated_value > remaining_budget:
             raise HTTPException(
                 status_code=400,
-                detail=f"El monto de la asignación excede el presupuesto disponible. Disponible: {remaining_budget}"
+                detail=f"El monto de la asignación excede el presupuesto disponible. Disponible: {remaining_budget}",
             )
-        
+
         # Create the allocation
         allocation.budget_pocket_id = budget_pocket_id
         result = allocation_crud.create_budget_allocation(db=db, allocation=allocation)
-        
+
         # Update the budget pocket's total allocated amount
         crud.update_budget_pocket(
             db=db,
             budget_pocket_id=budget_pocket_id,
             budget_pocket=BudgetPocketUpdate(
                 total_allocated=total_allocated + allocation.allocated_value,
-                is_available=remaining_budget - allocation.allocated_value > 0
-            )
+                is_available=remaining_budget - allocation.allocated_value > 0,
+            ),
         )
-        
+
         logger.info(f"Created budget allocation: {result.__dict__}")
         return result
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error in allocate_budget_to_evc: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e))

@@ -111,17 +111,17 @@ export default function DashboardPage() {
   const [evcFinancialsData, setEvcFinancialsData] = useState([]);
 
   const fetchEvcs = async () => {
-    const token = Cookies.get('auth_token');
+    const token = Cookies.get("auth_token");
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
-    if (!apiUrl) throw new Error('API URL is not configured');
-    if (!token) throw new Error('No authentication token found');
+    if (!apiUrl) throw new Error("API URL is not configured");
+    if (!token) throw new Error("No authentication token found");
 
     try {
       const response = await axios.get(`${apiUrl}/evcs/`, {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
       setEvcsData(response.data);
     } catch (error) {

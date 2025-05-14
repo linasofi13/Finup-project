@@ -31,8 +31,8 @@ import {
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/Checkbox";
-import axios from 'axios';
-import Cookies from 'js-cookie';
+import axios from "axios";
+import Cookies from "js-cookie";
 
 interface BudgetPocket {
   id: number;
@@ -69,7 +69,9 @@ interface Entorno {
 export default function BudgetPocketPage() {
   const router = useRouter();
   const [budgetPockets, setBudgetPockets] = useState<BudgetPocket[]>([]);
-  const [allocations, setAllocations] = useState<Record<number, BudgetAllocation[]>>({});
+  const [allocations, setAllocations] = useState<
+    Record<number, BudgetAllocation[]>
+  >({});
   const [entornos, setEntornos] = useState<Entorno[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -88,29 +90,29 @@ export default function BudgetPocketPage() {
 
   const fetchBudgetPockets = async () => {
     try {
-      const token = Cookies.get('auth_token');
+      const token = Cookies.get("auth_token");
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      
-      console.log('API URL:', apiUrl);
-      console.log('Token:', token);
-      
+
+      console.log("API URL:", apiUrl);
+      console.log("Token:", token);
+
       if (!apiUrl) {
-        throw new Error('API URL is not configured');
+        throw new Error("API URL is not configured");
       }
-      
+
       if (!token) {
-        throw new Error('No authentication token found');
+        throw new Error("No authentication token found");
       }
 
       const response = await axios.get(`${apiUrl}/budget-pockets`, {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
-      
-      console.log('Response:', response.data);
+
+      console.log("Response:", response.data);
       setBudgetPockets(response.data);
-      
+
       // Fetch allocations for each budget pocket
       const allocationsData: Record<number, BudgetAllocation[]> = {};
       for (const pocket of response.data) {
@@ -119,13 +121,16 @@ export default function BudgetPocketPage() {
             `${apiUrl}/budget-allocations/pocket/${pocket.id}`,
             {
               headers: {
-                Authorization: `Bearer ${token}`
-              }
-            }
+                Authorization: `Bearer ${token}`,
+              },
+            },
           );
           allocationsData[pocket.id] = allocResponse.data;
         } catch (error) {
-          console.error(`Error fetching allocations for pocket ${pocket.id}:`, error);
+          console.error(
+            `Error fetching allocations for pocket ${pocket.id}:`,
+            error,
+          );
         }
       }
       setAllocations(allocationsData);
@@ -134,17 +139,21 @@ export default function BudgetPocketPage() {
       if (error.response) {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
-        console.error('Response data:', error.response.data);
-        console.error('Response status:', error.response.status);
-        console.error('Response headers:', error.response.headers);
-        toast.error(`Error al cargar las bolsas presupuestales: ${error.response.data.detail || error.response.status}`);
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+        console.error("Response headers:", error.response.headers);
+        toast.error(
+          `Error al cargar las bolsas presupuestales: ${error.response.data.detail || error.response.status}`,
+        );
       } else if (error.request) {
         // The request was made but no response was received
-        console.error('Request error:', error.request);
-        toast.error('No se pudo conectar con el servidor. Por favor, verifique su conexión.');
+        console.error("Request error:", error.request);
+        toast.error(
+          "No se pudo conectar con el servidor. Por favor, verifique su conexión.",
+        );
       } else {
         // Something happened in setting up the request that triggered an Error
-        console.error('Error message:', error.message);
+        console.error("Error message:", error.message);
         toast.error(`Error: ${error.message}`);
       }
     } finally {
@@ -154,12 +163,15 @@ export default function BudgetPocketPage() {
 
   const fetchEntornos = async () => {
     try {
-      const token = Cookies.get('auth_token');
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/entornos/entornos/`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      const token = Cookies.get("auth_token");
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/entornos/entornos/`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
       setEntornos(response.data);
     } catch (error) {
       console.error("Error fetching entornos:", error);
@@ -169,13 +181,16 @@ export default function BudgetPocketPage() {
 
   const calculateTotalAllocated = (pocketId: number) => {
     const pocketAllocations = allocations[pocketId] || [];
-    return pocketAllocations.reduce((sum, allocation) => sum + allocation.allocated_value, 0);
+    return pocketAllocations.reduce(
+      (sum, allocation) => sum + allocation.allocated_value,
+      0,
+    );
   };
 
   const handleCreatePocket = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const token = Cookies.get('auth_token');
+      const token = Cookies.get("auth_token");
       await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/budget-pockets/`,
         {
@@ -185,11 +200,11 @@ export default function BudgetPocketPage() {
         },
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
-      
+
       toast.success("Bolsa presupuestal creada exitosamente");
       setIsDialogOpen(false);
       setFormData({
@@ -211,23 +226,27 @@ export default function BudgetPocketPage() {
       return;
     }
 
-    if (!confirm(`¿Está seguro de eliminar ${selectedPockets.length} bolsa(s) presupuestal(es)?`)) {
+    if (
+      !confirm(
+        `¿Está seguro de eliminar ${selectedPockets.length} bolsa(s) presupuestal(es)?`,
+      )
+    ) {
       return;
     }
 
     try {
-      const token = Cookies.get('auth_token');
+      const token = Cookies.get("auth_token");
       for (const pocketId of selectedPockets) {
         await axios.delete(
           `${process.env.NEXT_PUBLIC_API_URL}/budget-pockets/${pocketId}`,
           {
             headers: {
-              Authorization: `Bearer ${token}`
-            }
-          }
+              Authorization: `Bearer ${token}`,
+            },
+          },
         );
       }
-      
+
       toast.success("Bolsas presupuestales eliminadas exitosamente");
       setSelectedPockets([]);
       fetchBudgetPockets();
@@ -238,10 +257,10 @@ export default function BudgetPocketPage() {
   };
 
   const togglePocketSelection = (pocketId: number) => {
-    setSelectedPockets(prev => 
-      prev.includes(pocketId) 
-        ? prev.filter(id => id !== pocketId)
-        : [...prev, pocketId]
+    setSelectedPockets((prev) =>
+      prev.includes(pocketId)
+        ? prev.filter((id) => id !== pocketId)
+        : [...prev, pocketId],
     );
   };
 
@@ -278,7 +297,10 @@ export default function BudgetPocketPage() {
                     type="number"
                     value={formData.year}
                     onChange={(e) =>
-                      setFormData({ ...formData, year: parseInt(e.target.value) })
+                      setFormData({
+                        ...formData,
+                        year: parseInt(e.target.value),
+                      })
                     }
                     required
                   />
@@ -296,7 +318,10 @@ export default function BudgetPocketPage() {
                     </SelectTrigger>
                     <SelectContent className="absolute z-[1000] bg-white border rounded-md shadow-lg">
                       {entornos.map((entorno) => (
-                        <SelectItem key={entorno.id} value={entorno.id.toString()}>
+                        <SelectItem
+                          key={entorno.id}
+                          value={entorno.id.toString()}
+                        >
                           {entorno.name}
                         </SelectItem>
                       ))}
@@ -339,7 +364,7 @@ export default function BudgetPocketPage() {
                     if (selectedPockets.length === budgetPockets.length) {
                       setSelectedPockets([]);
                     } else {
-                      setSelectedPockets(budgetPockets.map(p => p.id));
+                      setSelectedPockets(budgetPockets.map((p) => p.id));
                     }
                   }}
                 />
@@ -365,11 +390,15 @@ export default function BudgetPocketPage() {
                 <TableCell>{pocket.year}</TableCell>
                 <TableCell>{pocket.entorno.name}</TableCell>
                 <TableCell>${pocket.agreed_value.toLocaleString()}</TableCell>
-                <TableCell>${calculateTotalAllocated(pocket.id).toLocaleString()}</TableCell>
+                <TableCell>
+                  ${calculateTotalAllocated(pocket.id).toLocaleString()}
+                </TableCell>
                 <TableCell>
                   <span
                     className={`px-2 py-1 rounded-full text-xs ${
-                      pocket.is_available ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                      pocket.is_available
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
                     }`}
                   >
                     {pocket.is_available ? "Activo" : "No Disponible"}
@@ -378,14 +407,20 @@ export default function BudgetPocketPage() {
                 <TableCell>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => router.push(`/asignacion-presupuestal/${pocket.id}`)}
+                      onClick={() =>
+                        router.push(`/asignacion-presupuestal/${pocket.id}`)
+                      }
                       className="text-blue-500 hover:text-blue-700"
                     >
                       Ver Detalles
                     </button>
                     {pocket.is_available && (
                       <button
-                        onClick={() => router.push(`/asignacion-presupuestal/${pocket.id}?allocate=true`)}
+                        onClick={() =>
+                          router.push(
+                            `/asignacion-presupuestal/${pocket.id}?allocate=true`,
+                          )
+                        }
                         className="text-green-500 hover:text-green-700"
                       >
                         Asignar

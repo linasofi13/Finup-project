@@ -169,21 +169,32 @@ function EvcCard({
 
   const asignado = totalAssignedPercentage;
   // Update the gastado calculation to be percentage of budget spent
-  const gastado = totalAssigned > 0 ? Math.min(Math.round((totalSpent / totalAssigned) * 100), 100) : 0;
+  const gastado =
+    totalAssigned > 0
+      ? Math.min(Math.round((totalSpent / totalAssigned) * 100), 100)
+      : 0;
   // Update progreso to calculate average of correctly calculated percentages
-  const progreso = evc.evc_qs.length > 0 
-    ? Math.round(
-        evc.evc_qs.reduce((sum, q) => {
-          // Calculate correct percentage for each quarter
-          const quarterPercentage = q.allocated_budget > 0 
-            ? Math.min(Math.round((q.total_spendings || 0) / q.allocated_budget * 100), 100)
-            : 0;
-          return sum + quarterPercentage;
-        }, 0) / evc.evc_qs.length
-      )
-    : 0;
-  
-  const qActual = evc.evc_qs?.length > 0 ? evc.evc_qs[evc.evc_qs.length - 1].q : 1;
+  const progreso =
+    evc.evc_qs.length > 0
+      ? Math.round(
+          evc.evc_qs.reduce((sum, q) => {
+            // Calculate correct percentage for each quarter
+            const quarterPercentage =
+              q.allocated_budget > 0
+                ? Math.min(
+                    Math.round(
+                      ((q.total_spendings || 0) / q.allocated_budget) * 100,
+                    ),
+                    100,
+                  )
+                : 0;
+            return sum + quarterPercentage;
+          }, 0) / evc.evc_qs.length,
+        )
+      : 0;
+
+  const qActual =
+    evc.evc_qs?.length > 0 ? evc.evc_qs[evc.evc_qs.length - 1].q : 1;
   return (
     <div
       className={`rounded-2xl shadow-lg p-6 w-full text-gray-900 relative flex flex-col min-h-[320px] group transition-all duration-200 ${selected ? "border-2 border-yellow-400 bg-yellow-50" : ""}`}
@@ -333,8 +344,8 @@ function EvcCard({
   );
 }
 
-function QuarterCard({ 
-  quarter, 
+function QuarterCard({
+  quarter,
   onUpdatePercentage,
   manualSpendingStatus,
   setManualSpendingStatus,
@@ -346,27 +357,54 @@ function QuarterCard({
   setProviderSelections,
   setProviderFilterModal,
   getFilteredProviders,
-  fetchEvcs
-}: { 
-  quarter: EVC_Q, 
-  onUpdatePercentage: (id: number, percentage: number) => Promise<void>,
-  manualSpendingStatus: Record<number, { error?: string; success?: string }>,
-  setManualSpendingStatus: React.Dispatch<React.SetStateAction<Record<number, { error?: string; success?: string }>>>,
-  manualSpendings: { [quarterId: number]: ManualSpending },
-  setManualSpendings: React.Dispatch<React.SetStateAction<{ [quarterId: number]: ManualSpending }>>,
-  uploadStatus: { [quarterId: number]: { uploading: boolean; error?: string; success?: string } },
-  setUploadStatus: React.Dispatch<React.SetStateAction<{ [quarterId: number]: { uploading: boolean; error?: string; success?: string } }>>,
-  providerSelections: { [quarterId: number]: string },
-  setProviderSelections: React.Dispatch<React.SetStateAction<{ [quarterId: number]: string }>>,
-  setProviderFilterModal: React.Dispatch<React.SetStateAction<{ quarterId: number | null, open: boolean }>>,
-  getFilteredProviders: (quarterId: number) => Provider[],
-  fetchEvcs: () => Promise<void>
+  fetchEvcs,
+}: {
+  quarter: EVC_Q;
+  onUpdatePercentage: (id: number, percentage: number) => Promise<void>;
+  manualSpendingStatus: Record<number, { error?: string; success?: string }>;
+  setManualSpendingStatus: React.Dispatch<
+    React.SetStateAction<Record<number, { error?: string; success?: string }>>
+  >;
+  manualSpendings: { [quarterId: number]: ManualSpending };
+  setManualSpendings: React.Dispatch<
+    React.SetStateAction<{ [quarterId: number]: ManualSpending }>
+  >;
+  uploadStatus: {
+    [quarterId: number]: {
+      uploading: boolean;
+      error?: string;
+      success?: string;
+    };
+  };
+  setUploadStatus: React.Dispatch<
+    React.SetStateAction<{
+      [quarterId: number]: {
+        uploading: boolean;
+        error?: string;
+        success?: string;
+      };
+    }>
+  >;
+  providerSelections: { [quarterId: number]: string };
+  setProviderSelections: React.Dispatch<
+    React.SetStateAction<{ [quarterId: number]: string }>
+  >;
+  setProviderFilterModal: React.Dispatch<
+    React.SetStateAction<{ quarterId: number | null; open: boolean }>
+  >;
+  getFilteredProviders: (quarterId: number) => Provider[];
+  fetchEvcs: () => Promise<void>;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(quarter.allocated_percentage);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [showConfirmDialog, setShowConfirmDialog] = useState<{ show: boolean; type: 'manual' | 'receipt'; data: any; quarterId: number } | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState<{
+    show: boolean;
+    type: "manual" | "receipt";
+    data: any;
+    quarterId: number;
+  } | null>(null);
 
   const handlePercentageSave = async () => {
     if (editValue >= 0 && editValue <= 100) {
@@ -379,16 +417,16 @@ function QuarterCard({
     try {
       const spending = manualSpendings[quarterId];
       if (!spending || !spending.value_usd) {
-        setManualSpendingStatus(prev => ({
+        setManualSpendingStatus((prev) => ({
           ...prev,
-          [quarterId]: { error: "Por favor ingrese un valor válido" }
+          [quarterId]: { error: "Por favor ingrese un valor válido" },
         }));
         return;
       }
 
       // Get current quarter data
       const currentQuarter = quarter;
-      
+
       // Calculate remaining budget
       const totalBudget = currentQuarter.allocated_budget;
       const spentBudget = currentQuarter.total_spendings || 0;
@@ -399,52 +437,54 @@ function QuarterCard({
         // Show confirmation dialog instead of error
         setShowConfirmDialog({
           show: true,
-          type: 'manual',
+          type: "manual",
           data: spending,
-          quarterId
+          quarterId,
         });
         return;
       }
 
       await submitManualSpending(quarterId, spending);
-
     } catch (error) {
       console.error("Error adding manual spending:", error);
-      setManualSpendingStatus(prev => ({
+      setManualSpendingStatus((prev) => ({
         ...prev,
-        [quarterId]: { error: "Error al agregar el gasto" }
+        [quarterId]: { error: "Error al agregar el gasto" },
       }));
     }
   };
 
   // New function to submit manual spending after confirmation
-  const submitManualSpending = async (quarterId: number, spending: ManualSpending) => {
+  const submitManualSpending = async (
+    quarterId: number,
+    spending: ManualSpending,
+  ) => {
     try {
-      const token = Cookies.get('auth_token');
+      const token = Cookies.get("auth_token");
       await axios.post(
         `http://127.0.0.1:8000/evc-financials/evc_financials/concept`,
         {
           evc_q_id: quarterId,
           value_usd: spending.value_usd,
-          concept: spending.concept
+          concept: spending.concept,
         },
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
 
       // Clear the form
-      setManualSpendings(prev => ({
+      setManualSpendings((prev) => ({
         ...prev,
-        [quarterId]: { value_usd: 0, concept: "" }
+        [quarterId]: { value_usd: 0, concept: "" },
       }));
 
       // Show success message
-      setManualSpendingStatus(prev => ({
+      setManualSpendingStatus((prev) => ({
         ...prev,
-        [quarterId]: { success: "Gasto agregado exitosamente" }
+        [quarterId]: { success: "Gasto agregado exitosamente" },
       }));
 
       // Refresh the EVC data to update the progress bars
@@ -452,7 +492,7 @@ function QuarterCard({
 
       // Clear success message after 3 seconds
       setTimeout(() => {
-        setManualSpendingStatus(prev => {
+        setManualSpendingStatus((prev) => {
           const newStatus = { ...prev };
           delete newStatus[quarterId];
           return newStatus;
@@ -460,9 +500,9 @@ function QuarterCard({
       }, 3000);
     } catch (error) {
       console.error("Error submitting manual spending:", error);
-      setManualSpendingStatus(prev => ({
+      setManualSpendingStatus((prev) => ({
         ...prev,
-        [quarterId]: { error: "Error al agregar el gasto" }
+        [quarterId]: { error: "Error al agregar el gasto" },
       }));
     }
   };
@@ -477,7 +517,7 @@ function QuarterCard({
 
   const handleFileUploadDrop = async (file: File) => {
     if (!file) return;
-    
+
     // Process the file but check budget before actually uploading
     processFileUpload(file, quarter.id);
   };
@@ -487,36 +527,38 @@ function QuarterCard({
     // First, try to extract the amount from the PDF
     try {
       setUploading(true);
-      
+
       // In a real implementation, we would send the PDF to a backend service for OCR processing
       // For now, we'll simulate the backend's response based on the file name
-      
+
       // Create a form data object to potentially send to a real OCR service
       const formData = new FormData();
       formData.append("file", file);
-      
+
       let extractedAmount = 0;
-      
+
       try {
         // Simulate an OCR service call
         // In production, this would be an actual API call like:
         // const ocrResponse = await axios.post(`http://127.0.0.1:8000/ocr/extract-total`, formData);
         // extractedAmount = ocrResponse.data.total;
-        
+
         // For demonstration purposes, we're using the file's last modified date to simulate
         // different OCR results, but assuming we got the correct total of $5,992
         extractedAmount = 5992;
-        
-        console.log(`Successfully extracted amount $${extractedAmount} from invoice`);
+
+        console.log(
+          `Successfully extracted amount $${extractedAmount} from invoice`,
+        );
       } catch (ocrError) {
         console.error("Error in OCR processing:", ocrError);
         // If OCR failed, fall back to a default value
         extractedAmount = 5992;
       }
-      
+
       // Get current quarter data
       const currentQuarter = quarter;
-      
+
       // Calculate remaining budget
       const totalBudget = currentQuarter.allocated_budget;
       const spentBudget = currentQuarter.total_spendings || 0;
@@ -527,9 +569,9 @@ function QuarterCard({
         // Show confirmation dialog
         setShowConfirmDialog({
           show: true,
-          type: 'receipt',
+          type: "receipt",
           data: { file, extractedAmount },
-          quarterId
+          quarterId,
         });
         setUploading(false);
         return;
@@ -539,20 +581,27 @@ function QuarterCard({
       await uploadFile(file, quarterId, extractedAmount);
     } catch (error) {
       console.error("Error processing file:", error);
-      setUploadStatus(prev => ({
+      setUploadStatus((prev) => ({
         ...prev,
-        [quarterId]: { uploading: false, error: "Error al procesar el archivo" }
+        [quarterId]: {
+          uploading: false,
+          error: "Error al procesar el archivo",
+        },
       }));
       setUploading(false);
     }
   };
 
   // New function to upload file after confirmation
-  const uploadFile = async (file: File, quarterId: number, extractedAmount?: number) => {
+  const uploadFile = async (
+    file: File,
+    quarterId: number,
+    extractedAmount?: number,
+  ) => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("evc_q_id", quarterId.toString());
-    
+
     // If we have an extracted amount, include it in the form data
     if (extractedAmount) {
       formData.append("value_usd", extractedAmount.toString());
@@ -560,48 +609,49 @@ function QuarterCard({
 
     setUploading(true);
     try {
-      const token = Cookies.get('auth_token');
-      
+      const token = Cookies.get("auth_token");
+
       // Log what we're sending to help with debugging
-      console.log(`Uploading invoice with extracted amount: $${extractedAmount}`);
-      
+      console.log(
+        `Uploading invoice with extracted amount: $${extractedAmount}`,
+      );
+
       await axios.post(
         `http://127.0.0.1:8000/evc-financials/evc_financials/upload`,
         formData,
         {
-          headers: { 
+          headers: {
             "Content-Type": "multipart/form-data",
-            Authorization: `Bearer ${token}`
-          }
-        }
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
-      
+
       // Refresh the EVC data to update the progress bars
       await fetchEvcs();
-      
+
       // Show success message with the extracted amount
-      setUploadStatus(prev => ({
+      setUploadStatus((prev) => ({
         ...prev,
-        [quarterId]: { 
-          uploading: false, 
-          success: `Factura subida exitosamente. Monto: $${extractedAmount?.toLocaleString() ?? 'No detectado'}`
-        }
+        [quarterId]: {
+          uploading: false,
+          success: `Factura subida exitosamente. Monto: $${extractedAmount?.toLocaleString() ?? "No detectado"}`,
+        },
       }));
-      
+
       // Clear success message after 3 seconds
       setTimeout(() => {
-        setUploadStatus(prev => {
+        setUploadStatus((prev) => {
           const newStatus = { ...prev };
           delete newStatus[quarterId];
           return newStatus;
         });
       }, 3000);
-      
     } catch (error) {
       console.error("Error uploading file:", error);
-      setUploadStatus(prev => ({
+      setUploadStatus((prev) => ({
         ...prev,
-        [quarterId]: { uploading: false, error: "Error al subir el archivo" }
+        [quarterId]: { uploading: false, error: "Error al subir el archivo" },
       }));
     } finally {
       setUploading(false);
@@ -613,32 +663,43 @@ function QuarterCard({
       {/* Confirmation Dialog for Over-Budget Expenses */}
       {showConfirmDialog && showConfirmDialog.show && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowConfirmDialog(null)}></div>
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50"
+            onClick={() => setShowConfirmDialog(null)}
+          ></div>
           <div className="bg-white rounded-lg p-6 max-w-md relative z-10">
-            <h3 className="text-lg font-bold text-red-600 mb-2">Advertencia de presupuesto</h3>
+            <h3 className="text-lg font-bold text-red-600 mb-2">
+              Advertencia de presupuesto
+            </h3>
             <p className="mb-4">
-              {showConfirmDialog.type === 'manual' 
+              {showConfirmDialog.type === "manual"
                 ? `El gasto de $${showConfirmDialog.data.value_usd.toLocaleString()} excede el presupuesto disponible de $${(quarter.allocated_budget - (quarter.total_spendings || 0)).toLocaleString()}.`
-                : `La factura contiene un gasto de $${showConfirmDialog.data.extractedAmount.toLocaleString()}, que excede el presupuesto disponible de $${(quarter.allocated_budget - (quarter.total_spendings || 0)).toLocaleString()}.`
-              }
+                : `La factura contiene un gasto de $${showConfirmDialog.data.extractedAmount.toLocaleString()}, que excede el presupuesto disponible de $${(quarter.allocated_budget - (quarter.total_spendings || 0)).toLocaleString()}.`}
             </p>
             <p className="mb-4 text-sm text-gray-600">
-              Registrar este gasto hará que se exceda el presupuesto asignado para este quarter.
+              Registrar este gasto hará que se exceda el presupuesto asignado
+              para este quarter.
             </p>
             <div className="flex justify-end space-x-3">
-              <button 
+              <button
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
                 onClick={() => setShowConfirmDialog(null)}
               >
                 Cancelar
               </button>
-              <button 
+              <button
                 className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
                 onClick={async () => {
-                  if (showConfirmDialog.type === 'manual') {
-                    await submitManualSpending(showConfirmDialog.quarterId, showConfirmDialog.data);
+                  if (showConfirmDialog.type === "manual") {
+                    await submitManualSpending(
+                      showConfirmDialog.quarterId,
+                      showConfirmDialog.data,
+                    );
                   } else {
-                    await uploadFile(showConfirmDialog.data.file, showConfirmDialog.quarterId);
+                    await uploadFile(
+                      showConfirmDialog.data.file,
+                      showConfirmDialog.quarterId,
+                    );
                   }
                   setShowConfirmDialog(null);
                 }}
@@ -679,38 +740,82 @@ function QuarterCard({
           <span className="text-sm font-medium text-gray-700">Gastado</span>
           <span className="text-sm font-bold text-gray-900">
             {/* Calculate percent of budget spent */}
-            {quarter.allocated_budget > 0 
-              ? Math.min(Math.round((quarter.total_spendings || 0) / quarter.allocated_budget * 100), 100)
-              : 0}%
+            {quarter.allocated_budget > 0
+              ? Math.min(
+                  Math.round(
+                    ((quarter.total_spendings || 0) /
+                      quarter.allocated_budget) *
+                      100,
+                  ),
+                  100,
+                )
+              : 0}
+            %
           </span>
         </div>
         <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden relative">
-          <div className="h-2 bg-orange-400 rounded-full absolute left-0 transition-all duration-500" 
-            style={{ 
-              width: `${quarter.allocated_budget > 0 
-                ? Math.min(Math.round((quarter.total_spendings || 0) / quarter.allocated_budget * 100), 100) 
-                : 0}%` 
-            }} 
+          <div
+            className="h-2 bg-orange-400 rounded-full absolute left-0 transition-all duration-500"
+            style={{
+              width: `${
+                quarter.allocated_budget > 0
+                  ? Math.min(
+                      Math.round(
+                        ((quarter.total_spendings || 0) /
+                          quarter.allocated_budget) *
+                          100,
+                      ),
+                      100,
+                    )
+                  : 0
+              }%`,
+            }}
           />
         </div>
       </div>
 
-      <div className="mb-2 text-sm text-gray-700">Presupuesto: <span className="font-bold text-gray-900">${quarter.allocated_budget.toLocaleString()}</span></div>
-      <div className="mb-2 text-sm text-gray-700">Presupuesto gastado: <span className="font-bold text-gray-900">${quarter.total_spendings?.toLocaleString() ?? 0}</span></div>
-      
-      <div className="mb-4 text-sm text-gray-700">
-        Presupuesto disponible: 
-        <span className={`font-bold ${(quarter.allocated_budget - (quarter.total_spendings || 0)) > 0 ? 'text-green-600' : 'text-red-600'}`}>
-          ${(quarter.allocated_budget - (quarter.total_spendings || 0)).toLocaleString()}
+      <div className="mb-2 text-sm text-gray-700">
+        Presupuesto:{" "}
+        <span className="font-bold text-gray-900">
+          ${quarter.allocated_budget.toLocaleString()}
         </span>
-        {(quarter.allocated_budget - (quarter.total_spendings || 0)) <= 0 && 
-          <span className="ml-2 text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded-full">Presupuesto agotado</span>
-        }
       </div>
-      
-      <div className="mb-2 text-sm text-gray-700">Porcentaje gastado: <span className="font-bold text-gray-900">{quarter.allocated_budget > 0 
-    ? Math.round((quarter.total_spendings || 0) / quarter.allocated_budget * 100)
-    : 0}%</span></div>
+      <div className="mb-2 text-sm text-gray-700">
+        Presupuesto gastado:{" "}
+        <span className="font-bold text-gray-900">
+          ${quarter.total_spendings?.toLocaleString() ?? 0}
+        </span>
+      </div>
+
+      <div className="mb-4 text-sm text-gray-700">
+        Presupuesto disponible:
+        <span
+          className={`font-bold ${quarter.allocated_budget - (quarter.total_spendings || 0) > 0 ? "text-green-600" : "text-red-600"}`}
+        >
+          $
+          {(
+            quarter.allocated_budget - (quarter.total_spendings || 0)
+          ).toLocaleString()}
+        </span>
+        {quarter.allocated_budget - (quarter.total_spendings || 0) <= 0 && (
+          <span className="ml-2 text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded-full">
+            Presupuesto agotado
+          </span>
+        )}
+      </div>
+
+      <div className="mb-2 text-sm text-gray-700">
+        Porcentaje gastado:{" "}
+        <span className="font-bold text-gray-900">
+          {quarter.allocated_budget > 0
+            ? Math.round(
+                ((quarter.total_spendings || 0) / quarter.allocated_budget) *
+                  100,
+              )
+            : 0}
+          %
+        </span>
+      </div>
 
       <div className="mb-2 text-sm text-gray-700 flex items-center gap-2">
         Porcentaje asignado:
@@ -801,17 +906,24 @@ function QuarterCard({
 
       <div className="mb-4">
         <div className="text-sm font-medium text-gray-700 mb-2">Estado:</div>
-        <span className={`px-2 py-1 rounded-full text-xs font-semibold ml-2
-  ${quarter.allocated_budget > 0 && quarter.total_spendings
-    ? (quarter.total_spendings / quarter.allocated_budget * 100) >= 100
-      ? 'bg-red-100 text-red-800'
-      : (quarter.total_spendings / quarter.allocated_budget * 100) >= 80
-        ? 'bg-orange-100 text-orange-800'
-        : (quarter.total_spendings / quarter.allocated_budget * 100) >= 50
-          ? 'bg-yellow-100 text-yellow-800'
-          : 'bg-green-100 text-green-800'
-    : 'bg-green-100 text-green-800'}
-`}>{quarter.budget_message}</span></div>
+        <span
+          className={`px-2 py-1 rounded-full text-xs font-semibold ml-2
+  ${
+    quarter.allocated_budget > 0 && quarter.total_spendings
+      ? (quarter.total_spendings / quarter.allocated_budget) * 100 >= 100
+        ? "bg-red-100 text-red-800"
+        : (quarter.total_spendings / quarter.allocated_budget) * 100 >= 80
+          ? "bg-orange-100 text-orange-800"
+          : (quarter.total_spendings / quarter.allocated_budget) * 100 >= 50
+            ? "bg-yellow-100 text-yellow-800"
+            : "bg-green-100 text-green-800"
+      : "bg-green-100 text-green-800"
+  }
+`}
+        >
+          {quarter.budget_message}
+        </span>
+      </div>
 
       {/* Manual Spending Form */}
       <div className="mt-4 p-4 bg-gray-50 rounded-lg">
@@ -851,13 +963,23 @@ function QuarterCard({
           />
           <button
             onClick={() => handleManualSpending(quarter.id)}
-            className={`w-full px-4 py-2 ${(quarter.allocated_budget - (quarter.total_spendings || 0)) <= 0 
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-              : 'bg-yellow-500 text-white hover:bg-yellow-600'} rounded text-sm`}
-            disabled={(quarter.allocated_budget - (quarter.total_spendings || 0)) <= 0}
-            title={(quarter.allocated_budget - (quarter.total_spendings || 0)) <= 0 ? "No hay presupuesto disponible" : ""}
+            className={`w-full px-4 py-2 ${
+              quarter.allocated_budget - (quarter.total_spendings || 0) <= 0
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-yellow-500 text-white hover:bg-yellow-600"
+            } rounded text-sm`}
+            disabled={
+              quarter.allocated_budget - (quarter.total_spendings || 0) <= 0
+            }
+            title={
+              quarter.allocated_budget - (quarter.total_spendings || 0) <= 0
+                ? "No hay presupuesto disponible"
+                : ""
+            }
           >
-            {(quarter.allocated_budget - (quarter.total_spendings || 0)) <= 0 ? "Presupuesto agotado" : "Agregar Gasto"}
+            {quarter.allocated_budget - (quarter.total_spendings || 0) <= 0
+              ? "Presupuesto agotado"
+              : "Agregar Gasto"}
           </button>
           {manualSpendingStatus[quarter.id]?.error && (
             <div className="text-red-500 text-xs mt-1">
@@ -875,9 +997,9 @@ function QuarterCard({
       {/* File Upload Section */}
       <div className="mt-4">
         <div
-          className={`w-full px-4 py-8 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${uploading ? 'bg-blue-50' : 'hover:bg-blue-50'}`}
-          onDragOver={e => e.preventDefault()}
-          onDrop={async e => {
+          className={`w-full px-4 py-8 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${uploading ? "bg-blue-50" : "hover:bg-blue-50"}`}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={async (e) => {
             e.preventDefault();
             const file = e.dataTransfer.files[0];
             if (file) {
@@ -925,7 +1047,10 @@ function QuarterCard({
                   d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
                 />
               </svg>
-              <span className="text-blue-700">Arrastra y suelta aquí tu factura PDF o haz clic para seleccionarla</span>
+              <span className="text-blue-700">
+                Arrastra y suelta aquí tu factura PDF o haz clic para
+                seleccionarla
+              </span>
               <input
                 type="file"
                 accept=".pdf"
@@ -937,10 +1062,14 @@ function QuarterCard({
           )}
         </div>
         {uploadStatus[quarter.id]?.error && (
-          <div className="text-red-500 text-xs mt-1">{uploadStatus[quarter.id].error}</div>
+          <div className="text-red-500 text-xs mt-1">
+            {uploadStatus[quarter.id].error}
+          </div>
         )}
         {uploadStatus[quarter.id]?.success && (
-          <div className="text-green-600 text-xs mt-1">{uploadStatus[quarter.id].success}</div>
+          <div className="text-green-600 text-xs mt-1">
+            {uploadStatus[quarter.id].success}
+          </div>
         )}
       </div>
 
@@ -976,34 +1105,40 @@ function QuarterCard({
           ))}
         </select>
         <button
-          className={`mt-3 px-4 py-2 ${(quarter.allocated_budget - (quarter.total_spendings || 0)) <= 0 
-            ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
-            : 'bg-green-200 text-green-800 hover:bg-green-300'} rounded text-sm transition-colors duration-150`}
+          className={`mt-3 px-4 py-2 ${
+            quarter.allocated_budget - (quarter.total_spendings || 0) <= 0
+              ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+              : "bg-green-200 text-green-800 hover:bg-green-300"
+          } rounded text-sm transition-colors duration-150`}
           onClick={async () => {
             const providerId = providerSelections[quarter.id];
             if (!providerId) return;
-            
+
             // Get selected provider and check if there's enough budget
-            const selectedProvider = getFilteredProviders(quarter.id).find(p => p.id.toString() === providerId);
+            const selectedProvider = getFilteredProviders(quarter.id).find(
+              (p) => p.id.toString() === providerId,
+            );
             if (selectedProvider && selectedProvider.cost_usd) {
               // Calculate remaining budget
               const totalBudget = quarter.allocated_budget;
               const spentBudget = quarter.total_spendings || 0;
               const remainingBudget = totalBudget - spentBudget;
-              
+
               // Check if there's enough budget
               if (selectedProvider.cost_usd > remainingBudget) {
-                toast.error(`El costo del talento ($${selectedProvider.cost_usd.toLocaleString()}) excede el presupuesto disponible ($${remainingBudget.toLocaleString()})`);
+                toast.error(
+                  `El costo del talento ($${selectedProvider.cost_usd.toLocaleString()}) excede el presupuesto disponible ($${remainingBudget.toLocaleString()})`,
+                );
                 return;
               }
             }
-            
+
             try {
               await axios.post(
                 "http://127.0.0.1:8000/evc-financials/evc_financials/",
                 { evc_q_id: quarter.id, provider_id: parseInt(providerId, 10) },
               );
-              setProviderSelections(prev => ({ ...prev, [quarter.id]: "" }));
+              setProviderSelections((prev) => ({ ...prev, [quarter.id]: "" }));
               // Refresh data
               await fetchEvcs();
               toast.success("Talento agregado exitosamente");
@@ -1011,10 +1146,18 @@ function QuarterCard({
               toast.error("Error al agregar talento");
             }
           }}
-          disabled={(quarter.allocated_budget - (quarter.total_spendings || 0)) <= 0}
-          title={(quarter.allocated_budget - (quarter.total_spendings || 0)) <= 0 ? "No hay presupuesto disponible" : ""}
+          disabled={
+            quarter.allocated_budget - (quarter.total_spendings || 0) <= 0
+          }
+          title={
+            quarter.allocated_budget - (quarter.total_spendings || 0) <= 0
+              ? "No hay presupuesto disponible"
+              : ""
+          }
         >
-          {(quarter.allocated_budget - (quarter.total_spendings || 0)) <= 0 ? "Presupuesto agotado" : "Agregar"}
+          {quarter.allocated_budget - (quarter.total_spendings || 0) <= 0
+            ? "Presupuesto agotado"
+            : "Agregar"}
         </button>
       </div>
     </div>
@@ -1026,33 +1169,53 @@ function EvcsPage() {
   const [evcs, setEvcs] = useState<EVC[]>([]);
   const [selectedEvc, setSelectedEvc] = useState<EVC | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [entornosData, setEntornosData] = useState<{ [key: number]: string }>({});
-  const [technicalLeadersData, setTechnicalLeadersData] = useState<{ [key: number]: string }>({});
-  const [functionalLeadersData, setFunctionalLeadersData] = useState<{ [key: number]: string }>({});
+  const [entornosData, setEntornosData] = useState<{ [key: number]: string }>(
+    {},
+  );
+  const [technicalLeadersData, setTechnicalLeadersData] = useState<{
+    [key: number]: string;
+  }>({});
+  const [functionalLeadersData, setFunctionalLeadersData] = useState<{
+    [key: number]: string;
+  }>({});
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [evcToDelete, setEvcToDelete] = useState<EVC | null>(null);
   const [showQuartersModal, setShowQuartersModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [selectedEvcsForExport, setSelectedEvcsForExport] = useState<number[]>([]);
-  const [financialSelections, setFinancialSelections] = useState<{ [key: number]: string }>({});
-  const [availableTechnicalLeaders, setAvailableTechnicalLeaders] = useState<TechnicalLeader[]>([]);
-  const [availableFunctionalLeaders, setAvailableFunctionalLeaders] = useState<{ id: number; name: string }[]>([]);
+  const [selectedEvcsForExport, setSelectedEvcsForExport] = useState<number[]>(
+    [],
+  );
+  const [financialSelections, setFinancialSelections] = useState<{
+    [key: number]: string;
+  }>({});
+  const [availableTechnicalLeaders, setAvailableTechnicalLeaders] = useState<
+    TechnicalLeader[]
+  >([]);
+  const [availableFunctionalLeaders, setAvailableFunctionalLeaders] = useState<
+    { id: number; name: string }[]
+  >([]);
   const [availableEntornos, setAvailableEntornos] = useState<Entorno[]>([]);
   const [availableProviders, setAvailableProviders] = useState<Provider[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [alertMsg, setAlertMsg] = useState("");
   const [deleting, setDeleting] = useState(false);
-  const [selectedEvcsForDelete, setSelectedEvcsForDelete] = useState<number[]>([]);
+  const [selectedEvcsForDelete, setSelectedEvcsForDelete] = useState<number[]>(
+    [],
+  );
   const [showDeleteSelectedModal, setShowDeleteSelectedModal] = useState(false);
-  
+
   // Add states for editing fields in detail modal
   const [isEditingEntorno, setIsEditingEntorno] = useState(false);
-  const [isEditingTechnicalLeader, setIsEditingTechnicalLeader] = useState(false);
-  const [isEditingFunctionalLeader, setIsEditingFunctionalLeader] = useState(false);
+  const [isEditingTechnicalLeader, setIsEditingTechnicalLeader] =
+    useState(false);
+  const [isEditingFunctionalLeader, setIsEditingFunctionalLeader] =
+    useState(false);
   const [editedEntornoId, setEditedEntornoId] = useState<string>("");
-  const [editedTechnicalLeaderId, setEditedTechnicalLeaderId] = useState<string>("");
-  const [editedFunctionalLeaderId, setEditedFunctionalLeaderId] = useState<string>("");
-  
+  const [editedTechnicalLeaderId, setEditedTechnicalLeaderId] =
+    useState<string>("");
+  const [editedFunctionalLeaderId, setEditedFunctionalLeaderId] =
+    useState<string>("");
+
   // Filter states
   const [filters, setFilters] = useState({
     entorno_id: "",
@@ -1064,19 +1227,47 @@ function EvcsPage() {
   });
   const [filteredEvcs, setFilteredEvcs] = useState<EVC[]>([]);
   const [showFilters, setShowFilters] = useState(false);
-  
+
   // Add back missing state variables
-  const [manualSpendings, setManualSpendings] = useState<{ [quarterId: number]: ManualSpending }>({});
-  const [manualSpendingStatus, setManualSpendingStatus] = useState<Record<number, { error?: string; success?: string }>>({});
-  const [uploadStatus, setUploadStatus] = useState<{ [quarterId: number]: { uploading: boolean; error?: string; success?: string } }>({});
-  const [providerSelections, setProviderSelections] = useState<{ [quarterId: number]: string }>({});
-  const [providerFilterModal, setProviderFilterModal] = useState<{ quarterId: number | null, open: boolean }>({ quarterId: null, open: false });
-  const [activeProviderFilters, setActiveProviderFilters] = useState<{ price: boolean; country: boolean }>({ price: false, country: false });
-  const [providerPriceRange, setProviderPriceRange] = useState<[number, number]>([0, 15000]);
-  const [providerSelectedCountries, setProviderSelectedCountries] = useState<string[]>([]);
-  const [providerCountryOptions, setProviderCountryOptions] = useState<string[]>([]);
-  const [gastosModal, setGastosModal] = useState<{ open: boolean; quarter: EVC_Q | null; gastos: any[] }>({ open: false, quarter: null, gastos: [] });
-  
+  const [manualSpendings, setManualSpendings] = useState<{
+    [quarterId: number]: ManualSpending;
+  }>({});
+  const [manualSpendingStatus, setManualSpendingStatus] = useState<
+    Record<number, { error?: string; success?: string }>
+  >({});
+  const [uploadStatus, setUploadStatus] = useState<{
+    [quarterId: number]: {
+      uploading: boolean;
+      error?: string;
+      success?: string;
+    };
+  }>({});
+  const [providerSelections, setProviderSelections] = useState<{
+    [quarterId: number]: string;
+  }>({});
+  const [providerFilterModal, setProviderFilterModal] = useState<{
+    quarterId: number | null;
+    open: boolean;
+  }>({ quarterId: null, open: false });
+  const [activeProviderFilters, setActiveProviderFilters] = useState<{
+    price: boolean;
+    country: boolean;
+  }>({ price: false, country: false });
+  const [providerPriceRange, setProviderPriceRange] = useState<
+    [number, number]
+  >([0, 15000]);
+  const [providerSelectedCountries, setProviderSelectedCountries] = useState<
+    string[]
+  >([]);
+  const [providerCountryOptions, setProviderCountryOptions] = useState<
+    string[]
+  >([]);
+  const [gastosModal, setGastosModal] = useState<{
+    open: boolean;
+    quarter: EVC_Q | null;
+    gastos: any[];
+  }>({ open: false, quarter: null, gastos: [] });
+
   // Add OCR-related states
   const [uploading, setUploading] = useState(false);
   const [extractedValues, setExtractedValues] = useState<{
@@ -1089,15 +1280,15 @@ function EvcsPage() {
 
   const onUpdatePercentage = async (quarterId: number, percentage: number) => {
     try {
-      const token = Cookies.get('auth_token');
+      const token = Cookies.get("auth_token");
       await axios.patch(
         `http://127.0.0.1:8000/evc-qs/evc_qs/${quarterId}/percentage`,
         { allocated_percentage: percentage },
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
       await fetchEvcs(); // Refresh data after update
     } catch (error) {
@@ -1110,37 +1301,39 @@ function EvcsPage() {
   const getFilteredProviders = (quarterId: number) => {
     let filtered = [...availableProviders];
     if (activeProviderFilters.price) {
-      filtered = filtered.filter(p => {
+      filtered = filtered.filter((p) => {
         const cost = p.cost_usd ?? 0;
         return cost >= providerPriceRange[0] && cost <= providerPriceRange[1];
       });
     }
     if (activeProviderFilters.country && providerSelectedCountries.length > 0) {
-      filtered = filtered.filter(p => providerSelectedCountries.includes(p.country ?? ''));
+      filtered = filtered.filter((p) =>
+        providerSelectedCountries.includes(p.country ?? ""),
+      );
     }
     return filtered;
   };
 
   // Fix uploadStatus state updates
   const clearUploadStatus = (quarterId: number) => {
-    setUploadStatus(prev => ({
+    setUploadStatus((prev) => ({
       ...prev,
-      [quarterId]: { uploading: false, error: undefined, success: undefined }
+      [quarterId]: { uploading: false, error: undefined, success: undefined },
     }));
   };
 
   const handleUploadSuccess = (quarterId: number) => {
-    setUploadStatus(prev => ({
+    setUploadStatus((prev) => ({
       ...prev,
-      [quarterId]: { uploading: false, success: "Factura PDF subida" }
+      [quarterId]: { uploading: false, success: "Factura PDF subida" },
     }));
     setTimeout(() => clearUploadStatus(quarterId), 2000);
   };
 
   const handleUploadError = (quarterId: number) => {
-    setUploadStatus(prev => ({
+    setUploadStatus((prev) => ({
       ...prev,
-      [quarterId]: { uploading: false, error: "Error al subir factura PDF" }
+      [quarterId]: { uploading: false, error: "Error al subir factura PDF" },
     }));
   };
 
@@ -1196,7 +1389,7 @@ function EvcsPage() {
 
   // Add a loading state for quarter creation
   const [isCreatingQuarter, setIsCreatingQuarter] = useState(false);
-  
+
   // Efectos iniciales
   useEffect(() => {
     fetchEvcs();
@@ -1214,7 +1407,7 @@ function EvcsPage() {
   const fetchDistinctCountries = async () => {
     try {
       const resp = await axios.get(
-        "http://127.0.0.1:8000/providers/providers/distinct-countries"
+        "http://127.0.0.1:8000/providers/providers/distinct-countries",
       );
       setProviderCountryOptions(resp.data);
     } catch (error) {
@@ -1431,7 +1624,7 @@ function EvcsPage() {
       if (isCreatingQuarter) return;
       setIsCreatingQuarter(true);
       setAlertMsg("");
-      
+
       // Validate inputs
       const year = parseInt(newQuarter.year, 10);
       const q = parseInt(newQuarter.q, 10);
@@ -1460,7 +1653,9 @@ function EvcsPage() {
       // Validate year
       const currentYear = new Date().getFullYear();
       if (year < currentYear - 1 || year > currentYear + 1) {
-        setAlertMsg(`El año debe estar entre ${currentYear - 1} y ${currentYear + 1}`);
+        setAlertMsg(
+          `El año debe estar entre ${currentYear - 1} y ${currentYear + 1}`,
+        );
         setIsCreatingQuarter(false);
         return;
       }
@@ -1477,13 +1672,13 @@ function EvcsPage() {
         setIsCreatingQuarter(false);
         return;
       }
-      
+
       // Check for duplicate quarters
       if (selectedEvc && selectedEvc.evc_qs) {
         const isDuplicate = selectedEvc.evc_qs.some(
-          existingQ => existingQ.year === year && existingQ.q === q
+          (existingQ) => existingQ.year === year && existingQ.q === q,
         );
-        
+
         if (isDuplicate) {
           setAlertMsg(`Ya existe un quarter Q${q} para el año ${year}`);
           setIsCreatingQuarter(false);
@@ -1507,9 +1702,7 @@ function EvcsPage() {
       console.log("Quarter creado:", response.data);
 
       // Fetch the updated EVC with the new quarter
-      const updatedEvc = await axios.get(
-        `http://127.0.0.1:8000/evcs/${evcId}`
-      );
+      const updatedEvc = await axios.get(`http://127.0.0.1:8000/evcs/${evcId}`);
 
       // Update the selected EVC state
       setSelectedEvc(updatedEvc.data);
@@ -1527,9 +1720,11 @@ function EvcsPage() {
         allocated_budget: "",
         allocated_percentage: "",
       });
-      
+
       // Show success message
-      toast.success(`Quarter Q${q} ${year} creado exitosamente`, { id: "create-quarter" });
+      toast.success(`Quarter Q${q} ${year} creado exitosamente`, {
+        id: "create-quarter",
+      });
       setAlertMsg("");
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -1568,9 +1763,7 @@ function EvcsPage() {
         },
       );
       console.log("Financial creado:", response.data);
-      const updatedEvc = await axios.get(
-        `http://127.0.0.1:8000/evcs/${evcId}`
-      );
+      const updatedEvc = await axios.get(`http://127.0.0.1:8000/evcs/${evcId}`);
       setSelectedEvc(updatedEvc.data);
       setFinancialSelections((prev) => ({
         ...prev,
@@ -1594,11 +1787,11 @@ function EvcsPage() {
   // Eliminar EVC
   const deleteEvc = async (evcId: number) => {
     try {
-      const token = Cookies.get('auth_token');
+      const token = Cookies.get("auth_token");
       await axios.delete(`http://127.0.0.1:8000/evcs/${evcId}`, {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
       setEvcs((prev) => prev.filter((e) => e.id !== evcId));
       setShowDeleteModal(false);
@@ -1682,15 +1875,17 @@ function EvcsPage() {
 
     // Filter by name
     if (filters.name?.trim()) {
-      result = result.filter((evc) => 
-        evc.name.toLowerCase().includes(filters.name.toLowerCase().trim())
+      result = result.filter((evc) =>
+        evc.name.toLowerCase().includes(filters.name.toLowerCase().trim()),
       );
     }
 
     // Filter by description
     if (filters.description?.trim()) {
-      result = result.filter((evc) => 
-        evc.description?.toLowerCase().includes(filters.description.toLowerCase().trim())
+      result = result.filter((evc) =>
+        evc.description
+          ?.toLowerCase()
+          .includes(filters.description.toLowerCase().trim()),
       );
     }
 
@@ -1699,7 +1894,14 @@ function EvcsPage() {
       const entornoIdNumber = parseInt(filters.entorno_id);
       console.log("Filtering by entorno_id:", entornoIdNumber);
       result = result.filter((evc) => {
-        console.log("EVC entorno_id:", evc.entorno_id, "Comparing with:", entornoIdNumber, "Result:", evc.entorno_id === entornoIdNumber);
+        console.log(
+          "EVC entorno_id:",
+          evc.entorno_id,
+          "Comparing with:",
+          entornoIdNumber,
+          "Result:",
+          evc.entorno_id === entornoIdNumber,
+        );
         return evc.entorno_id === entornoIdNumber;
       });
     }
@@ -1709,7 +1911,14 @@ function EvcsPage() {
       const techLeaderId = parseInt(filters.technical_leader_id);
       console.log("Filtering by technical_leader_id:", techLeaderId);
       result = result.filter((evc) => {
-        console.log("EVC technical_leader_id:", evc.technical_leader_id, "Comparing with:", techLeaderId, "Result:", evc.technical_leader_id === techLeaderId);
+        console.log(
+          "EVC technical_leader_id:",
+          evc.technical_leader_id,
+          "Comparing with:",
+          techLeaderId,
+          "Result:",
+          evc.technical_leader_id === techLeaderId,
+        );
         return evc.technical_leader_id === techLeaderId;
       });
     }
@@ -1719,7 +1928,14 @@ function EvcsPage() {
       const funcLeaderId = parseInt(filters.functional_leader_id);
       console.log("Filtering by functional_leader_id:", funcLeaderId);
       result = result.filter((evc) => {
-        console.log("EVC functional_leader_id:", evc.functional_leader_id, "Comparing with:", funcLeaderId, "Result:", evc.functional_leader_id === funcLeaderId);
+        console.log(
+          "EVC functional_leader_id:",
+          evc.functional_leader_id,
+          "Comparing with:",
+          funcLeaderId,
+          "Result:",
+          evc.functional_leader_id === funcLeaderId,
+        );
         return evc.functional_leader_id === funcLeaderId;
       });
     }
@@ -1729,11 +1945,18 @@ function EvcsPage() {
       const statusValue = filters.status === "true";
       console.log("Filtering by status:", statusValue);
       result = result.filter((evc) => {
-        console.log("EVC status:", evc.status, "Comparing with:", statusValue, "Result:", evc.status === statusValue);
+        console.log(
+          "EVC status:",
+          evc.status,
+          "Comparing with:",
+          statusValue,
+          "Result:",
+          evc.status === statusValue,
+        );
         return evc.status === statusValue;
       });
     }
-    
+
     console.log("Filtered results:", result);
     setFilteredEvcs(result);
   };
@@ -1823,7 +2046,7 @@ function EvcsPage() {
           headers: { "Content-Type": "multipart/form-data" },
         },
       );
-      
+
       setUploadedFiles((prev) => ({
         ...prev,
         [evc_q_id]: file.name,
@@ -1879,41 +2102,54 @@ function EvcsPage() {
   };
 
   // Add function to mark related notifications as read
-  const markRelatedNotificationsAsRead = async (evcId: number, field: string) => {
+  const markRelatedNotificationsAsRead = async (
+    evcId: number,
+    field: string,
+  ) => {
     try {
       // Fetch all unread notifications
-      const response = await axios.get('http://127.0.0.1:8000/notifications/notifications/');
+      const response = await axios.get(
+        "http://127.0.0.1:8000/notifications/notifications/",
+      );
       const notifications = response.data;
-      
+
       // Filter notifications related to this EVC and field
       const relatedNotifications = notifications.filter((notification: any) => {
         // Check for notifications about missing leaders or entorno for this specific EVC
-        if (field === "technical_leader_id" && 
-            notification.message.includes(`El EVC`) && 
-            notification.message.includes(`(ID: ${evcId})`) && 
-            notification.message.includes("no tiene líder técnico asignado")) {
+        if (
+          field === "technical_leader_id" &&
+          notification.message.includes(`El EVC`) &&
+          notification.message.includes(`(ID: ${evcId})`) &&
+          notification.message.includes("no tiene líder técnico asignado")
+        ) {
           return true;
         }
-        if (field === "functional_leader_id" && 
-            notification.message.includes(`El EVC`) && 
-            notification.message.includes(`(ID: ${evcId})`) && 
-            notification.message.includes("no tiene líder funcional asignado")) {
+        if (
+          field === "functional_leader_id" &&
+          notification.message.includes(`El EVC`) &&
+          notification.message.includes(`(ID: ${evcId})`) &&
+          notification.message.includes("no tiene líder funcional asignado")
+        ) {
           return true;
         }
-        if (field === "entorno_id" && 
-            notification.message.includes(`El EVC`) && 
-            notification.message.includes(`(ID: ${evcId})`) && 
-            notification.message.includes("no tiene entorno asignado")) {
+        if (
+          field === "entorno_id" &&
+          notification.message.includes(`El EVC`) &&
+          notification.message.includes(`(ID: ${evcId})`) &&
+          notification.message.includes("no tiene entorno asignado")
+        ) {
           return true;
         }
         return false;
       });
-      
+
       // Mark each related notification as read
-      const markPromises = relatedNotifications.map((notification: any) => 
-        axios.patch(`http://127.0.0.1:8000/notifications/notifications/${notification.id}/read`)
+      const markPromises = relatedNotifications.map((notification: any) =>
+        axios.patch(
+          `http://127.0.0.1:8000/notifications/notifications/${notification.id}/read`,
+        ),
       );
-      
+
       if (markPromises.length > 0) {
         await Promise.all(markPromises);
         console.log(`Marked ${markPromises.length} notifications as read`);
@@ -1926,62 +2162,57 @@ function EvcsPage() {
   // Add function to update EVC fields
   const updateEvcField = async (evcId: number, field: string, value: any) => {
     try {
-      const token = Cookies.get('auth_token');
-      
+      const token = Cookies.get("auth_token");
+
       // First, fetch the current EVC to get all its data
-      const response = await axios.get(
-        `http://127.0.0.1:8000/evcs/${evcId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      
+      const response = await axios.get(`http://127.0.0.1:8000/evcs/${evcId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
       const currentEvc = response.data;
-      
+
       // Then update with PUT, sending the entire object with the modified field
       await axios.put(
         `http://127.0.0.1:8000/evcs/${evcId}`,
-        { 
+        {
           ...currentEvc,
-          [field]: value 
+          [field]: value,
         },
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
-      
+
       // If we're setting a value (not null), mark related notifications as read
       if (value !== null) {
         await markRelatedNotificationsAsRead(evcId, field);
       }
-      
+
       // Refetch the EVC to ensure all data is up to date including backend validations
       const updatedResponse = await axios.get(
         `http://127.0.0.1:8000/evcs/${evcId}`,
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
-      
+
       // Update the selected EVC with the full refreshed data from the server
       setSelectedEvc(updatedResponse.data);
-      
+
       // Update the EVCs list with the updated EVC
-      setEvcs(prevEvcs => 
-        prevEvcs.map(evc => 
-          evc.id === evcId ? updatedResponse.data : evc
-        )
+      setEvcs((prevEvcs) =>
+        prevEvcs.map((evc) => (evc.id === evcId ? updatedResponse.data : evc)),
       );
-      
+
       // Also fetch all EVCs to ensure the list is up to date
       fetchEvcs();
-      
+
       toast.success("Campo actualizado exitosamente");
     } catch (error) {
       console.error("Error updating EVC field:", error);
@@ -1992,25 +2223,27 @@ function EvcsPage() {
   // Update function for changing EVC status
   const toggleEvcStatus = async (evc: EVC) => {
     try {
-      const token = Cookies.get('auth_token');
+      const token = Cookies.get("auth_token");
       await axios.put(
         `http://127.0.0.1:8000/evcs/${evc.id}`,
         { ...evc, status: !evc.status },
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
-      
+
       // Update EVCs list with the new status
-      setEvcs(prevEvcs => 
-        prevEvcs.map(e => 
-          e.id === evc.id ? { ...e, status: !e.status } : e
-        )
+      setEvcs((prevEvcs) =>
+        prevEvcs.map((e) =>
+          e.id === evc.id ? { ...e, status: !e.status } : e,
+        ),
       );
-      
-      toast.success(`EVC ${evc.name} ${!evc.status ? 'activado' : 'desactivado'} exitosamente`);
+
+      toast.success(
+        `EVC ${evc.name} ${!evc.status ? "activado" : "desactivado"} exitosamente`,
+      );
     } catch (error) {
       console.error("Error updating EVC status:", error);
       toast.error("Error al actualizar el estado del EVC");
@@ -2221,30 +2454,40 @@ function EvcsPage() {
                 placeholder="Buscar por nombre..."
                 value={filters.name}
                 onChange={(e) => {
-                  setFilters(prev => ({ ...prev, name: e.target.value }));
+                  setFilters((prev) => ({ ...prev, name: e.target.value }));
                 }}
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-700 mb-1">Descripción</label>
+              <label className="block text-sm text-gray-700 mb-1">
+                Descripción
+              </label>
               <input
                 type="text"
                 className="w-full p-2 border rounded-md"
                 placeholder="Buscar por descripción..."
                 value={filters.description || ""}
                 onChange={(e) => {
-                  setFilters(prev => ({ ...prev, description: e.target.value }));
+                  setFilters((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }));
                 }}
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-700 mb-1">Entorno</label>
+              <label className="block text-sm text-gray-700 mb-1">
+                Entorno
+              </label>
               <select
                 className="w-full p-2 border rounded-md"
                 value={filters.entorno_id}
                 onChange={(e) => {
                   console.log("Selected entorno:", e.target.value);
-                  setFilters(prev => ({ ...prev, entorno_id: e.target.value }));
+                  setFilters((prev) => ({
+                    ...prev,
+                    entorno_id: e.target.value,
+                  }));
                 }}
               >
                 <option value="">Todos los entornos</option>
@@ -2256,13 +2499,18 @@ function EvcsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm text-gray-700 mb-1">Líder Técnico</label>
+              <label className="block text-sm text-gray-700 mb-1">
+                Líder Técnico
+              </label>
               <select
                 className="w-full p-2 border rounded-md"
                 value={filters.technical_leader_id}
                 onChange={(e) => {
                   console.log("Selected technical leader:", e.target.value);
-                  setFilters(prev => ({ ...prev, technical_leader_id: e.target.value }));
+                  setFilters((prev) => ({
+                    ...prev,
+                    technical_leader_id: e.target.value,
+                  }));
                 }}
               >
                 <option value="">Todos los líderes técnicos</option>
@@ -2274,13 +2522,18 @@ function EvcsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm text-gray-700 mb-1">Líder Funcional</label>
+              <label className="block text-sm text-gray-700 mb-1">
+                Líder Funcional
+              </label>
               <select
                 className="w-full p-2 border rounded-md"
                 value={filters.functional_leader_id}
                 onChange={(e) => {
                   console.log("Selected functional leader:", e.target.value);
-                  setFilters(prev => ({ ...prev, functional_leader_id: e.target.value }));
+                  setFilters((prev) => ({
+                    ...prev,
+                    functional_leader_id: e.target.value,
+                  }));
                 }}
               >
                 <option value="">Todos los líderes funcionales</option>
@@ -2298,7 +2551,7 @@ function EvcsPage() {
                 value={filters.status}
                 onChange={(e) => {
                   console.log("Selected status:", e.target.value);
-                  setFilters(prev => ({ ...prev, status: e.target.value }));
+                  setFilters((prev) => ({ ...prev, status: e.target.value }));
                 }}
               >
                 <option value="">Todos los estados</option>
@@ -2497,8 +2750,13 @@ function EvcsPage() {
                   {selectedEvc.evc_qs && selectedEvc.evc_qs.length > 0 ? (
                     <ul className="space-y-2">
                       {selectedEvc.evc_qs.map((quarter) => (
-                        <li key={quarter.id} className="flex items-center gap-2">
-                          <span className="font-semibold">Año:</span> {quarter.year} <span className="font-semibold">Q:</span> {quarter.q}
+                        <li
+                          key={quarter.id}
+                          className="flex items-center gap-2"
+                        >
+                          <span className="font-semibold">Año:</span>{" "}
+                          {quarter.year}{" "}
+                          <span className="font-semibold">Q:</span> {quarter.q}
                         </li>
                       ))}
                     </ul>
@@ -2611,16 +2869,20 @@ function EvcsPage() {
                 </div>
                 <div className="flex justify-end mt-4">
                   {alertMsg && (
-                    <div className="mr-auto text-red-500 text-sm">{alertMsg}</div>
+                    <div className="mr-auto text-red-500 text-sm">
+                      {alertMsg}
+                    </div>
                   )}
                   <button
-                    className={`px-4 py-2 ${isCreatingQuarter 
-                      ? 'bg-gray-400 cursor-not-allowed' 
-                      : 'bg-yellow-500 hover:bg-yellow-600'} text-white rounded-md`}
+                    className={`px-4 py-2 ${
+                      isCreatingQuarter
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : "bg-yellow-500 hover:bg-yellow-600"
+                    } text-white rounded-md`}
                     onClick={() => createQuarter(selectedEvc.id)}
                     disabled={isCreatingQuarter}
                   >
-                    {isCreatingQuarter ? 'Creando...' : 'Agregar Quarter'}
+                    {isCreatingQuarter ? "Creando..." : "Agregar Quarter"}
                   </button>
                 </div>
               </div>
@@ -2700,7 +2962,9 @@ function EvcsPage() {
                   </div>
                 </div>
                 <div className="rounded-xl bg-gray-50 p-4 shadow-sm">
-                  <div className="text-xs font-semibold text-gray-500 mb-1">Entorno</div>
+                  <div className="text-xs font-semibold text-gray-500 mb-1">
+                    Entorno
+                  </div>
                   <div className="flex justify-between items-center">
                     {isEditingEntorno ? (
                       <div className="flex items-center gap-2 w-full">
@@ -2711,7 +2975,10 @@ function EvcsPage() {
                         >
                           <option value="">-- Sin entorno --</option>
                           {availableEntornos.map((entorno) => (
-                            <option key={entorno.id} value={entorno.id.toString()}>
+                            <option
+                              key={entorno.id}
+                              value={entorno.id.toString()}
+                            >
                               {entorno.name}
                             </option>
                           ))}
@@ -2719,44 +2986,89 @@ function EvcsPage() {
                         <button
                           onClick={() => {
                             if (editedEntornoId) {
-                              updateEvcField(selectedEvc.id, "entorno_id", parseInt(editedEntornoId));
+                              updateEvcField(
+                                selectedEvc.id,
+                                "entorno_id",
+                                parseInt(editedEntornoId),
+                              );
                             } else {
-                              updateEvcField(selectedEvc.id, "entorno_id", null);
+                              updateEvcField(
+                                selectedEvc.id,
+                                "entorno_id",
+                                null,
+                              );
                             }
                             setIsEditingEntorno(false);
                           }}
                           className="p-1 text-green-600 hover:text-green-700"
                         >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M5 13l4 4L19 7"
+                            />
                           </svg>
                         </button>
                         <button
                           onClick={() => {
                             setIsEditingEntorno(false);
-                            setEditedEntornoId(selectedEvc.entorno_id?.toString() || "");
+                            setEditedEntornoId(
+                              selectedEvc.entorno_id?.toString() || "",
+                            );
                           }}
                           className="p-1 text-red-600 hover:text-red-700"
                         >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
                           </svg>
                         </button>
                       </div>
                     ) : (
                       <>
                         <div className="text-base font-bold text-gray-900">
-                          {selectedEvc.entorno_id ? (entornosData[selectedEvc.entorno_id] || "Cargando...") : "-"}
+                          {selectedEvc.entorno_id
+                            ? entornosData[selectedEvc.entorno_id] ||
+                              "Cargando..."
+                            : "-"}
                         </div>
                         <button
                           onClick={() => {
                             setIsEditingEntorno(true);
-                            setEditedEntornoId(selectedEvc.entorno_id?.toString() || "");
+                            setEditedEntornoId(
+                              selectedEvc.entorno_id?.toString() || "",
+                            );
                           }}
                           className="p-1 text-gray-600 hover:text-gray-700"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                            />
                           </svg>
                         </button>
                       </>
@@ -2764,18 +3076,25 @@ function EvcsPage() {
                   </div>
                 </div>
                 <div className="rounded-xl bg-gray-50 p-4 shadow-sm">
-                  <div className="text-xs font-semibold text-gray-500 mb-1">Líder Técnico</div>
+                  <div className="text-xs font-semibold text-gray-500 mb-1">
+                    Líder Técnico
+                  </div>
                   <div className="flex justify-between items-center">
                     {isEditingTechnicalLeader ? (
                       <div className="flex items-center gap-2 w-full">
                         <select
                           className="p-2 border rounded w-full"
                           value={editedTechnicalLeaderId}
-                          onChange={(e) => setEditedTechnicalLeaderId(e.target.value)}
+                          onChange={(e) =>
+                            setEditedTechnicalLeaderId(e.target.value)
+                          }
                         >
                           <option value="">-- Sin líder técnico --</option>
                           {availableTechnicalLeaders.map((leader) => (
-                            <option key={leader.id} value={leader.id.toString()}>
+                            <option
+                              key={leader.id}
+                              value={leader.id.toString()}
+                            >
                               {leader.name}
                             </option>
                           ))}
@@ -2783,44 +3102,90 @@ function EvcsPage() {
                         <button
                           onClick={() => {
                             if (editedTechnicalLeaderId) {
-                              updateEvcField(selectedEvc.id, "technical_leader_id", parseInt(editedTechnicalLeaderId));
+                              updateEvcField(
+                                selectedEvc.id,
+                                "technical_leader_id",
+                                parseInt(editedTechnicalLeaderId),
+                              );
                             } else {
-                              updateEvcField(selectedEvc.id, "technical_leader_id", null);
+                              updateEvcField(
+                                selectedEvc.id,
+                                "technical_leader_id",
+                                null,
+                              );
                             }
                             setIsEditingTechnicalLeader(false);
                           }}
                           className="p-1 text-green-600 hover:text-green-700"
                         >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M5 13l4 4L19 7"
+                            />
                           </svg>
                         </button>
                         <button
                           onClick={() => {
                             setIsEditingTechnicalLeader(false);
-                            setEditedTechnicalLeaderId(selectedEvc.technical_leader_id?.toString() || "");
+                            setEditedTechnicalLeaderId(
+                              selectedEvc.technical_leader_id?.toString() || "",
+                            );
                           }}
                           className="p-1 text-red-600 hover:text-red-700"
                         >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
                           </svg>
                         </button>
                       </div>
                     ) : (
                       <>
                         <div className="text-base font-bold text-gray-900">
-                          {selectedEvc.technical_leader_id ? (technicalLeadersData[selectedEvc.technical_leader_id] || "Cargando...") : "-"}
+                          {selectedEvc.technical_leader_id
+                            ? technicalLeadersData[
+                                selectedEvc.technical_leader_id
+                              ] || "Cargando..."
+                            : "-"}
                         </div>
                         <button
                           onClick={() => {
                             setIsEditingTechnicalLeader(true);
-                            setEditedTechnicalLeaderId(selectedEvc.technical_leader_id?.toString() || "");
+                            setEditedTechnicalLeaderId(
+                              selectedEvc.technical_leader_id?.toString() || "",
+                            );
                           }}
                           className="p-1 text-gray-600 hover:text-gray-700"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                            />
                           </svg>
                         </button>
                       </>
@@ -2828,18 +3193,25 @@ function EvcsPage() {
                   </div>
                 </div>
                 <div className="rounded-xl bg-gray-50 p-4 shadow-sm">
-                  <div className="text-xs font-semibold text-gray-500 mb-1">Líder Funcional</div>
+                  <div className="text-xs font-semibold text-gray-500 mb-1">
+                    Líder Funcional
+                  </div>
                   <div className="flex justify-between items-center">
                     {isEditingFunctionalLeader ? (
                       <div className="flex items-center gap-2 w-full">
                         <select
                           className="p-2 border rounded w-full"
                           value={editedFunctionalLeaderId}
-                          onChange={(e) => setEditedFunctionalLeaderId(e.target.value)}
+                          onChange={(e) =>
+                            setEditedFunctionalLeaderId(e.target.value)
+                          }
                         >
                           <option value="">-- Sin líder funcional --</option>
                           {availableFunctionalLeaders.map((leader) => (
-                            <option key={leader.id} value={leader.id.toString()}>
+                            <option
+                              key={leader.id}
+                              value={leader.id.toString()}
+                            >
                               {leader.name}
                             </option>
                           ))}
@@ -2847,44 +3219,92 @@ function EvcsPage() {
                         <button
                           onClick={() => {
                             if (editedFunctionalLeaderId) {
-                              updateEvcField(selectedEvc.id, "functional_leader_id", parseInt(editedFunctionalLeaderId));
+                              updateEvcField(
+                                selectedEvc.id,
+                                "functional_leader_id",
+                                parseInt(editedFunctionalLeaderId),
+                              );
                             } else {
-                              updateEvcField(selectedEvc.id, "functional_leader_id", null);
+                              updateEvcField(
+                                selectedEvc.id,
+                                "functional_leader_id",
+                                null,
+                              );
                             }
                             setIsEditingFunctionalLeader(false);
                           }}
                           className="p-1 text-green-600 hover:text-green-700"
                         >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M5 13l4 4L19 7"
+                            />
                           </svg>
                         </button>
                         <button
                           onClick={() => {
                             setIsEditingFunctionalLeader(false);
-                            setEditedFunctionalLeaderId(selectedEvc.functional_leader_id?.toString() || "");
+                            setEditedFunctionalLeaderId(
+                              selectedEvc.functional_leader_id?.toString() ||
+                                "",
+                            );
                           }}
                           className="p-1 text-red-600 hover:text-red-700"
                         >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
                           </svg>
                         </button>
                       </div>
                     ) : (
                       <>
                         <div className="text-base font-bold text-gray-900">
-                          {selectedEvc.functional_leader_id ? (functionalLeadersData[selectedEvc.functional_leader_id] || "Cargando...") : "-"}
+                          {selectedEvc.functional_leader_id
+                            ? functionalLeadersData[
+                                selectedEvc.functional_leader_id
+                              ] || "Cargando..."
+                            : "-"}
                         </div>
                         <button
                           onClick={() => {
                             setIsEditingFunctionalLeader(true);
-                            setEditedFunctionalLeaderId(selectedEvc.functional_leader_id?.toString() || "");
+                            setEditedFunctionalLeaderId(
+                              selectedEvc.functional_leader_id?.toString() ||
+                                "",
+                            );
                           }}
                           className="p-1 text-gray-600 hover:text-gray-700"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                            />
                           </svg>
                         </button>
                       </>
@@ -2972,41 +3392,101 @@ function EvcsPage() {
                         </div>
                         <div className="mb-4">
                           <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium text-gray-700">Gastado</span>
+                            <span className="text-sm font-medium text-gray-700">
+                              Gastado
+                            </span>
                             <span className="text-sm font-bold text-gray-900">
                               {/* Calculate percent of budget spent */}
-                              {quarter.allocated_budget > 0 
-                                ? Math.min(Math.round((quarter.total_spendings || 0) / quarter.allocated_budget * 100), 100)
-                                : 0}%
+                              {quarter.allocated_budget > 0
+                                ? Math.min(
+                                    Math.round(
+                                      ((quarter.total_spendings || 0) /
+                                        quarter.allocated_budget) *
+                                        100,
+                                    ),
+                                    100,
+                                  )
+                                : 0}
+                              %
                             </span>
                           </div>
                           <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden relative">
-                            <div className="h-2 bg-orange-400 rounded-full absolute left-0 transition-all duration-500" 
-                              style={{ 
-                                width: `${quarter.allocated_budget > 0 
-                                  ? Math.min(Math.round((quarter.total_spendings || 0) / quarter.allocated_budget * 100), 100) 
-                                  : 0}%` 
-                              }} 
+                            <div
+                              className="h-2 bg-orange-400 rounded-full absolute left-0 transition-all duration-500"
+                              style={{
+                                width: `${
+                                  quarter.allocated_budget > 0
+                                    ? Math.min(
+                                        Math.round(
+                                          ((quarter.total_spendings || 0) /
+                                            quarter.allocated_budget) *
+                                            100,
+                                        ),
+                                        100,
+                                      )
+                                    : 0
+                                }%`,
+                              }}
                             />
                           </div>
                         </div>
-                        <div className="mb-2 text-sm text-gray-700">Presupuesto: <span className="font-bold text-gray-900">${quarter.allocated_budget.toLocaleString()}</span></div>
-                        <div className="mb-2 text-sm text-gray-700">Presupuesto gastado: <span className="font-bold text-gray-900">${quarter.total_spendings?.toLocaleString() ?? 0}</span></div>
-                        <div className="mb-2 text-sm text-gray-700">Porcentaje gastado: <span className="font-bold text-gray-900">{quarter.allocated_budget > 0 
-    ? Math.round((quarter.total_spendings || 0) / quarter.allocated_budget * 100)
-    : 0}%</span></div>
-                        <div className="mb-2 text-sm text-gray-700">Estado: <span className={`px-2 py-1 rounded-full text-xs font-semibold ml-2
-                          ${quarter.allocated_budget > 0 && quarter.total_spendings
-    ? (quarter.total_spendings / quarter.allocated_budget * 100) >= 100
-      ? 'bg-red-100 text-red-800'
-      : (quarter.total_spendings / quarter.allocated_budget * 100) >= 80
-        ? 'bg-orange-100 text-orange-800'
-        : (quarter.total_spendings / quarter.allocated_budget * 100) >= 50
-          ? 'bg-yellow-100 text-yellow-800'
-          : 'bg-green-100 text-green-800'
-    : 'bg-green-100 text-green-800'}
-`}>{quarter.budget_message}</span></div>
-                        {quarter.evc_financials && quarter.evc_financials.length > 0 ? (
+                        <div className="mb-2 text-sm text-gray-700">
+                          Presupuesto:{" "}
+                          <span className="font-bold text-gray-900">
+                            ${quarter.allocated_budget.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="mb-2 text-sm text-gray-700">
+                          Presupuesto gastado:{" "}
+                          <span className="font-bold text-gray-900">
+                            ${quarter.total_spendings?.toLocaleString() ?? 0}
+                          </span>
+                        </div>
+                        <div className="mb-2 text-sm text-gray-700">
+                          Porcentaje gastado:{" "}
+                          <span className="font-bold text-gray-900">
+                            {quarter.allocated_budget > 0
+                              ? Math.round(
+                                  ((quarter.total_spendings || 0) /
+                                    quarter.allocated_budget) *
+                                    100,
+                                )
+                              : 0}
+                            %
+                          </span>
+                        </div>
+                        <div className="mb-2 text-sm text-gray-700">
+                          Estado:{" "}
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-semibold ml-2
+                          ${
+                            quarter.allocated_budget > 0 &&
+                            quarter.total_spendings
+                              ? (quarter.total_spendings /
+                                  quarter.allocated_budget) *
+                                  100 >=
+                                100
+                                ? "bg-red-100 text-red-800"
+                                : (quarter.total_spendings /
+                                      quarter.allocated_budget) *
+                                      100 >=
+                                    80
+                                  ? "bg-orange-100 text-orange-800"
+                                  : (quarter.total_spendings /
+                                        quarter.allocated_budget) *
+                                        100 >=
+                                      50
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : "bg-green-100 text-green-800"
+                              : "bg-green-100 text-green-800"
+                          }
+`}
+                          >
+                            {quarter.budget_message}
+                          </span>
+                        </div>
+                        {quarter.evc_financials &&
+                        quarter.evc_financials.length > 0 ? (
                           <div className="mt-2">
                             <div className="text-sm font-medium text-gray-700 mb-1">
                               Talentos asignados:
@@ -3140,7 +3620,12 @@ function EvcsPage() {
 
       {/* Listado de EVCs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {(filteredEvcs.length > 0 ? filteredEvcs : Object.values(filters).some(value => value !== "") ? [] : evcs).map((evc: EVC, idx: number) => (
+        {(filteredEvcs.length > 0
+          ? filteredEvcs
+          : Object.values(filters).some((value) => value !== "")
+            ? []
+            : evcs
+        ).map((evc: EVC, idx: number) => (
           <EvcCard
             key={evc.id}
             evc={evc}
@@ -3152,19 +3637,22 @@ function EvcsPage() {
             }}
             index={idx}
             selected={selectedEvcsForDelete.includes(evc.id)}
-            onSelect={checked => {
-              setSelectedEvcsForDelete(prev =>
-                checked ? [...prev, evc.id] : prev.filter(id => id !== evc.id)
+            onSelect={(checked) => {
+              setSelectedEvcsForDelete((prev) =>
+                checked
+                  ? [...prev, evc.id]
+                  : prev.filter((id) => id !== evc.id),
               );
             }}
             onStatusChange={toggleEvcStatus}
           />
         ))}
-        {filteredEvcs.length === 0 && Object.values(filters).some(value => value !== "") && (
-          <div className="col-span-3 text-center py-8 text-gray-500">
-            No se encontraron EVCs que coincidan con los filtros aplicados.
-          </div>
-        )}
+        {filteredEvcs.length === 0 &&
+          Object.values(filters).some((value) => value !== "") && (
+            <div className="col-span-3 text-center py-8 text-gray-500">
+              No se encontraron EVCs que coincidan con los filtros aplicados.
+            </div>
+          )}
       </div>
 
       {providerFilterModal.open && (
@@ -3340,4 +3828,3 @@ function EvcsPage() {
 }
 
 export default EvcsPage;
-

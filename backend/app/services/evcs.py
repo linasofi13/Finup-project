@@ -27,13 +27,15 @@ def get_evcs(db: Session, skip: int = 0, limit: int = 100):
             joinedload(EVC.entorno),
             joinedload(EVC.technical_leader),
             joinedload(EVC.functional_leader),
-            joinedload(EVC.evc_qs).joinedload(EVC_Q.evc_financials).joinedload(EVC_Financial.provider)
+            joinedload(EVC.evc_qs)
+            .joinedload(EVC_Q.evc_financials)
+            .joinedload(EVC_Financial.provider),
         )
         .offset(skip)
         .limit(limit)
         .all()
     )
-    
+
     # Calculate spending information for each EVC quarter
     for evc in evcs:
         for quarter in evc.evc_qs:
@@ -42,25 +44,31 @@ def get_evcs(db: Session, skip: int = 0, limit: int = 100):
                 db.query(func.sum(Provider.cost_usd))
                 .join(EVC_Financial, EVC_Financial.provider_id == Provider.id)
                 .filter(EVC_Financial.evc_q_id == quarter.id)
-                .scalar() or 0.0
+                .scalar()
+                or 0.0
             )
-            
+
             # Add manual spendings
             manual_spendings = (
                 db.query(func.sum(EVC_Financial.value_usd))
                 .filter(EVC_Financial.evc_q_id == quarter.id)
-                .scalar() or 0.0
+                .scalar()
+                or 0.0
             )
-            
+
             total_spendings += manual_spendings
-            
+
             # Calculate percentage
-            percentage = (total_spendings / quarter.allocated_budget) * 100 if quarter.allocated_budget else 0.0
-            
+            percentage = (
+                (total_spendings / quarter.allocated_budget) * 100
+                if quarter.allocated_budget
+                else 0.0
+            )
+
             # Add the calculated values to the quarter object
             quarter.total_spendings = total_spendings
             quarter.percentage = percentage
-            
+
             # Add budget message
             if percentage >= 100:
                 quarter.budget_message = "No hay más presupuesto"
@@ -70,7 +78,7 @@ def get_evcs(db: Session, skip: int = 0, limit: int = 100):
                 quarter.budget_message = "Vas a la mitad del presupuesto"
             else:
                 quarter.budget_message = "Presupuesto suficiente"
-    
+
     return evcs
 
 
@@ -92,25 +100,29 @@ def update_evc(db: Session, evc_id: int, evc_data: EVCUpdate):
 def delete_evc(db: Session, evc_id: int):
     try:
         # First, delete all budget allocations for this EVC
-        db.query(BudgetAllocation).filter(BudgetAllocation.evc_id == evc_id).delete(synchronize_session=False)
+        db.query(BudgetAllocation).filter(BudgetAllocation.evc_id == evc_id).delete(
+            synchronize_session=False
+        )
 
         # Then find all quarters for this EVC
         quarters = db.query(EVC_Q).filter(EVC_Q.evc_id == evc_id).all()
         quarter_ids = [q.id for q in quarters]
-        
+
         if quarter_ids:
             # Delete all EVC_Financial records for these quarters
-            db.query(EVC_Financial).filter(EVC_Financial.evc_q_id.in_(quarter_ids)).delete(synchronize_session=False)
-            
+            db.query(EVC_Financial).filter(
+                EVC_Financial.evc_q_id.in_(quarter_ids)
+            ).delete(synchronize_session=False)
+
         # Now delete the quarters
         db.query(EVC_Q).filter(EVC_Q.evc_id == evc_id).delete(synchronize_session=False)
-        
+
         # Finally delete the EVC
         db_evc = get_evc_by_id(db, evc_id)
         if db_evc:
             db.delete(db_evc)
             db.commit()
-            
+
         return db_evc
     except Exception as e:
         db.rollback()

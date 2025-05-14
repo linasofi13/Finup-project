@@ -83,3 +83,9 @@ async def update_allocated_percentage(
     db.commit()
     db.refresh(quarter)
     return quarter
+
+
+@router.get("/default_values/evc/{evc_id}", response_model=dict, tags=[tag_name])
+async def get_default_creation_values(evc_id: int, db: Session = Depends(get_db)):
+    response = evc_q_service.get_default_creation_values(db, evc_id)
+    return response

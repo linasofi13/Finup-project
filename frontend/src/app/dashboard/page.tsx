@@ -84,6 +84,7 @@ export default function DashboardPage() {
   const [providersData, setProvidersData] = useState<Provider[]>([]);
   const [evcsData, setEvcsData] = useState<EVC[]>([]);
   const [evcQsData, setEvcQsData] = useState<EVC_Q[]>([]);
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
   useEffect(() => {
     fetchProviders();
@@ -95,9 +96,7 @@ export default function DashboardPage() {
   // 1. Obtener proveedores desde el backend
   const fetchProviders = async () => {
     try {
-      const response = await axios.get(
-        "http://127.0.0.1:8000/providers/providers",
-      );
+      const response = await axios.get(`${apiUrl}/providers/providers`);
       setProvidersData(response.data);
     } catch (error) {
       console.error("Error fetching providers:", error);
@@ -112,7 +111,6 @@ export default function DashboardPage() {
 
   const fetchEvcs = async () => {
     const token = Cookies.get("auth_token");
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
     if (!apiUrl) throw new Error("API URL is not configured");
     if (!token) throw new Error("No authentication token found");
@@ -131,7 +129,7 @@ export default function DashboardPage() {
 
   const fetchEvcQs = async () => {
     try {
-      const res = await axios.get("http://127.0.0.1:8000/evc-qs/evc_qs/");
+      const res = await axios.get(`${apiUrl}/evc-qs/evc_qs/`);
       setEvcQsData(res.data);
     } catch (err) {
       console.error("Error fetching EVC_Qs:", err);
@@ -140,9 +138,7 @@ export default function DashboardPage() {
 
   const fetchEvcFinancials = async () => {
     try {
-      const res = await axios.get(
-        "http://127.0.0.1:8000/evc-financials/evc_financials/",
-      );
+      const res = await axios.get(`${apiUrl}/evc-financials/evc_financials/`);
       setEvcFinancialsData(res.data);
     } catch (err) {
       console.error("Error fetching EVC Financials:", err);

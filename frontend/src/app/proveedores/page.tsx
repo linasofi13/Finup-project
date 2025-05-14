@@ -14,8 +14,9 @@ import axios from "axios";
 import * as XLSX from "xlsx";
 
 // Endpoints (ajusta según tu backend)
-const API_URL = "http://127.0.0.1:8000/providers/providers";
-const BULK_UPLOAD_URL = "http://127.0.0.1:8000/providers/providers/bulk-upload";
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = `${apiUrl}/providers/providers`;
+const BULK_UPLOAD_URL = `${apiUrl}/providers/providers/bulk-upload`;
 
 // inicio de codigo para cargar el archivo a supabase
 import { finupBucket } from "@/services/supabaseClient";
@@ -81,7 +82,7 @@ export default function TalentosPage() {
   const fetchProviderDocuments = async (providerId) => {
     try {
       const response = await axios.get(
-        `http://127.0.0.1:8000/provider-documents/by-provider/${providerId}`,
+        `${apiUrl}/provider-documents/by-provider/${providerId}`,
       );
       setDocList(response.data);
     } catch (error) {
@@ -330,43 +331,57 @@ export default function TalentosPage() {
   };
 
   const handleUploadDocument = async () => {
-    if (!docFile) return alert("Por favor selecciona un archivo.");
-    if (!selectedProviderId || selectedProviderId === "0")
-      return alert("Selecciona un talento válido.");
+    if (!docFile || !selectedProviderId) {
+      setUploadMessage("Seleccione un archivo y un talento");
+      return;
+    }
+
+    setLoading(true);
+    setUploadMessage("Subiendo archivo...");
 
     try {
-      const fileName = `${Date.now()}-${docFile.name}`;
-      const filePath = `${selectedProviderId}/${fileName}`;
-      const { data, error } = await finupBucket.upload(filePath, docFile, {
-        upsert: true,
-      });
-
-      if (error) throw new Error(error.message);
-
-      const { data: publicUrlData } = finupBucket.getPublicUrl(filePath);
-      const publicUrl = publicUrlData?.publicUrl;
-
-      const response = await axios.post(
-        "http://127.0.0.1:8000/provider-documents/",
+      const fileExt = docFile.name.split(".").pop();
+      const fileName = `${Date.now()}_${docFile.name}`;
+      const { data, error } = await finupBucket.upload(
+        `provider_docs/${fileName}`,
+        docFile,
         {
-          provider_id: parseInt(selectedProviderId),
-          file_name: docFile.name,
-          file_url: publicUrl,
+          cacheControl: "3600",
+          upsert: false,
         },
       );
 
-      setDocList((prev) => [...prev, response.data]);
-      setUploadMessage(
-        `✅ Documento "${docFile.name}" subido con éxito para el talento seleccionado.`,
-      );
-      setDocFile(null);
-      if (docFileInputRef.current) docFileInputRef.current.value = "";
+      if (error) {
+        throw error;
+      }
 
-      // 💡 UX Mejorada: aplicar filtro automáticamente al talento recién usado
-      setFilterProviderId(selectedProviderId);
-    } catch (err) {
-      console.error("Error en subida:", err);
-      alert("Ocurrió un error al subir el documento.");
+      const { data: urlData } = finupBucket.getPublicUrl(
+        `provider_docs/${fileName}`,
+      );
+
+      // Guardar referencia a la BD
+      const docInfo = {
+        provider_id: selectedProviderId,
+        file_name: docFile.name,
+        file_url: urlData.publicUrl,
+        file_type: fileExt,
+        date_uploaded: new Date().toISOString(),
+      };
+
+      await axios.post(`${apiUrl}/provider-documents/`, docInfo);
+
+      // Limpiar estado
+      setDocFile(null);
+      if (docFileInputRef.current) {
+        docFileInputRef.current.value = "";
+      }
+      fetchProviderDocuments(selectedProviderId);
+      setUploadMessage("Archivo subido exitosamente");
+    } catch (error) {
+      console.error("Error uploading document:", error);
+      setUploadMessage("Error al subir el archivo");
+    } finally {
+      setLoading(false);
     }
   };
 

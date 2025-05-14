@@ -29,6 +29,9 @@ import "rc-slider/assets/index.css";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
 
+// API URL from environment variable
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
 // Interfaces
 interface Entorno {
   id: number;
@@ -459,51 +462,67 @@ function QuarterCard({
     quarterId: number,
     spending: ManualSpending,
   ) => {
+    // Validations
+    if (
+      spending.value_usd === undefined ||
+      isNaN(spending.value_usd) ||
+      spending.value_usd <= 0
+    ) {
+      setManualSpendingStatus({
+        ...manualSpendingStatus,
+        [quarterId]: {
+          error: "El monto debe ser un número mayor a cero",
+        },
+      });
+      return;
+    }
+
+    if (!spending.concept || spending.concept.trim() === "") {
+      setManualSpendingStatus({
+        ...manualSpendingStatus,
+        [quarterId]: {
+          error: "Debe ingresar un concepto",
+        },
+      });
+      return;
+    }
+
     try {
-      const token = Cookies.get("auth_token");
-      await axios.post(
-        `http://127.0.0.1:8000/evc-financials/evc_financials/concept`,
-        {
-          evc_q_id: quarterId,
-          value_usd: spending.value_usd,
-          concept: spending.concept,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
+      await axios.post(`${apiUrl}/evc-financials/evc_financials/concept`, {
+        evc_q_id: quarterId,
+        concept: spending.concept,
+        value_usd: spending.value_usd,
+      });
 
-      // Clear the form
-      setManualSpendings((prev) => ({
-        ...prev,
+      // Limpiar el formulario y mostrar mensaje de éxito
+      setManualSpendings({
+        ...manualSpendings,
         [quarterId]: { value_usd: 0, concept: "" },
-      }));
+      });
+      setManualSpendingStatus({
+        ...manualSpendingStatus,
+        [quarterId]: {
+          success: "Gasto registrado con éxito",
+        },
+      });
 
-      // Show success message
-      setManualSpendingStatus((prev) => ({
-        ...prev,
-        [quarterId]: { success: "Gasto agregado exitosamente" },
-      }));
+      // Actualizar datos
+      fetchEvcs();
 
-      // Refresh the EVC data to update the progress bars
-      await fetchEvcs();
-
-      // Clear success message after 3 seconds
       setTimeout(() => {
-        setManualSpendingStatus((prev) => {
-          const newStatus = { ...prev };
-          delete newStatus[quarterId];
-          return newStatus;
+        setManualSpendingStatus({
+          ...manualSpendingStatus,
+          [quarterId]: {},
         });
       }, 3000);
     } catch (error) {
-      console.error("Error submitting manual spending:", error);
-      setManualSpendingStatus((prev) => ({
-        ...prev,
-        [quarterId]: { error: "Error al agregar el gasto" },
-      }));
+      console.error("Error al registrar gasto manual:", error);
+      setManualSpendingStatus({
+        ...manualSpendingStatus,
+        [quarterId]: {
+          error: "Error al registrar el gasto",
+        },
+      });
     }
   };
 
@@ -540,7 +559,7 @@ function QuarterCard({
       try {
         // Simulate an OCR service call
         // In production, this would be an actual API call like:
-        // const ocrResponse = await axios.post(`http://127.0.0.1:8000/ocr/extract-total`, formData);
+        // const ocrResponse = await axios.post(`${apiUrl}/ocr/extract-total`, formData);
         // extractedAmount = ocrResponse.data.total;
 
         // For demonstration purposes, we're using the file's last modified date to simulate
@@ -598,26 +617,30 @@ function QuarterCard({
     quarterId: number,
     extractedAmount?: number,
   ) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("evc_q_id", quarterId.toString());
-
-    // If we have an extracted amount, include it in the form data
-    if (extractedAmount) {
-      formData.append("value_usd", extractedAmount.toString());
+    const token = Cookies.get("auth_token");
+    if (!token) {
+      console.error("No authentication token found");
+      return;
     }
 
-    setUploading(true);
     try {
-      const token = Cookies.get("auth_token");
+      setUploadStatus((prev) => ({
+        ...prev,
+        [quarterId]: { uploading: true },
+      }));
 
-      // Log what we're sending to help with debugging
-      console.log(
-        `Uploading invoice with extracted amount: $${extractedAmount}`,
-      );
+      // Create a FormData object to send the file
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("evc_q_id", quarterId.toString());
 
+      if (extractedAmount !== undefined) {
+        formData.append("extracted_amount", extractedAmount.toString());
+      }
+
+      // Upload the file
       await axios.post(
-        `http://127.0.0.1:8000/evc-financials/evc_financials/upload`,
+        `${apiUrl}/evc-financials/evc_financials/upload`,
         formData,
         {
           headers: {
@@ -627,34 +650,11 @@ function QuarterCard({
         },
       );
 
-      // Refresh the EVC data to update the progress bars
-      await fetchEvcs();
-
-      // Show success message with the extracted amount
-      setUploadStatus((prev) => ({
-        ...prev,
-        [quarterId]: {
-          uploading: false,
-          success: `Factura subida exitosamente. Monto: $${extractedAmount?.toLocaleString() ?? "No detectado"}`,
-        },
-      }));
-
-      // Clear success message after 3 seconds
-      setTimeout(() => {
-        setUploadStatus((prev) => {
-          const newStatus = { ...prev };
-          delete newStatus[quarterId];
-          return newStatus;
-        });
-      }, 3000);
+      handleUploadSuccess(quarterId);
+      fetchEvcs();
     } catch (error) {
       console.error("Error uploading file:", error);
-      setUploadStatus((prev) => ({
-        ...prev,
-        [quarterId]: { uploading: false, error: "Error al subir el archivo" },
-      }));
-    } finally {
-      setUploading(false);
+      handleUploadError(quarterId);
     }
   };
 
@@ -1134,10 +1134,10 @@ function QuarterCard({
             }
 
             try {
-              await axios.post(
-                "http://127.0.0.1:8000/evc-financials/evc_financials/",
-                { evc_q_id: quarter.id, provider_id: parseInt(providerId, 10) },
-              );
+              await axios.post(`${apiUrl}/evc-financials/evc_financials/`, {
+                evc_q_id: quarter.id,
+                provider_id: parseInt(providerId, 10),
+              });
               setProviderSelections((prev) => ({ ...prev, [quarter.id]: "" }));
               // Refresh data
               await fetchEvcs();
@@ -1282,7 +1282,7 @@ function EvcsPage() {
     try {
       const token = Cookies.get("auth_token");
       await axios.patch(
-        `http://127.0.0.1:8000/evc-qs/evc_qs/${quarterId}/percentage`,
+        `${apiUrl}/evc-qs/evc_qs/${quarterId}/percentage`,
         { allocated_percentage: percentage },
         {
           headers: {
@@ -1406,13 +1406,12 @@ function EvcsPage() {
   // Add function to fetch distinct countries
   const fetchDistinctCountries = async () => {
     try {
-      const resp = await axios.get(
-        "http://127.0.0.1:8000/providers/providers/distinct-countries",
+      const response = await axios.get(
+        `${apiUrl}/providers/providers/distinct-countries`,
       );
-      setProviderCountryOptions(resp.data);
+      setProviderCountryOptions(response.data);
     } catch (error) {
-      console.error("Error al cargar países:", error);
-      setProviderCountryOptions([]);
+      console.error("Error fetching countries:", error);
     }
   };
 
@@ -1420,47 +1419,32 @@ function EvcsPage() {
   const loadTechnicalLeadersData = async () => {
     try {
       const response = await axios.get(
-        "http://127.0.0.1:8000/technical-leaders/technical-leaders/",
+        `${apiUrl}/technical-leaders/technical-leaders/`,
       );
-      const data: { [key: number]: string } = {};
-      response.data.forEach((leader: TechnicalLeader) => {
-        data[leader.id] = leader.name;
-      });
-      setTechnicalLeadersData(data);
+      setTechnicalLeadersData(response.data);
     } catch (error) {
-      console.error("Error cargando líderes técnicos:", error);
+      console.error("Error loading technical leaders:", error);
     }
   };
 
   const loadFunctionalLeadersData = async () => {
     try {
       const response = await axios.get(
-        "http://127.0.0.1:8000/functional-leaders/functional-leaders",
+        `${apiUrl}/functional-leaders/functional-leaders`,
       );
-      const data: { [key: number]: string } = {};
-      response.data.forEach((leader: any) => {
-        data[leader.id] = leader.name;
-      });
-      setFunctionalLeadersData(data);
+      setFunctionalLeadersData(response.data);
     } catch (error) {
-      console.error("Error cargando líderes funcionales:", error);
+      console.error("Error loading functional leaders:", error);
     }
   };
 
   // Cargar data de entornos
   const loadEntornosData = async () => {
     try {
-      const response = await axios.get(
-        "http://127.0.0.1:8000/entornos/entornos/",
-      );
-      const data: { [key: number]: string } = {};
-      response.data.forEach((entorno: Entorno) => {
-        data[entorno.id] = entorno.name;
-      });
-      setEntornosData(data);
-      console.log("Entornos cargados:", data);
+      const response = await axios.get(`${apiUrl}/entornos/entornos/`);
+      setEntornosData(response.data);
     } catch (error) {
-      console.error("Error cargando entornos:", error);
+      console.error("Error loading entornos:", error);
     }
   };
 
@@ -1501,301 +1485,213 @@ function EvcsPage() {
   // Fetch data del backend
   const fetchEvcs = async () => {
     try {
-      const response = await axios.get(`http://127.0.0.1:8000/evcs/`);
-      console.log("EVCs recibidos:", response.data);
-      console.log("Primer EVC:", response.data[0]);
+      const response = await axios.get(`${apiUrl}/evcs/`);
       setEvcs(response.data);
+      setLoading(false);
     } catch (error) {
       console.error("Error fetching EVCs:", error);
-      toast.error("Error al cargar los EVCs");
+      setLoading(false);
     }
   };
 
   const fetchAvailableTechnicalLeaders = async () => {
     try {
-      const resp = await axios.get(
-        "http://127.0.0.1:8000/technical-leaders/technical-leaders/",
+      const response = await axios.get(
+        `${apiUrl}/technical-leaders/technical-leaders/`,
       );
-      setAvailableTechnicalLeaders(resp.data);
+      setAvailableTechnicalLeaders(response.data);
     } catch (error) {
-      console.error("Error al cargar líderes técnicos:", error);
+      console.error("Error fetching technical leaders:", error);
     }
   };
 
   const fetchAvailableFunctionalLeaders = async () => {
     try {
-      const resp = await axios.get(
-        "http://127.0.0.1:8000/functional-leaders/functional-leaders",
+      const response = await axios.get(
+        `${apiUrl}/functional-leaders/functional-leaders`,
       );
-      setAvailableFunctionalLeaders(resp.data);
+      setAvailableFunctionalLeaders(response.data);
     } catch (error) {
-      console.error("Error al cargar líderes funcionales:", error);
+      console.error("Error fetching functional leaders:", error);
     }
   };
 
   const fetchAvailableEntornos = async () => {
     try {
-      const resp = await axios.get("http://127.0.0.1:8000/entornos/entornos/");
+      const resp = await axios.get(`${apiUrl}/entornos/entornos/`);
       setAvailableEntornos(resp.data);
     } catch (error) {
-      console.error("Error al cargar entornos:", error);
+      console.error("Error fetching entornos:", error);
     }
   };
 
   const fetchAvailableProviders = async () => {
     try {
-      const resp = await axios.get(
-        "http://127.0.0.1:8000/providers/providers/",
-      );
-      setAvailableProviders(resp.data);
+      const response = await axios.get(`${apiUrl}/providers/providers/`);
+      setAvailableProviders(response.data);
     } catch (error) {
-      console.error("Error al cargar proveedores:", error);
+      console.error("Error fetching providers:", error);
     }
   };
 
   const fetchProvidersByEvcQ = async (evc_q_id: number) => {
     try {
       const response = await axios.get(
-        `http://127.0.0.1:8000/evc-financials/evc-financials/${evc_q_id}/providers`,
+        `${apiUrl}/evc-financials/evc-financials/${evc_q_id}/providers`,
       );
-      return response.data;
+      setFinancialsByQuarter((prev) => ({
+        ...prev,
+        [evc_q_id]: response.data,
+      }));
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 404) {
-        return []; // No providers found
-      }
-      console.error(`Error fetching providers for EVC_Q ${evc_q_id}:`, error);
-      return [];
+      console.error("Error fetching providers by EVC quarter:", error);
     }
   };
 
   const fetchSpendingsByEvcQ = async (evc_q_id: number) => {
     try {
-      console.log(`Fetching spendings for EVC_Q ID: ${evc_q_id}`);
       const response = await axios.get(
-        `http://127.0.0.1:8000/evc-financials/evc_financials/${evc_q_id}/spendings`,
+        `${apiUrl}/evc-financials/evc_financials/${evc_q_id}/spendings`,
       );
-
-      console.log(`Spendings for EVC_Q ${evc_q_id}:`, response.data);
-      return response.data;
+      setSpendingsByQuarter((prev) => ({
+        ...prev,
+        [evc_q_id]: response.data,
+      }));
     } catch (error) {
-      console.error(`Error fetching spendings for EVC_Q ${evc_q_id}:`, error);
-      return {
-        evc_q_id,
-        total_spendings: 0,
-        percentage: 0,
-        message: "Error fetching spendings",
-      };
+      console.error("Error fetching spendings by EVC quarter:", error);
     }
   };
 
   // Crear EVC
   const createEvc = async () => {
     try {
-      const response = await axios.post("http://127.0.0.1:8000/evcs/", {
+      setCreatingEvc(true);
+
+      // Validate required fields
+      if (!newEvc.name.trim()) {
+        setEvcErrors({ ...evcErrors, name: "El nombre es requerido" });
+        setCreatingEvc(false);
+        return;
+      }
+
+      const response = await axios.post(`${apiUrl}/evcs/`, {
         name: newEvc.name,
         description: newEvc.description,
-        technical_leader_id: parseInt(newEvc.technical_leader_id, 10) || null,
-        functional_leader_id: parseInt(newEvc.functional_leader_id, 10) || null,
-        entorno_id: parseInt(newEvc.entorno_id, 10) || null,
-        status: newEvc.status,
+        technical_leader: newEvc.technical_leader_id,
+        functional_leader: newEvc.functional_leader_id,
+        entorno: newEvc.entorno_id,
       });
-      console.log("EVC creada:", response.data);
-      fetchEvcs();
-      setShowForm(false);
-      setAlertMsg("");
+
       setNewEvc({
         name: "",
         description: "",
-        technical_leader_id: "",
-        functional_leader_id: "",
-        entorno_id: "",
-        status: true,
+        technical_leader_id: null,
+        functional_leader_id: null,
+        entorno_id: null,
       });
+      setEvcErrors({});
+      setShowNewEvcModal(false);
+      fetchEvcs();
+      toast.success("EVC creado exitosamente");
     } catch (error) {
-      console.error("Error creando EVC:", error);
-      setAlertMsg("Error al crear la EVC");
+      console.error("Error creating EVC:", error);
+      toast.error("Error al crear el EVC");
+    } finally {
+      setCreatingEvc(false);
     }
   };
 
   // Crear EVC_Q
   const createQuarter = async (evcId: number) => {
     try {
-      // Prevent multiple submissions
-      if (isCreatingQuarter) return;
-      setIsCreatingQuarter(true);
-      setAlertMsg("");
-
-      // Validate inputs
-      const year = parseInt(newQuarter.year, 10);
-      const q = parseInt(newQuarter.q, 10);
-      const allocated_budget = parseFloat(newQuarter.allocated_budget);
-      const allocated_percentage = parseFloat(newQuarter.allocated_percentage);
-
-      // Check for invalid values
-      if (
-        isNaN(year) ||
-        isNaN(q) ||
-        isNaN(allocated_budget) ||
-        isNaN(allocated_percentage)
-      ) {
-        setAlertMsg("Por favor complete todos los campos con valores válidos");
-        setIsCreatingQuarter(false);
+      // Get existing quarters for this EVC
+      const evc = evcs.find((e) => e.id === evcId);
+      if (!evc) {
+        console.error(`EVC with id ${evcId} not found`);
         return;
       }
 
-      // Validate quarter number
-      if (q < 1 || q > 4) {
-        setAlertMsg("El quarter debe ser un número entre 1 y 4");
-        setIsCreatingQuarter(false);
-        return;
-      }
+      // Determine the new quarter based on existing ones
+      const existingQuarters = evc.evc_qs || [];
+      let nextYear = new Date().getFullYear();
+      let nextQ = 1;
 
-      // Validate year
-      const currentYear = new Date().getFullYear();
-      if (year < currentYear - 1 || year > currentYear + 1) {
-        setAlertMsg(
-          `El año debe estar entre ${currentYear - 1} y ${currentYear + 1}`,
-        );
-        setIsCreatingQuarter(false);
-        return;
-      }
+      if (existingQuarters.length > 0) {
+        // Sort quarters by year and quarter in descending order
+        const sortedQuarters = [...existingQuarters].sort((a, b) => {
+          if (a.year !== b.year) return b.year - a.year;
+          return b.q - a.q;
+        });
 
-      // Validate budget and percentage
-      if (allocated_budget <= 0) {
-        setAlertMsg("El presupuesto debe ser mayor a 0");
-        setIsCreatingQuarter(false);
-        return;
-      }
+        const lastQuarter = sortedQuarters[0];
+        nextYear = lastQuarter.year;
+        nextQ = lastQuarter.q + 1;
 
-      if (allocated_percentage < 0 || allocated_percentage > 100) {
-        setAlertMsg("El porcentaje debe estar entre 0 y 100");
-        setIsCreatingQuarter(false);
-        return;
-      }
-
-      // Check for duplicate quarters
-      if (selectedEvc && selectedEvc.evc_qs) {
-        const isDuplicate = selectedEvc.evc_qs.some(
-          (existingQ) => existingQ.year === year && existingQ.q === q,
-        );
-
-        if (isDuplicate) {
-          setAlertMsg(`Ya existe un quarter Q${q} para el año ${year}`);
-          setIsCreatingQuarter(false);
-          return;
+        // If we're past Q4, move to the next year's Q1
+        if (nextQ > 4) {
+          nextYear++;
+          nextQ = 1;
         }
       }
 
-      // Create the quarter
-      toast.loading("Creando quarter...", { id: "create-quarter" });
-      const response = await axios.post(
-        "http://127.0.0.1:8000/evc-qs/evc_qs/",
-        {
-          evc_id: evcId,
-          year,
-          q,
-          allocated_budget,
-          allocated_percentage,
-        },
-      );
-
-      console.log("Quarter creado:", response.data);
-
-      // Fetch the updated EVC with the new quarter
-      const updatedEvc = await axios.get(`http://127.0.0.1:8000/evcs/${evcId}`);
-
-      // Update the selected EVC state
-      setSelectedEvc(updatedEvc.data);
-
-      // Update the evcs list to reflect the new quarter
-
-      setEvcs((prevEvcs) =>
-        prevEvcs.map((evc) => (evc.id === evcId ? updatedEvc.data : evc)),
-      );
-
-      // Reset the form
-      setNewQuarter({
-        year: "",
-        q: "",
-        allocated_budget: "",
-        allocated_percentage: "",
+      // Create the new quarter
+      const response = await axios.post(`${apiUrl}/evc-qs/evc_qs/`, {
+        evc_id: evcId,
+        year: nextYear,
+        q: nextQ,
+        allocated_budget: 0,
+        allocated_percentage: 0,
       });
 
-      // Show success message
-      toast.success(`Quarter Q${q} ${year} creado exitosamente`, {
-        id: "create-quarter",
-      });
-      setAlertMsg("");
+      // Update the UI
+      fetchEvcs();
+      toast.success(`Cuatrimestre Q${nextQ} ${nextYear} creado exitosamente`);
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const errorMsg =
-          error.response?.data?.detail || "Error al crear el quarter";
-        setAlertMsg(errorMsg);
-        toast.error(errorMsg, { id: "create-quarter" });
-        console.error("Error creando quarter:", error.response?.data);
-      } else if (error instanceof Error) {
-        console.error("Error creando quarter:", error.message);
-        setAlertMsg(error.message);
-        toast.error(error.message, { id: "create-quarter" });
-      } else {
-        console.error("Error creando quarter:", error);
-        setAlertMsg("Error al crear el quarter");
-        toast.error("Error al crear el quarter", { id: "create-quarter" });
-      }
-    } finally {
-      setIsCreatingQuarter(false);
+      console.error("Error creating quarter:", error);
+      toast.error("Error al crear el cuatrimestre");
     }
   };
 
   // Crear EVC_Financial
   const createFinancial = async (evcId: number, evc_q_id: number) => {
-    const provider_id = financialSelections[evc_q_id];
-    if (!provider_id) {
-      setAlertMsg("Seleccione un proveedor");
-      return;
-    }
     try {
+      // Create API call for financial
       const response = await axios.post(
-        "http://127.0.0.1:8000/evc-financials/evc_financials/",
+        `${apiUrl}/evc-financials/evc_financials/`,
         {
           evc_q_id: evc_q_id,
-          provider_id: parseInt(provider_id, 10) || null,
+          provider_id: parseInt(newFinancial.provider_id),
+          percentage: parseFloat(newFinancial.percentage),
         },
       );
-      console.log("Financial creado:", response.data);
-      const updatedEvc = await axios.get(`http://127.0.0.1:8000/evcs/${evcId}`);
-      setSelectedEvc(updatedEvc.data);
-      setFinancialSelections((prev) => ({
-        ...prev,
-        [evc_q_id]: "", // Resetear selección para este quarter
-      }));
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error("Error creando financial:", error.message);
-        setAlertMsg(error.message);
-      } else if (axios.isAxiosError(error)) {
-        const errorMsg =
-          error.response?.data?.detail || "Error al asignar el proveedor";
-        setAlertMsg(errorMsg);
-      } else {
-        console.error("Error creando financial:", String(error));
-        setAlertMsg("Error al asignar el proveedor");
-      }
+
+      // Update the selected EVC with the latest data
+      const updatedEvc = await axios.get(`${apiUrl}/evcs/${evcId}`);
+
+      // Update state
+      fetchEvcs();
+      setShowFinancialModal(false);
+    } catch (error) {
+      console.error("Error creating financial:", error);
     }
   };
 
   // Eliminar EVC
   const deleteEvc = async (evcId: number) => {
     try {
-      const token = Cookies.get("auth_token");
-      await axios.delete(`http://127.0.0.1:8000/evcs/${evcId}`, {
+      // Delete EVC from the server
+      await axios.delete(`${apiUrl}/evcs/${evcId}`, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${Cookies.get("auth_token")}`,
         },
       });
-      setEvcs((prev) => prev.filter((e) => e.id !== evcId));
-      setShowDeleteModal(false);
-      setEvcToDelete(null);
+
+      // Remove from state
+      setEvcs(evcs.filter((evc) => evc.id !== evcId));
+      setShowDeleteConfirmation(false);
+      setSelectedEvcForDelete(null);
+
+      // Update UI and show success message
       toast.success("EVC eliminado exitosamente");
     } catch (error) {
       console.error("Error deleting EVC:", error);
@@ -2032,49 +1928,30 @@ function EvcsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("evc_q_id", evc_q_id.toString());
-
-    setUploading(true);
-
     try {
+      // Create form data
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("evc_q_id", evc_q_id.toString());
+
+      // Upload the file to the server
       const response = await axios.post(
-        "http://127.0.0.1:8000/evc-financials/evc_financials/upload",
+        `${apiUrl}/evc-financials/evc_financials/upload`,
         formData,
         {
-          headers: { "Content-Type": "multipart/form-data" },
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${Cookies.get("auth_token")}`,
+          },
         },
       );
 
-      setUploadedFiles((prev) => ({
-        ...prev,
-        [evc_q_id]: file.name,
-      }));
-
-      setExtractedValues((prev) => ({
-        ...prev,
-        [evc_q_id]: response.data.value_usd,
-      }));
-
-      console.log("Archivo procesado:", response.data);
-
-      // Actualizar EVC seleccionado
-      if (selectedEvc) {
-        const updatedEvc = await axios.get(
-          `http://127.0.0.1:8000/evcs/${selectedEvc.id}`,
-        );
-        setSelectedEvc(updatedEvc.data);
-      }
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        console.error("Error al subir archivo:", err.message);
-      } else {
-        console.error("Error al subir archivo:", String(err));
-      }
-      setAlertMsg("Error al procesar la factura");
-    } finally {
-      setUploading(false);
+      // Update UI and show success message
+      fetchEvcs();
+      toast.success("Factura subida exitosamente");
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast.error("Error al subir la factura");
     }
   };
 
@@ -2085,14 +1962,16 @@ function EvcsPage() {
   // Function to fetch all gastos for a quarter
   const fetchGastosByQuarter = async (quarter: EVC_Q) => {
     try {
-      const res = await axios.get(
-        `http://127.0.0.1:8000/evc-financials/evc_financials/`,
+      const response = await axios.get(
+        `${apiUrl}/evc-financials/evc_financials/`,
+        {
+          params: { evc_q_id: quarter.id },
+        },
       );
-      // Filter by quarter id
-      const gastos = res.data.filter((g: any) => g.evc_q_id === quarter.id);
-      setGastosModal({ open: true, quarter, gastos });
-    } catch (err) {
-      setGastosModal({ open: true, quarter, gastos: [] });
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching expenses:", error);
+      return [];
     }
   };
 
@@ -2107,53 +1986,33 @@ function EvcsPage() {
     field: string,
   ) => {
     try {
-      // Fetch all unread notifications
-      const response = await axios.get(
-        "http://127.0.0.1:8000/notifications/notifications/",
+      // Get notifications related to this EVC
+      const relatedNotifications = notifications.filter(
+        (notif) =>
+          notif.evc === evcId && notif.field === field && notif.read === false,
       );
-      const notifications = response.data;
 
-      // Filter notifications related to this EVC and field
-      const relatedNotifications = notifications.filter((notification: any) => {
-        // Check for notifications about missing leaders or entorno for this specific EVC
-        if (
-          field === "technical_leader_id" &&
-          notification.message.includes(`El EVC`) &&
-          notification.message.includes(`(ID: ${evcId})`) &&
-          notification.message.includes("no tiene líder técnico asignado")
-        ) {
-          return true;
-        }
-        if (
-          field === "functional_leader_id" &&
-          notification.message.includes(`El EVC`) &&
-          notification.message.includes(`(ID: ${evcId})`) &&
-          notification.message.includes("no tiene líder funcional asignado")
-        ) {
-          return true;
-        }
-        if (
-          field === "entorno_id" &&
-          notification.message.includes(`El EVC`) &&
-          notification.message.includes(`(ID: ${evcId})`) &&
-          notification.message.includes("no tiene entorno asignado")
-        ) {
-          return true;
-        }
-        return false;
-      });
+      // Mark each as read
+      for (const notification of relatedNotifications) {
+        await axios.patch(
+          `${apiUrl}/notifications/notifications/${notification.id}/read`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${Cookies.get("auth_token")}`,
+            },
+          },
+        );
+      }
 
-      // Mark each related notification as read
-      const markPromises = relatedNotifications.map((notification: any) =>
-        axios.patch(
-          `http://127.0.0.1:8000/notifications/notifications/${notification.id}/read`,
+      // Update notifications state
+      setNotifications(
+        notifications.map((notif) =>
+          relatedNotifications.some((n) => n.id === notif.id)
+            ? { ...notif, read: true }
+            : notif,
         ),
       );
-
-      if (markPromises.length > 0) {
-        await Promise.all(markPromises);
-        console.log(`Marked ${markPromises.length} notifications as read`);
-      }
     } catch (error) {
       console.error("Error marking notifications as read:", error);
     }
@@ -2162,91 +2021,56 @@ function EvcsPage() {
   // Add function to update EVC fields
   const updateEvcField = async (evcId: number, field: string, value: any) => {
     try {
-      const token = Cookies.get("auth_token");
+      // If this is to clear a field (set to null), handle that specially
+      const updateValue = value === "" ? null : value;
 
-      // First, fetch the current EVC to get all its data
-      const response = await axios.get(`http://127.0.0.1:8000/evcs/${evcId}`, {
+      const response = await axios.get(`${apiUrl}/evcs/${evcId}`, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${Cookies.get("auth_token")}`,
         },
       });
 
-      const currentEvc = response.data;
+      const evc = response.data;
 
-      // Then update with PUT, sending the entire object with the modified field
-      await axios.put(
-        `http://127.0.0.1:8000/evcs/${evcId}`,
-        {
-          ...currentEvc,
-          [field]: value,
-        },
+      // Update just the one field
+      await axios.patch(
+        `${apiUrl}/evcs/${evcId}`,
+        { ...evc, [field]: updateValue },
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${Cookies.get("auth_token")}`,
           },
         },
       );
 
-      // If we're setting a value (not null), mark related notifications as read
-      if (value !== null) {
-        await markRelatedNotificationsAsRead(evcId, field);
-      }
-
-      // Refetch the EVC to ensure all data is up to date including backend validations
-      const updatedResponse = await axios.get(
-        `http://127.0.0.1:8000/evcs/${evcId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      // Update the selected EVC with the full refreshed data from the server
-      setSelectedEvc(updatedResponse.data);
-
-      // Update the EVCs list with the updated EVC
-      setEvcs((prevEvcs) =>
-        prevEvcs.map((evc) => (evc.id === evcId ? updatedResponse.data : evc)),
-      );
-
-      // Also fetch all EVCs to ensure the list is up to date
+      // Update UI
       fetchEvcs();
 
-      toast.success("Campo actualizado exitosamente");
+      // Mark any related notifications as read
+      await markRelatedNotificationsAsRead(evcId, field);
     } catch (error) {
-      console.error("Error updating EVC field:", error);
-      toast.error("Error al actualizar el campo");
+      console.error(`Error updating ${field} for EVC ${evcId}:`, error);
     }
   };
 
   // Update function for changing EVC status
   const toggleEvcStatus = async (evc: EVC) => {
     try {
-      const token = Cookies.get("auth_token");
-      await axios.put(
-        `http://127.0.0.1:8000/evcs/${evc.id}`,
-        { ...evc, status: !evc.status },
+      // Toggle status
+      await axios.patch(
+        `${apiUrl}/evcs/${evc.id}`,
+        { status: !evc.status },
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${Cookies.get("auth_token")}`,
           },
         },
       );
 
-      // Update EVCs list with the new status
-      setEvcs((prevEvcs) =>
-        prevEvcs.map((e) =>
-          e.id === evc.id ? { ...e, status: !e.status } : e,
-        ),
-      );
-
-      toast.success(
-        `EVC ${evc.name} ${!evc.status ? "activado" : "desactivado"} exitosamente`,
-      );
+      // Update UI
+      fetchEvcs();
     } catch (error) {
-      console.error("Error updating EVC status:", error);
-      toast.error("Error al actualizar el estado del EVC");
+      console.error("Error toggling EVC status:", error);
     }
   };
 

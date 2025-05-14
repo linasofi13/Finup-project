@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import { act } from "react";
 import DocumentosPage from "@/app/documentos/page";
 import axios from "axios";
+import { TEST_API_URL } from "../config/testConfig";
 
 // Mock axios
 jest.mock("axios");
@@ -50,7 +51,7 @@ describe("Documentos Page", () => {
 
     // 2. Verificar que se llama a la API
     expect(mockAxios.get).toHaveBeenCalledWith(
-      "http://127.0.0.1:8000/provider-documents/",
+      `${TEST_API_URL}/provider-documents/`,
     );
 
     // 3. Verificar que se muestran los documentos

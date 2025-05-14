@@ -18,14 +18,16 @@ export default function DocumentosPage() {
   const [filtroCampo, setFiltroCampo] = useState("file_name");
   const [pagina, setPagina] = useState(1);
   const porPagina = 10;
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
   useEffect(() => {
+    fetchProveedores();
     fetchDocumentos();
   }, []);
 
   const fetchProveedores = async () => {
     try {
-      const res = await axios.get("http://127.0.0.1:8000/providers/");
+      const res = await axios.get(`${apiUrl}/providers/`);
       setProveedores(res.data);
     } catch (err) {
       console.error("Error al obtener proveedores:", err);
@@ -34,9 +36,7 @@ export default function DocumentosPage() {
 
   const fetchDocumentos = async () => {
     try {
-      const response = await axios.get(
-        "http://127.0.0.1:8000/provider-documents/",
-      );
+      const response = await axios.get(`${apiUrl}/provider-documents/`);
       setDocumentos(response.data);
     } catch (error) {
       console.error("Error al obtener documentos:", error);
@@ -70,7 +70,7 @@ export default function DocumentosPage() {
     );
     if (!confirmar) return;
     try {
-      await axios.delete(`http://127.0.0.1:8000/provider-documents/${id}`);
+      await axios.delete(`${apiUrl}/provider-documents/${id}`);
       setDocumentos(documentos.filter((doc) => doc.id !== id));
       setSeleccionados(
         new Set([...seleccionados].filter((selId) => selId !== id)),

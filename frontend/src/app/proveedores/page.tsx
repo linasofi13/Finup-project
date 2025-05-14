@@ -342,11 +342,14 @@ export default function TalentosPage() {
     try {
       const fileExt = docFile.name.split(".").pop();
       const fileName = `${Date.now()}_${docFile.name}`;
-      const { data, error } = await finupBucket
-        .upload(`provider_docs/${fileName}`, docFile, {
+      const { data, error } = await finupBucket.upload(
+        `provider_docs/${fileName}`,
+        docFile,
+        {
           cacheControl: "3600",
           upsert: false,
-        });
+        },
+      );
 
       if (error) {
         throw error;
@@ -365,10 +368,7 @@ export default function TalentosPage() {
         date_uploaded: new Date().toISOString(),
       };
 
-      await axios.post(
-        `${apiUrl}/provider-documents/`,
-        docInfo,
-      );
+      await axios.post(`${apiUrl}/provider-documents/`, docInfo);
 
       // Limpiar estado
       setDocFile(null);

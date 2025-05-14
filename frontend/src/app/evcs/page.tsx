@@ -488,14 +488,11 @@ function QuarterCard({
     }
 
     try {
-      await axios.post(
-        `${apiUrl}/evc-financials/evc_financials/concept`,
-        {
-          evc_q_id: quarterId,
-          concept: spending.concept,
-          value_usd: spending.value_usd,
-        },
-      );
+      await axios.post(`${apiUrl}/evc-financials/evc_financials/concept`, {
+        evc_q_id: quarterId,
+        concept: spending.concept,
+        value_usd: spending.value_usd,
+      });
 
       // Limpiar el formulario y mostrar mensaje de éxito
       setManualSpendings({
@@ -636,7 +633,7 @@ function QuarterCard({
       const formData = new FormData();
       formData.append("file", file);
       formData.append("evc_q_id", quarterId.toString());
-      
+
       if (extractedAmount !== undefined) {
         formData.append("extracted_amount", extractedAmount.toString());
       }
@@ -1137,10 +1134,10 @@ function QuarterCard({
             }
 
             try {
-              await axios.post(
-                `${apiUrl}/evc-financials/evc_financials/`,
-                { evc_q_id: quarter.id, provider_id: parseInt(providerId, 10) },
-              );
+              await axios.post(`${apiUrl}/evc-financials/evc_financials/`, {
+                evc_q_id: quarter.id,
+                provider_id: parseInt(providerId, 10),
+              });
               setProviderSelections((prev) => ({ ...prev, [quarter.id]: "" }));
               // Refresh data
               await fetchEvcs();
@@ -1444,9 +1441,7 @@ function EvcsPage() {
   // Cargar data de entornos
   const loadEntornosData = async () => {
     try {
-      const response = await axios.get(
-        `${apiUrl}/entornos/entornos/`,
-      );
+      const response = await axios.get(`${apiUrl}/entornos/entornos/`);
       setEntornosData(response.data);
     } catch (error) {
       console.error("Error loading entornos:", error);
@@ -1532,9 +1527,7 @@ function EvcsPage() {
 
   const fetchAvailableProviders = async () => {
     try {
-      const response = await axios.get(
-        `${apiUrl}/providers/providers/`,
-      );
+      const response = await axios.get(`${apiUrl}/providers/providers/`);
       setAvailableProviders(response.data);
     } catch (error) {
       console.error("Error fetching providers:", error);
@@ -1573,7 +1566,7 @@ function EvcsPage() {
   const createEvc = async () => {
     try {
       setCreatingEvc(true);
-      
+
       // Validate required fields
       if (!newEvc.name.trim()) {
         setEvcErrors({ ...evcErrors, name: "El nombre es requerido" });
@@ -1674,7 +1667,7 @@ function EvcsPage() {
 
       // Update the selected EVC with the latest data
       const updatedEvc = await axios.get(`${apiUrl}/evcs/${evcId}`);
-      
+
       // Update state
       fetchEvcs();
       setShowFinancialModal(false);
@@ -1692,12 +1685,12 @@ function EvcsPage() {
           Authorization: `Bearer ${Cookies.get("auth_token")}`,
         },
       });
-      
+
       // Remove from state
       setEvcs(evcs.filter((evc) => evc.id !== evcId));
       setShowDeleteConfirmation(false);
       setSelectedEvcForDelete(null);
-      
+
       // Update UI and show success message
       toast.success("EVC eliminado exitosamente");
     } catch (error) {
@@ -1996,9 +1989,7 @@ function EvcsPage() {
       // Get notifications related to this EVC
       const relatedNotifications = notifications.filter(
         (notif) =>
-          notif.evc === evcId &&
-          notif.field === field &&
-          notif.read === false,
+          notif.evc === evcId && notif.field === field && notif.read === false,
       );
 
       // Mark each as read
@@ -2032,15 +2023,15 @@ function EvcsPage() {
     try {
       // If this is to clear a field (set to null), handle that specially
       const updateValue = value === "" ? null : value;
-      
+
       const response = await axios.get(`${apiUrl}/evcs/${evcId}`, {
         headers: {
           Authorization: `Bearer ${Cookies.get("auth_token")}`,
         },
       });
-      
+
       const evc = response.data;
-      
+
       // Update just the one field
       await axios.patch(
         `${apiUrl}/evcs/${evcId}`,
@@ -2051,10 +2042,10 @@ function EvcsPage() {
           },
         },
       );
-      
+
       // Update UI
       fetchEvcs();
-      
+
       // Mark any related notifications as read
       await markRelatedNotificationsAsRead(evcId, field);
     } catch (error) {
@@ -2075,7 +2066,7 @@ function EvcsPage() {
           },
         },
       );
-      
+
       // Update UI
       fetchEvcs();
     } catch (error) {

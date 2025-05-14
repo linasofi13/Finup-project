@@ -96,9 +96,7 @@ export default function DashboardPage() {
   // 1. Obtener proveedores desde el backend
   const fetchProviders = async () => {
     try {
-      const response = await axios.get(
-        `${apiUrl}/providers/providers`,
-      );
+      const response = await axios.get(`${apiUrl}/providers/providers`);
       setProvidersData(response.data);
     } catch (error) {
       console.error("Error fetching providers:", error);
@@ -140,9 +138,7 @@ export default function DashboardPage() {
 
   const fetchEvcFinancials = async () => {
     try {
-      const res = await axios.get(
-        `${apiUrl}/evc-financials/evc_financials/`,
-      );
+      const res = await axios.get(`${apiUrl}/evc-financials/evc_financials/`);
       setEvcFinancialsData(res.data);
     } catch (err) {
       console.error("Error fetching EVC Financials:", err);

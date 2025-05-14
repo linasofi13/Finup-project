@@ -5,6 +5,7 @@ import axios from "axios";
 import { AuthContext } from "@/context/AuthContext";
 import userEvent from "@testing-library/user-event";
 import React from "react";
+import { TEST_API_URL } from "../config/testConfig";
 
 // Mock ResponsiveContainer to bypass layout measurements in tests
 jest.mock("recharts", () => {
@@ -102,9 +103,9 @@ describe("Dashboard EVC Indicators", () => {
     // Configure mocks
     mockAxios.get.mockImplementation((url) => {
       switch (url) {
-        case "http://127.0.0.1:8000/evcs/":
+        case `${TEST_API_URL}/evcs/`:
           return Promise.resolve({ data: mockEvcsData });
-        case "http://127.0.0.1:8000/evc-qs/evc_qs/":
+        case `${TEST_API_URL}/evc-qs/evc_qs/`:
           return Promise.resolve({ data: mockEvcQsData });
         default:
           return Promise.resolve({ data: [] });
@@ -125,7 +126,7 @@ describe("Dashboard EVC Indicators", () => {
 
     // 2. Wait for initial data load
     await waitFor(() => {
-      expect(mockAxios.get).toHaveBeenCalledWith("http://127.0.0.1:8000/evcs/");
+      expect(mockAxios.get).toHaveBeenCalledWith(`${TEST_API_URL}/evcs/`);
     });
 
     // 3. Click on EVCs tab
@@ -186,9 +187,9 @@ describe("Dashboard EVC Indicators", () => {
     });
 
     // 5. Verify API calls
-    expect(mockAxios.get).toHaveBeenCalledWith("http://127.0.0.1:8000/evcs/");
+    expect(mockAxios.get).toHaveBeenCalledWith(`${TEST_API_URL}/evcs/`);
     expect(mockAxios.get).toHaveBeenCalledWith(
-      "http://127.0.0.1:8000/evc-qs/evc_qs/",
+      `${TEST_API_URL}/evc-qs/evc_qs/`,
     );
   });
 

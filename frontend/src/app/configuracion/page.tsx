@@ -65,6 +65,9 @@ const typeOptions = [
   { label: "Información", value: "info" },
 ];
 
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+
 export default function ConfiguracionPage() {
   const [rules, setRules] = useState<NotificationRule[]>([]);
   const [loading, setLoading] = useState(true);
@@ -187,7 +190,7 @@ export default function ConfiguracionPage() {
   const fetchRules = async () => {
     try {
       const res = await axios.get(
-        "http://localhost:8000/notification-rules/notification-rules/",
+        `${API_BASE_URL}/notification-rules/notification-rules/`,
       );
       setRules(res.data);
     } catch (err) {
@@ -202,7 +205,7 @@ export default function ConfiguracionPage() {
     try {
       for (const rule of defaultEVCRules) {
         await axios.post(
-          "http://localhost:8000/notification-rules/notification-rules/",
+          `${API_BASE_URL}/notification-rules/notification-rules/`,
           rule,
         );
       }
@@ -227,7 +230,7 @@ export default function ConfiguracionPage() {
   const updateRule = async (rule: NotificationRule) => {
     try {
       await axios.patch(
-        `http://localhost:8000/notification-rules/notification-rules/${rule.id}`,
+        `${API_BASE_URL}/notification-rules/notification-rules/${rule.id}`,
         rule,
       );
       setEditingRuleId(null);
@@ -240,7 +243,7 @@ export default function ConfiguracionPage() {
   const toggleActive = async (rule: NotificationRule) => {
     try {
       await axios.patch(
-        `http://localhost:8000/notification-rules/notification-rules/${rule.id}`,
+        `${API_BASE_URL}/notification-rules/notification-rules/${rule.id}`,
         {
           ...rule,
           active: !rule.active,
@@ -276,7 +279,7 @@ export default function ConfiguracionPage() {
     if (!confirm) return;
     try {
       await axios.delete(
-        `http://localhost:8000/notification-rules/notification-rules/${id}`,
+        `${API_BASE_URL}/notification-rules/notification-rules/${id}`,
       );
       setRules(rules.filter((r) => r.id !== id));
     } catch (err) {
@@ -294,7 +297,7 @@ export default function ConfiguracionPage() {
 
     try {
       await axios.delete(
-        "http://localhost:8000/notification-rules/notification-rules/bulk",
+        `${API_BASE_URL}/notification-rules/notification-rules/bulk`,
         { data: { rule_ids: selectedRules } },
       );
       setRules(rules.filter((r) => !selectedRules.includes(r.id!)));
@@ -328,7 +331,7 @@ export default function ConfiguracionPage() {
   const createRule = async () => {
     try {
       const res = await axios.post(
-        "http://localhost:8000/notification-rules/notification-rules/",
+        `${API_BASE_URL}/notification-rules/notification-rules/`,
         newRule,
       );
       setRules([...rules, res.data]);

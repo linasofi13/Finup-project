@@ -21,6 +21,18 @@ interface Notification {
   created_at: string;
 }
 
+// Make sure this matches the AuthContext User interface
+interface User {
+  id: string;
+  email: string;
+  username?: string;
+  rol?: string;
+  name?: string; // Making name optional to match both interfaces
+}
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+
 export default function Header({ isSidebarOpen }: HeaderProps) {
   const { user } = useAuth();
   const [notificacionesAbiertas, setNotificacionesAbiertas] = useState(false);
@@ -33,13 +45,13 @@ export default function Header({ isSidebarOpen }: HeaderProps) {
   const fetchNotifications = async () => {
     try {
       const res = await axios.get(
-        "http://localhost:8000/notifications/notifications/",
+        `${API_BASE_URL}/notifications/notifications/`,
       );
       const nuevas = res.data.filter(
         (n: Notification) => !notifications.find((prev) => prev.id === n.id),
       );
       if (nuevas.length > 0) {
-        nuevas.forEach((n) => {
+        nuevas.forEach((n: Notification) => {
           toast.custom(
             <div className="bg-white border-l-4 border-yellow-400 shadow-lg rounded-md px-4 py-2">
               <p className="font-semibold">
@@ -77,7 +89,7 @@ export default function Header({ isSidebarOpen }: HeaderProps) {
   const markAsRead = async (id: number) => {
     try {
       await axios.patch(
-        `http://localhost:8000/notifications/notifications/${id}/read`,
+        `${API_BASE_URL}/notifications/notifications/${id}/read`,
       );
       // Eliminar del estado al marcar como leída
       setNotifications((prev) => prev.filter((n) => n.id !== id));
@@ -177,7 +189,7 @@ export default function Header({ isSidebarOpen }: HeaderProps) {
             )}
 
             {user ? (
-              <UserMenu user={user} />
+              <UserMenu user={user as any} />
             ) : (
               <Link
                 href="/login"

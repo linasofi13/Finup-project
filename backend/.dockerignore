@@ -1,0 +1,25 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Git
+.git
+.gitignore
+
+# Environment variables
+.env*
+!.env.example
+
+# Testing
+coverage
+.nyc_output
+
+# Misc
+README.md
+.DS_Store
+*.log 

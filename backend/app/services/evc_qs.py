@@ -22,7 +22,7 @@ def suggest_next_q(q):
     return q + 1
 
 def create_evc_q(db: Session, evc_q_data: EVC_QCreate):
-    db_evc_q = EVC_Q(**evc_q_data.dict())
+    db_evc_q = EVC_Q(**evc_q_data.model_dump())
     db.add(db_evc_q)
     db.commit()
     db.refresh(db_evc_q)

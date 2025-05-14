@@ -13,7 +13,9 @@ def get_budget_pocket(db: Session, budget_pocket_id: int) -> Optional[BudgetPock
     return db.query(BudgetPocket).filter(BudgetPocket.id == budget_pocket_id).first()
 
 
-def get_budget_pockets(db: Session, skip: int = 0, limit: int = 100) -> List[BudgetPocket]:
+def get_budget_pockets(
+    db: Session, skip: int = 0, limit: int = 100
+) -> List[BudgetPocket]:
     return db.query(BudgetPocket).offset(skip).limit(limit).all()
 
 
@@ -74,12 +76,18 @@ def update_budget_pocket(
     db_budget_pocket = get_budget_pocket(db, budget_pocket_id)
     if db_budget_pocket:
         update_data = budget_pocket.model_dump(exclude_unset=True)
-        
+
         # If entorno_id is being updated, verify it exists
-        if 'entorno_id' in update_data:
-            entorno = db.query(Entorno).filter(Entorno.id == update_data['entorno_id']).first()
+        if "entorno_id" in update_data:
+            entorno = (
+                db.query(Entorno)
+                .filter(Entorno.id == update_data["entorno_id"])
+                .first()
+            )
             if not entorno:
-                raise ValueError(f"Entorno with id {update_data['entorno_id']} does not exist")
+                raise ValueError(
+                    f"Entorno with id {update_data['entorno_id']} does not exist"
+                )
 
         for key, value in update_data.items():
             setattr(db_budget_pocket, key, value)
@@ -106,4 +114,4 @@ def delete_budget_pocket(db: Session, budget_pocket_id: int):
     except Exception as e:
         db.rollback()
         logger.error(f"Error deleting budget pocket: {str(e)}")
-        raise 
+        raise

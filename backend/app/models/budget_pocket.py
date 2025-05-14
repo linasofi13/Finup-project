@@ -1,4 +1,13 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Boolean, func
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Float,
+    DateTime,
+    ForeignKey,
+    Boolean,
+    func,
+)
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -14,8 +23,10 @@ class BudgetPocket(Base):
     is_available = Column(Boolean, default=True)  # Disponible para asignación
     total_allocated = Column(Float, default=0.0)  # Total asignado
     created_at = Column(DateTime, nullable=False, default=func.now())
-    updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
+    updated_at = Column(
+        DateTime, nullable=False, default=func.now(), onupdate=func.now()
+    )
 
     # Relationships
     entorno = relationship("Entorno", back_populates="budget_pockets")
-    allocations = relationship("BudgetAllocation", back_populates="budget_pocket") 
+    allocations = relationship("BudgetAllocation", back_populates="budget_pocket")

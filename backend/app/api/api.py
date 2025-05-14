@@ -26,5 +26,9 @@ api_router.include_router(
 )
 api_router.include_router(providers.router, prefix="/providers", tags=["providers"])
 api_router.include_router(documents.router, prefix="/documents", tags=["documents"])
-api_router.include_router(budget_pocket.router, prefix="/budget-pockets", tags=["budget-pockets"])
-api_router.include_router(budget_allocation.router, prefix="/budget-allocations", tags=["budget-allocations"]) 
+api_router.include_router(
+    budget_pocket.router, prefix="/budget-pockets", tags=["budget-pockets"]
+)
+api_router.include_router(
+    budget_allocation.router, prefix="/budget-allocations", tags=["budget-allocations"]
+)

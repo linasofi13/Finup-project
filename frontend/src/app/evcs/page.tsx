@@ -144,7 +144,6 @@ function EvcCard({
   // Assign color from palette
   const bgColor = evcColors[index % evcColors.length];
   // Status badge
-
   const status = evc.status ? "Activo" : "Inactivo";
   const statusColor = evc.status
     ? "bg-green-400 text-green-900"
@@ -168,7 +167,8 @@ function EvcCard({
     0,
   );
 
-  const asignado = totalAssignedPercentage;
+  // Update asignado to be 100 if there is any budget assigned, 0 otherwise
+  const asignado = totalAssigned > 0 ? 100 : 0;
   // Update the gastado calculation to be percentage of budget spent
   const gastado =
     totalAssigned > 0
@@ -739,7 +739,7 @@ function QuarterCard({
         <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden relative">
           <div
             className="h-2 bg-green-400 rounded-full absolute left-0 transition-all duration-500"
-            style={{ width: `${Math.min(quarter.allocated_percentage, 100)}%` }}
+            style={{ width: `${quarter.allocated_budget > 0 ? 100 : 0}%` }}
           />
         </div>
       </div>
@@ -3450,7 +3450,7 @@ function EvcsPage() {
                             <div
                               className="h-2 bg-green-400 rounded-full absolute left-0 transition-all duration-500"
                               style={{
-                                width: `${Math.min(quarter.allocated_percentage, 100)}%`,
+                                width: `${quarter.allocated_budget > 0 ? 100 : 0}%`,
                               }}
                             />
                           </div>

@@ -15,7 +15,7 @@ import * as XLSX from "xlsx";
 
 // Endpoints (ajusta según tu backend)
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-const API_URL = `${apiUrl}/providers/providers`;
+const API_URL = `${apiUrl}/providers/providers/`;
 const BULK_UPLOAD_URL = `${apiUrl}/providers/providers/bulk-upload`;
 
 // inicio de codigo para cargar el archivo a supabase

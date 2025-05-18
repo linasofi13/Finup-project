@@ -3,6 +3,8 @@ from app.models.evc_q import EVC_Q
 from app.schemas.evc_q import EVC_QCreate, EVC_QUpdate
 from app.services.rule_evaluator import evaluate_rules
 from datetime import datetime
+from sqlalchemy.exc import SQLAlchemyError
+from fastapi import HTTPException
 
 
 def predict_next_exp_smoothing(data, alpha=0.5):
@@ -25,10 +27,22 @@ def suggest_next_q(q):
 def create_evc_q(db: Session, evc_q_data: EVC_QCreate):
     db_evc_q = EVC_Q(**evc_q_data.model_dump())
     db.add(db_evc_q)
-    db.commit()
-    db.refresh(db_evc_q)
-    evaluate_rules(db, changed_table="evc_q", changed_id=db_evc_q.id)
-    return db_evc_q
+    try:
+        db.commit()
+        db.refresh(db_evc_q)
+        
+        # Evaluate rules in a separate transaction to prevent cascading failures
+        try:
+            evaluate_rules(db, changed_table="evc_q", changed_id=db_evc_q.id)
+        except SQLAlchemyError as e:
+            print(f"Error in rule evaluation: {e}")
+            # Log the error but don't fail the EVC_Q creation
+        
+        return db_evc_q
+    except SQLAlchemyError as e:
+        db.rollback()
+        print(f"Database error: {e}")
+        raise HTTPException(status_code=500, detail="Error creating EVC_Q")
 
 
 def get_evc_q_by_id(db: Session, evc_q_id: int):
@@ -57,9 +71,22 @@ def update_evc_q(db: Session, evc_q_id: int, evc_q_data: EVC_QUpdate):
     if db_evc_q:
         for key, value in evc_q_data.dict(exclude_unset=True).items():
             setattr(db_evc_q, key, value)
-        db.commit()
-        db.refresh(db_evc_q)
-        evaluate_rules(db, changed_table="evc_q", changed_id=db_evc_q.id)
+        try:
+            db.commit()
+            db.refresh(db_evc_q)
+            
+            # Evaluate rules in a separate transaction to prevent cascading failures
+            try:
+                evaluate_rules(db, changed_table="evc_q", changed_id=db_evc_q.id)
+            except SQLAlchemyError as e:
+                print(f"Error in rule evaluation during update: {e}")
+                # Log the error but don't fail the EVC_Q update
+            
+            return db_evc_q
+        except SQLAlchemyError as e:
+            db.rollback()
+            print(f"Database error during update: {e}")
+            raise HTTPException(status_code=500, detail="Error updating EVC_Q")
     return db_evc_q
 
 

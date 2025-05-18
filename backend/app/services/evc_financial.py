@@ -9,6 +9,8 @@ from app.schemas.evc_financial import (
 from app.models.provider import Provider
 from app.models.evc_q import EVC_Q
 from app.services.rule_evaluator import evaluate_rules
+from app.database import SessionLocal
+from sqlalchemy.sql import text
 
 
 def create_evc_financial(db: Session, evc_financial_data: EVC_FinancialCreate):
@@ -16,7 +18,23 @@ def create_evc_financial(db: Session, evc_financial_data: EVC_FinancialCreate):
     db.add(db_evc_financial)
     db.commit()
     db.refresh(db_evc_financial)
-    evaluate_rules(db, changed_table="evc_financial")
+    
+    # Store financial_id and evc_q_id for rule evaluation
+    financial_id = db_evc_financial.id
+    evc_q_id = db_evc_financial.evc_q_id
+    
+    # Use a separate session for rule evaluation
+    try:
+        eval_db = SessionLocal()
+        try:
+            evaluate_rules(eval_db, changed_table="evc_financial", changed_id=financial_id)
+            if evc_q_id:
+                evaluate_rules(eval_db, changed_table="evc_q", changed_id=evc_q_id)
+        finally:
+            eval_db.close()
+    except Exception as e:
+        print(f"Error evaluating rules after creating financial: {e}")
+        
     return db_evc_financial
 
 
@@ -27,6 +45,29 @@ def create_evc_financial_concept(
     db.add(db_evc_financial)
     db.commit()
     db.refresh(db_evc_financial)
+    
+    # Store the ID and evc_q_id for rule evaluation
+    financial_id = db_evc_financial.id
+    evc_q_id = db_evc_financial.evc_q_id
+    
+    # Add rule evaluation to trigger budget usage notifications
+    # Use a separate try/except block to avoid transaction conflicts
+    try:
+        # Create a new session for rule evaluation to avoid transaction conflicts
+        eval_db = SessionLocal()
+        try:
+            # First evaluate financial rules
+            evaluate_rules(eval_db, changed_table="evc_financial", changed_id=financial_id)
+            
+            # Then evaluate EVC_Q rules since budget usage notifications are tied to quarters
+            if evc_q_id:
+                evaluate_rules(eval_db, changed_table="evc_q", changed_id=evc_q_id)
+        finally:
+            eval_db.close()
+    except Exception as e:
+        print(f"Error evaluating rules after creating financial concept: {e}")
+        # Don't fail the transaction if rule evaluation fails
+    
     return db_evc_financial
 
 
@@ -43,20 +84,48 @@ def update_evc_financial(
 ):
     db_evc_financial = get_evc_financial_by_id(db, evc_financial_id)
     if db_evc_financial:
+        # Store evc_q_id before update
+        evc_q_id = db_evc_financial.evc_q_id
+        
         for key, value in evc_financial_data.dict(exclude_unset=True).items():
             setattr(db_evc_financial, key, value)
         db.commit()
         db.refresh(db_evc_financial)
-        evaluate_rules(db, changed_table="evc_financial")
+        
+        # Use a separate session for rule evaluation
+        try:
+            eval_db = SessionLocal()
+            try:
+                evaluate_rules(eval_db, changed_table="evc_financial", changed_id=evc_financial_id)
+                if evc_q_id:
+                    evaluate_rules(eval_db, changed_table="evc_q", changed_id=evc_q_id)
+            finally:
+                eval_db.close()
+        except Exception as e:
+            print(f"Error evaluating rules after updating financial: {e}")
     return db_evc_financial
 
 
 def delete_evc_financial(db: Session, evc_financial_id: int):
     db_evc_financial = get_evc_financial_by_id(db, evc_financial_id)
     if db_evc_financial:
+        # Store evc_q_id before deletion
+        evc_q_id = db_evc_financial.evc_q_id
+        
         db.delete(db_evc_financial)
         db.commit()
-        evaluate_rules(db, changed_table="evc_financial")
+        
+        # Use a separate session for rule evaluation
+        try:
+            eval_db = SessionLocal()
+            try:
+                evaluate_rules(eval_db, changed_table="evc_financial", changed_id=evc_financial_id)
+                if evc_q_id:
+                    evaluate_rules(eval_db, changed_table="evc_q", changed_id=evc_q_id)
+            finally:
+                eval_db.close()
+        except Exception as e:
+            print(f"Error evaluating rules after deleting financial: {e}")
     return db_evc_financial
 
 

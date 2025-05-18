@@ -16,7 +16,7 @@ The platform aims to digitalize the processes of capacity management and budget 
 * **Lina Ballesteros** — Scrum Master / UX/UI
 * **David Grisales** — Architecture
 * **Juan Diego Llorente** — QA & Testing
-* **Juan Esteban García** — Backend Developer
+* **Juan Esteban García** —  Developer
 * **Andrés Felipe Álvarez** — Product Owner
 
 ## 📚 Documentation Access

@@ -155,7 +155,7 @@ export default function TalentosPage() {
       return;
     try {
       for (const id of selectedIds) {
-        await axios.delete(`${API_URL}/${id}`);
+        await axios.delete(`${apiUrl}/providers/providers/${id}`);
       }
       setSelectedIds([]);
       fetchProveedores();

@@ -361,6 +361,11 @@ function QuarterCard({
   setProviderFilterModal,
   getFilteredProviders,
   fetchEvcs,
+  selectedEvc,
+  showDetailModal,
+  showEvcDetails,
+  fetchSpendingsByEvcQ,
+  setSelectedEvc,
 }: {
   quarter: EVC_Q;
   onUpdatePercentage: (id: number, percentage: number) => Promise<void>;
@@ -397,6 +402,11 @@ function QuarterCard({
   >;
   getFilteredProviders: (quarterId: number) => Provider[];
   fetchEvcs: () => Promise<void>;
+  selectedEvc: EVC | null;
+  showDetailModal: boolean;
+  showEvcDetails: (evc: EVC) => Promise<void>;
+  fetchSpendingsByEvcQ: (evc_q_id: number) => Promise<any>;
+  setSelectedEvc: React.Dispatch<React.SetStateAction<EVC | null>>;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(quarter.allocated_percentage);
@@ -464,7 +474,7 @@ function QuarterCard({
   ) => {
     try {
       const token = Cookies.get("auth_token");
-      await axios.post(
+      const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/evc-financials/evc_financials/concept`,
         {
           evc_q_id: quarterId,
@@ -490,8 +500,41 @@ function QuarterCard({
         [quarterId]: { success: "Gasto agregado exitosamente" },
       }));
 
-      // Refresh the EVC data to update the progress bars
-      await fetchEvcs();
+      // Get the updated spend data for this quarter
+      const updatedSpendData = await fetchSpendingsByEvcQ(quarterId);
+
+      // Directly update the quarter in the current view
+      if (quarter.id === quarterId) {
+        // Update the current quarter data directly
+        quarter.total_spendings = updatedSpendData.total_spendings;
+        quarter.percentage = updatedSpendData.percentage;
+        quarter.budget_message = updatedSpendData.message;
+      }
+
+      // If we're in the detail view, update the selectedEvc data as well
+      if (selectedEvc && showDetailModal) {
+        // First update the quarter in selectedEvc
+        const updatedEvcQs = selectedEvc.evc_qs.map((q) => {
+          if (q.id === quarterId) {
+            return {
+              ...q,
+              total_spendings: updatedSpendData.total_spendings,
+              percentage: updatedSpendData.percentage,
+              budget_message: updatedSpendData.message,
+            };
+          }
+          return q;
+        });
+
+        // Update the selectedEvc with the new quarters data
+        setSelectedEvc({
+          ...selectedEvc,
+          evc_qs: updatedEvcQs,
+        });
+      }
+
+      // Also refresh all EVCs data in the background
+      fetchEvcs();
 
       // Clear success message after 3 seconds
       setTimeout(() => {
@@ -630,8 +673,41 @@ function QuarterCard({
         },
       );
 
-      // Refresh the EVC data to update the progress bars
-      await fetchEvcs();
+      // Get the updated spend data for this quarter
+      const updatedSpendData = await fetchSpendingsByEvcQ(quarterId);
+
+      // Directly update the quarter in the current view
+      if (quarter.id === quarterId) {
+        // Update the current quarter data directly
+        quarter.total_spendings = updatedSpendData.total_spendings;
+        quarter.percentage = updatedSpendData.percentage;
+        quarter.budget_message = updatedSpendData.message;
+      }
+
+      // If we're in the detail view, update the selectedEvc data as well
+      if (selectedEvc && showDetailModal) {
+        // First update the quarter in selectedEvc
+        const updatedEvcQs = selectedEvc.evc_qs.map((q) => {
+          if (q.id === quarterId) {
+            return {
+              ...q,
+              total_spendings: updatedSpendData.total_spendings,
+              percentage: updatedSpendData.percentage,
+              budget_message: updatedSpendData.message,
+            };
+          }
+          return q;
+        });
+
+        // Update the selectedEvc with the new quarters data
+        setSelectedEvc({
+          ...selectedEvc,
+          evc_qs: updatedEvcQs,
+        });
+      }
+
+      // Also refresh all EVCs data in the background
+      fetchEvcs();
 
       // Show success message with the extracted amount
       setUploadStatus((prev) => ({
@@ -656,7 +732,10 @@ function QuarterCard({
       console.error("Error uploading file:", error);
       setUploadStatus((prev) => ({
         ...prev,
-        [quarterId]: { uploading: false, error: "Error al subir el archivo" },
+        [quarterId]: {
+          uploading: false,
+          error: "Error al subir el archivo",
+        },
       }));
     } finally {
       setUploading(false);
@@ -2849,6 +2928,11 @@ function EvcsPage() {
                         setProviderFilterModal={setProviderFilterModal}
                         getFilteredProviders={getFilteredProviders}
                         fetchEvcs={fetchEvcs}
+                        selectedEvc={selectedEvc}
+                        showDetailModal={showDetailModal}
+                        showEvcDetails={showEvcDetails}
+                        fetchSpendingsByEvcQ={fetchSpendingsByEvcQ}
+                        setSelectedEvc={setSelectedEvc}
                       />
                     ))}
                   </div>

@@ -4,7 +4,7 @@ from app.schemas.provider_document import ProviderDocumentCreate
 
 
 def create_provider_document(db: Session, doc_data: ProviderDocumentCreate):
-    db_doc = ProviderDocument(**doc_data.dict())
+    db_doc = ProviderDocument(**doc_data.model_dump())
     db.add(db_doc)
     db.commit()
     db.refresh(db_doc)

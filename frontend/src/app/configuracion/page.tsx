@@ -48,6 +48,8 @@ const fieldOptions: Record<string, { label: string; value: string }[]> = {
   evc_q: [
     { label: "Porcentaje asignado", value: "allocated_percentage" },
     { label: "Presupuesto asignado", value: "allocated_budget" },
+    { label: "Porcentaje gastado", value: "spent_percentage" },
+    { label: "Presupuesto gastado", value: "spent_budget" },
   ],
 };
 
@@ -57,6 +59,20 @@ const comparisonOptions = [
   { label: "Igual a", value: "==" },
   { label: "Mayor o igual que", value: ">=" },
   { label: "Menor o igual que", value: "<=" },
+  { label: "Presupuesto gastado 50%", value: "custom:evc_budget_spent_half" },
+  { label: "Presupuesto gastado 80%", value: "custom:evc_budget_spent_high" },
+  {
+    label: "Presupuesto gastado >100%",
+    value: "custom:evc_budget_spent_exceeded",
+  },
+  {
+    label: "Verificación directa de presupuesto gastado",
+    value: "custom:evc_budget_spent_direct",
+  },
+  {
+    label: "Porcentaje de presupuesto gastado",
+    value: "custom:budget_percentage_spent",
+  },
 ];
 
 const typeOptions = [
@@ -89,6 +105,7 @@ export default function ConfiguracionPage() {
 
   // Default EVC notification rules
   const defaultEVCRules: NotificationRule[] = [
+    // Existing allocation percentage rules
     {
       name: "Alto uso de presupuesto EVC",
       target_table: "evc_q",
@@ -119,6 +136,188 @@ export default function ConfiguracionPage() {
       type: "warning",
       active: true,
     },
+
+    // New rules using spent percentage field
+    {
+      name: "EVC con 30% del presupuesto gastado",
+      target_table: "evc_q",
+      condition_field: "spent_percentage",
+      threshold: 30,
+      comparison: ">=",
+      message:
+        "Hay EVCs que han gastado el 30% o más de su presupuesto asignado",
+      type: "info",
+      active: true,
+    },
+    {
+      name: "EVC con 50% del presupuesto gastado",
+      target_table: "evc_q",
+      condition_field: "spent_percentage",
+      threshold: 50,
+      comparison: ">=",
+      message:
+        "Hay EVCs que han gastado el 50% o más de su presupuesto asignado",
+      type: "info",
+      active: true,
+    },
+    {
+      name: "EVC con 75% del presupuesto gastado",
+      target_table: "evc_q",
+      condition_field: "spent_percentage",
+      threshold: 75,
+      comparison: ">=",
+      message:
+        "Atención: Hay EVCs que han gastado el 75% o más de su presupuesto asignado",
+      type: "warning",
+      active: true,
+    },
+    {
+      name: "EVC con 90% del presupuesto gastado",
+      target_table: "evc_q",
+      condition_field: "spent_percentage",
+      threshold: 90,
+      comparison: ">=",
+      message:
+        "¡Alerta! Hay EVCs que han gastado el 90% o más de su presupuesto asignado",
+      type: "alert",
+      active: true,
+    },
+    {
+      name: "EVC con presupuesto excedido",
+      target_table: "evc_q",
+      condition_field: "spent_percentage",
+      threshold: 100,
+      comparison: ">=",
+      message: "¡CRÍTICO! Hay EVCs que han excedido su presupuesto asignado",
+      type: "critical",
+      active: true,
+    },
+
+    // Absolute spent budget rules
+    {
+      name: "EVC con alto gasto absoluto",
+      target_table: "evc_q",
+      condition_field: "spent_budget",
+      threshold: 50000,
+      comparison: ">=",
+      message: "Hay EVCs con gastos superiores a $50,000",
+      type: "warning",
+      active: true,
+    },
+    {
+      name: "EVC con muy alto gasto absoluto",
+      target_table: "evc_q",
+      condition_field: "spent_budget",
+      threshold: 100000,
+      comparison: ">=",
+      message: "¡Atención! Hay EVCs con gastos superiores a $100,000",
+      type: "alert",
+      active: true,
+    },
+
+    // Rules using custom comparisons
+    {
+      name: "EVC con 50% del presupuesto gastado (Custom)",
+      target_table: "evc_q",
+      condition_field: "allocated_budget",
+      threshold: 0,
+      comparison: "custom:evc_budget_spent_half",
+      message: "Hay EVCs que han gastado el 50% de su presupuesto asignado",
+      type: "info",
+      active: true,
+    },
+    {
+      name: "EVC con 80% del presupuesto gastado (Custom)",
+      target_table: "evc_q",
+      condition_field: "allocated_budget",
+      threshold: 0,
+      comparison: "custom:evc_budget_spent_high",
+      message:
+        "¡Alerta! Hay EVCs que han gastado el 80% de su presupuesto asignado",
+      type: "warning",
+      active: true,
+    },
+    {
+      name: "EVC con presupuesto excedido (Custom)",
+      target_table: "evc_q",
+      condition_field: "allocated_budget",
+      threshold: 0,
+      comparison: "custom:evc_budget_spent_exceeded",
+      message: "¡CRÍTICO! Hay EVCs que han excedido su presupuesto asignado",
+      type: "critical",
+      active: true,
+    },
+    {
+      name: "Verificación directa de presupuesto gastado",
+      target_table: "evc_q",
+      condition_field: "allocated_budget",
+      threshold: 0,
+      comparison: "custom:evc_budget_spent_direct",
+      message:
+        "Verificación completa de presupuestos gastados en todos los EVCs",
+      type: "info",
+      active: true,
+    },
+
+    // Rules matching estado functionality for presupuesto gastado
+    {
+      name: "Alerta de 50% del presupuesto gastado",
+      target_table: "evc_q",
+      condition_field: "presupuesto_gastado",
+      threshold: 50,
+      comparison: "custom:budget_percentage_spent",
+      message: "EVCs con 50% o más del presupuesto gastado",
+      type: "info",
+      active: true,
+    },
+    {
+      name: "Alerta de 79% del presupuesto gastado",
+      target_table: "evc_q",
+      condition_field: "presupuesto_gastado",
+      threshold: 79,
+      comparison: "custom:budget_percentage_spent",
+      message: "¡Atención! EVCs con 79% o más del presupuesto gastado",
+      type: "warning",
+      active: true,
+    },
+    {
+      name: "Alerta de 90% del presupuesto gastado",
+      target_table: "evc_q",
+      condition_field: "presupuesto_gastado",
+      threshold: 90,
+      comparison: "custom:budget_percentage_spent",
+      message: "¡ALERTA! EVCs con 90% o más del presupuesto gastado",
+      type: "alert",
+      active: true,
+    },
+
+    // Budget allocation comparison rules
+    {
+      name: "Disparidad en asignaciones de presupuesto entre EVCs",
+      target_table: "evc_q",
+      condition_field: "allocated_budget",
+      threshold: 0,
+      comparison: "custom:evc_budget_allocation_disparity",
+      message:
+        "Hay disparidades significativas en las asignaciones de presupuesto entre EVCs",
+      type: "warning",
+      active: true,
+    },
+
+    // Budget pocket business alignment rules
+    {
+      name: "Asignaciones de presupuesto fuera de entorno",
+      target_table: "budget_allocation",
+      condition_field: "allocated_value",
+      threshold: 0,
+      comparison: "custom:budget_pocket_business_alignment",
+      message:
+        "Hay asignaciones de presupuesto a EVCs desde entornos diferentes",
+      type: "warning",
+      active: true,
+    },
+
+    // Budget change rules
     {
       name: "Aumento significativo de presupuesto",
       target_table: "evc_q",
@@ -141,6 +340,8 @@ export default function ConfiguracionPage() {
       type: "warning",
       active: true,
     },
+
+    // EVC status rules
     {
       name: "EVC sin líder técnico",
       target_table: "evc",
@@ -171,6 +372,8 @@ export default function ConfiguracionPage() {
       type: "warning",
       active: true,
     },
+
+    // Talent cost rule
     {
       name: "Alerta de costo alto de Talento",
       target_table: "provider",

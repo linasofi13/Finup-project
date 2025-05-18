@@ -29,8 +29,12 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
+  ComposedChart,
+  RadialBarChart,
+  RadialBar,
 } from "recharts";
 import Cookies from "js-cookie";
+import { useRouter } from "next/navigation";
 
 // Paletas de colores para los gráficos
 const PIE_COLORS = [
@@ -60,6 +64,7 @@ interface Provider {
   role?: string;
   category?: string;
   line?: string;
+  creation_date?: string;
 }
 
 // Define EVC and EVC_Q types for type safety
@@ -79,8 +84,20 @@ interface EVC_Q {
   allocated_percentage: number;
 }
 
+interface DistributionItem {
+  name: string;
+  count: number;
+  avgCost: number;
+  totalCost: number;
+}
+
+interface DistributionAccumulator {
+  [key: string]: DistributionItem;
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [providersData, setProvidersData] = useState<Provider[]>([]);
   const [evcsData, setEvcsData] = useState<EVC[]>([]);
   const [evcQsData, setEvcQsData] = useState<EVC_Q[]>([]);
@@ -266,6 +283,89 @@ export default function DashboardPage() {
       name: p.company || p.name || "Talento",
       cost: parseFloat(p.cost_usd) || 0,
     }));
+
+  // 3.8 Trend Analysis Data (Last 6 months)
+  const trendData = Array.from({ length: 6 }, (_, i) => {
+    const month = new Date();
+    month.setMonth(month.getMonth() - i);
+    const monthProviders = providersData.filter((p) => {
+      const providerDate = new Date(p.creation_date || new Date());
+      return (
+        providerDate.getMonth() === month.getMonth() &&
+        providerDate.getFullYear() === month.getFullYear()
+      );
+    });
+    return {
+      month: month.toLocaleString("default", { month: "short" }),
+      providers: monthProviders.length,
+      avgCost:
+        monthProviders.length > 0
+          ? monthProviders.reduce(
+              (sum, p) => sum + (parseFloat(p.cost_usd) || 0),
+              0,
+            ) / monthProviders.length
+          : 0,
+    };
+  }).reverse();
+
+  // 3.9 Budget Utilization by Category
+  const budgetUtilization = Object.entries(categoryMap).map(
+    ([category, count]) => {
+      const categoryProviders = providersData.filter(
+        (p) => p.category === category,
+      );
+      const totalBudget = categoryProviders.reduce(
+        (sum, p) => sum + (parseFloat(p.cost_usd) || 0),
+        0,
+      );
+      const plannedBudget = totalBudget * 1.2; // Example: 20% more than current utilization
+      return {
+        category,
+        utilized: totalBudget,
+        planned: plannedBudget,
+        utilization: (totalBudget / plannedBudget) * 100,
+      };
+    },
+  );
+
+  // 3.10 Distribution by Category and Line (replacing performance distribution)
+  const categoryLineDistribution =
+    providersData.reduce<DistributionAccumulator>((acc, provider) => {
+      const category = provider.category || "Sin categoría";
+      const line = provider.line || "Sin línea";
+      const key = `${category} - ${line}`;
+
+      if (!acc[key]) {
+        acc[key] = {
+          name: key,
+          count: 0,
+          avgCost: 0,
+          totalCost: 0,
+        };
+      }
+
+      acc[key].count += 1;
+      acc[key].totalCost += parseFloat(provider.cost_usd) || 0;
+      acc[key].avgCost = acc[key].totalCost / acc[key].count;
+
+      return acc;
+    }, {} as DistributionAccumulator);
+
+  interface DistributionDataItem extends DistributionItem {
+    percentage: number;
+  }
+
+  const distributionData = Object.values(categoryLineDistribution)
+    .sort((a: DistributionItem, b: DistributionItem) => b.count - a.count)
+    .map(
+      (item: DistributionItem): DistributionDataItem => ({
+        name: item.name,
+        count: item.count,
+        percentage: (item.count / providersData.length) * 100,
+        avgCost: item.avgCost,
+        totalCost: item.totalCost,
+      }),
+    );
 
   return (
     <DashboardLayout title="Dashboard">
@@ -489,11 +589,125 @@ export default function DashboardPage() {
               </ResponsiveContainer>
             </Card>
 
-            {/* 9. Acciones Rápidas */}
+            {/* 9. Trend Analysis */}
+            <Card title="Tendencia de Talentos y Costos (6 meses)">
+              <ResponsiveContainer width="100%" height={400}>
+                <ComposedChart data={trendData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="right" orientation="right" />
+                  <Tooltip />
+                  <Legend />
+                  <Bar
+                    yAxisId="left"
+                    dataKey="providers"
+                    fill="#8884d8"
+                    name="Talentos"
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="avgCost"
+                    stroke="#82ca9d"
+                    name="Costo Promedio"
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </Card>
+
+            {/* 10. Budget Utilization */}
+            <Card title="Utilización de Presupuesto por Categoría">
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={budgetUtilization}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="category" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar
+                    dataKey="utilized"
+                    stackId="a"
+                    fill="#8884d8"
+                    name="Utilizado"
+                  />
+                  <Bar
+                    dataKey="planned"
+                    stackId="a"
+                    fill="#82ca9d"
+                    name="Planificado"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+
+            {/* 11. Distribution by Category and Line */}
+            <Card title="Distribución por Categoría y Línea">
+              <div className="flex justify-center items-center w-full h-full">
+                <ResponsiveContainer width="100%" height={400}>
+                  <BarChart
+                    data={distributionData}
+                    layout="vertical"
+                    margin={{ top: 10, right: 30, left: 120, bottom: 10 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      width={110}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <Tooltip
+                      formatter={(value: number, name, props) => [
+                        name === "count"
+                          ? `${value} talentos (${props.payload.percentage.toFixed(1)}%)`
+                          : `$${value.toFixed(2)}`,
+                        name === "count" ? "Cantidad" : "Costo Promedio",
+                      ]}
+                    />
+                    <Legend verticalAlign="top" height={36} />
+                    <Bar dataKey="count" fill="#8884d8" name="Cantidad" />
+                    <Bar
+                      dataKey="avgCost"
+                      fill="#82ca9d"
+                      name="Costo Promedio"
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+
+            {/* 13. Acciones Rápidas */}
             <Card title="Acciones Rápidas">
               <div className="space-y-4">
-                <Button variant="primary" className="w-full">
+                <Button
+                  variant="primary"
+                  className="w-full"
+                  onClick={() => router.push("/providers")}
+                >
                   Ir a Talentos
+                </Button>
+                <Button
+                  variant="primary"
+                  className="w-full"
+                  onClick={() => router.push("/documentos")}
+                >
+                  Ir a Documentos
+                </Button>
+                <Button
+                  variant="primary"
+                  className="w-full"
+                  onClick={() => router.push("/evcs")}
+                >
+                  Ir a EVCs
+                </Button>
+                <Button
+                  variant="primary"
+                  className="w-full"
+                  onClick={() => router.push("/asignacion-presupuestal")}
+                >
+                  Ir a Asignación Presupuestal
                 </Button>
               </div>
             </Card>

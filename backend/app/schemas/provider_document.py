@@ -6,7 +6,7 @@ from typing import Optional
 class ProviderSimple(BaseModel):
     id: int
     name: str
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -24,5 +24,5 @@ class ProviderDocumentResponse(ProviderDocumentBase):
     id: int
     uploaded_at: datetime
     provider: Optional[ProviderSimple]  # <- Aquí incluyes la relación
-    
+
     model_config = ConfigDict(from_attributes=True)

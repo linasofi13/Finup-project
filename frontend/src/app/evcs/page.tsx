@@ -502,7 +502,7 @@ function QuarterCard({
 
       // Get the updated spend data for this quarter
       const updatedSpendData = await fetchSpendingsByEvcQ(quarterId);
-      
+
       // Directly update the quarter in the current view
       if (quarter.id === quarterId) {
         // Update the current quarter data directly
@@ -514,22 +514,22 @@ function QuarterCard({
       // If we're in the detail view, update the selectedEvc data as well
       if (selectedEvc && showDetailModal) {
         // First update the quarter in selectedEvc
-        const updatedEvcQs = selectedEvc.evc_qs.map(q => {
+        const updatedEvcQs = selectedEvc.evc_qs.map((q) => {
           if (q.id === quarterId) {
             return {
               ...q,
               total_spendings: updatedSpendData.total_spendings,
               percentage: updatedSpendData.percentage,
-              budget_message: updatedSpendData.message
+              budget_message: updatedSpendData.message,
             };
           }
           return q;
         });
-        
+
         // Update the selectedEvc with the new quarters data
         setSelectedEvc({
           ...selectedEvc,
-          evc_qs: updatedEvcQs
+          evc_qs: updatedEvcQs,
         });
       }
 
@@ -675,7 +675,7 @@ function QuarterCard({
 
       // Get the updated spend data for this quarter
       const updatedSpendData = await fetchSpendingsByEvcQ(quarterId);
-      
+
       // Directly update the quarter in the current view
       if (quarter.id === quarterId) {
         // Update the current quarter data directly
@@ -687,22 +687,22 @@ function QuarterCard({
       // If we're in the detail view, update the selectedEvc data as well
       if (selectedEvc && showDetailModal) {
         // First update the quarter in selectedEvc
-        const updatedEvcQs = selectedEvc.evc_qs.map(q => {
+        const updatedEvcQs = selectedEvc.evc_qs.map((q) => {
           if (q.id === quarterId) {
             return {
               ...q,
               total_spendings: updatedSpendData.total_spendings,
               percentage: updatedSpendData.percentage,
-              budget_message: updatedSpendData.message
+              budget_message: updatedSpendData.message,
             };
           }
           return q;
         });
-        
+
         // Update the selectedEvc with the new quarters data
         setSelectedEvc({
           ...selectedEvc,
-          evc_qs: updatedEvcQs
+          evc_qs: updatedEvcQs,
         });
       }
 
@@ -2912,7 +2912,29 @@ function EvcsPage() {
                 </h3>
                 {selectedEvc.evc_qs && selectedEvc.evc_qs.length > 0 ? (
                   <div className="space-y-4">
-                                        {selectedEvc.evc_qs.map((quarter) => (                      <QuarterCard                        key={quarter.id}                        quarter={quarter}                        onUpdatePercentage={onUpdatePercentage}                        manualSpendingStatus={manualSpendingStatus}                        setManualSpendingStatus={setManualSpendingStatus}                        manualSpendings={manualSpendings}                        setManualSpendings={setManualSpendings}                        uploadStatus={uploadStatus}                        setUploadStatus={setUploadStatus}                        providerSelections={providerSelections}                        setProviderSelections={setProviderSelections}                        setProviderFilterModal={setProviderFilterModal}                        getFilteredProviders={getFilteredProviders}                        fetchEvcs={fetchEvcs}                        selectedEvc={selectedEvc}                        showDetailModal={showDetailModal}                        showEvcDetails={showEvcDetails}                        fetchSpendingsByEvcQ={fetchSpendingsByEvcQ}                        setSelectedEvc={setSelectedEvc}                      />                    ))}
+                    {selectedEvc.evc_qs.map((quarter) => (
+                      <QuarterCard
+                        key={quarter.id}
+                        quarter={quarter}
+                        onUpdatePercentage={onUpdatePercentage}
+                        manualSpendingStatus={manualSpendingStatus}
+                        setManualSpendingStatus={setManualSpendingStatus}
+                        manualSpendings={manualSpendings}
+                        setManualSpendings={setManualSpendings}
+                        uploadStatus={uploadStatus}
+                        setUploadStatus={setUploadStatus}
+                        providerSelections={providerSelections}
+                        setProviderSelections={setProviderSelections}
+                        setProviderFilterModal={setProviderFilterModal}
+                        getFilteredProviders={getFilteredProviders}
+                        fetchEvcs={fetchEvcs}
+                        selectedEvc={selectedEvc}
+                        showDetailModal={showDetailModal}
+                        showEvcDetails={showEvcDetails}
+                        fetchSpendingsByEvcQ={fetchSpendingsByEvcQ}
+                        setSelectedEvc={setSelectedEvc}
+                      />
+                    ))}
                   </div>
                 ) : (
                   <div className="text-gray-400 text-center">

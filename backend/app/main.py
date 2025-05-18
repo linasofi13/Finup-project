@@ -74,6 +74,7 @@ app.include_router(
     budget_allocation.router, prefix="/budget-allocations", tags=["Budget Allocations"]
 )
 
+
 @app.get("/")
 def read_root():
     return {"message": "Welcome to Finup API"}

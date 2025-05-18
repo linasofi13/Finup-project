@@ -30,14 +30,14 @@ def create_evc_q(db: Session, evc_q_data: EVC_QCreate):
     try:
         db.commit()
         db.refresh(db_evc_q)
-        
+
         # Evaluate rules in a separate transaction to prevent cascading failures
         try:
             evaluate_rules(db, changed_table="evc_q", changed_id=db_evc_q.id)
         except SQLAlchemyError as e:
             print(f"Error in rule evaluation: {e}")
             # Log the error but don't fail the EVC_Q creation
-        
+
         return db_evc_q
     except SQLAlchemyError as e:
         db.rollback()
@@ -74,14 +74,14 @@ def update_evc_q(db: Session, evc_q_id: int, evc_q_data: EVC_QUpdate):
         try:
             db.commit()
             db.refresh(db_evc_q)
-            
+
             # Evaluate rules in a separate transaction to prevent cascading failures
             try:
                 evaluate_rules(db, changed_table="evc_q", changed_id=db_evc_q.id)
             except SQLAlchemyError as e:
                 print(f"Error in rule evaluation during update: {e}")
                 # Log the error but don't fail the EVC_Q update
-            
+
             return db_evc_q
         except SQLAlchemyError as e:
             db.rollback()

@@ -72,18 +72,18 @@ export default function DocumentosPage() {
   };
 
   const addFilesToPending = (files: File[]) => {
-    const newUploads = files.map(file => ({ file }));
-    setPendingUploads(prev => [...prev, ...newUploads]);
+    const newUploads = files.map((file) => ({ file }));
+    setPendingUploads((prev) => [...prev, ...newUploads]);
   };
 
   const removePendingUpload = (index: number) => {
-    setPendingUploads(prev => prev.filter((_, i) => i !== index));
+    setPendingUploads((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleUpload = async (pendingUpload: PendingUpload) => {
     setUploading(true);
     const formData = new FormData();
-    
+
     // Ensure we're sending the file with the correct field name and filename
     const file = pendingUpload.file;
     formData.append("file", file);
@@ -103,15 +103,17 @@ export default function DocumentosPage() {
 
       const response = await axios.post(endpoint, formData, {
         headers: {
-          "Accept": "application/json",
+          Accept: "application/json",
           // Let the browser set the Content-Type with boundary
           "Content-Type": "multipart/form-data",
         },
       });
 
       if (response.data) {
-        setDocumentos(prev => [...prev, response.data]);
-        setPendingUploads(prev => prev.filter(upload => upload.file !== pendingUpload.file));
+        setDocumentos((prev) => [...prev, response.data]);
+        setPendingUploads((prev) =>
+          prev.filter((upload) => upload.file !== pendingUpload.file),
+        );
         alert("Archivo subido exitosamente");
       }
     } catch (error: any) {
@@ -151,13 +153,13 @@ export default function DocumentosPage() {
       // Fetch from both endpoints
       const [providerDocsResponse, generalDocsResponse] = await Promise.all([
         axios.get(`${apiUrl}/provider-documents/`),
-        axios.get(`${apiUrl}/documents/`)
+        axios.get(`${apiUrl}/documents/`),
       ]);
 
       // Combine both results
       const allDocuments = [
         ...providerDocsResponse.data,
-        ...generalDocsResponse.data
+        ...generalDocsResponse.data,
       ];
 
       setDocumentos(allDocuments);
@@ -194,9 +196,9 @@ export default function DocumentosPage() {
     if (!confirmar) return;
     try {
       // Choose the endpoint based on whether the document has a provider
-      const endpoint = hasProvider ? 'provider-documents' : 'documents';
+      const endpoint = hasProvider ? "provider-documents" : "documents";
       await axios.delete(`${apiUrl}/${endpoint}/${id}`);
-      
+
       setDocumentos(documentos.filter((doc) => doc.id !== id));
       setSeleccionados(
         new Set([...seleccionados].filter((selId) => selId !== id)),
@@ -262,7 +264,7 @@ export default function DocumentosPage() {
       <div className="mb-6">
         <div
           className={`p-8 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors mb-4
-            ${dragActive ? 'border-yellow-500 bg-yellow-50' : 'border-gray-300 hover:border-yellow-500'}`}
+            ${dragActive ? "border-yellow-500 bg-yellow-50" : "border-gray-300 hover:border-yellow-500"}`}
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
@@ -283,7 +285,9 @@ export default function DocumentosPage() {
             <p className="text-gray-600">Suelta los archivos aquí...</p>
           ) : (
             <div>
-              <p className="text-gray-600">Arrastra y suelta archivos aquí, o</p>
+              <p className="text-gray-600">
+                Arrastra y suelta archivos aquí, o
+              </p>
               <button className="mt-2 text-yellow-500 hover:text-yellow-600">
                 haz clic para seleccionar
               </button>
@@ -295,7 +299,9 @@ export default function DocumentosPage() {
         {pendingUploads.length > 0 && (
           <div className="border rounded-lg p-4">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold">Archivos para subir ({pendingUploads.length})</h3>
+              <h3 className="font-semibold">
+                Archivos para subir ({pendingUploads.length})
+              </h3>
               <button
                 onClick={uploadAll}
                 disabled={uploading}
@@ -306,7 +312,10 @@ export default function DocumentosPage() {
             </div>
             <div className="space-y-2">
               {pendingUploads.map((upload, index) => (
-                <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                >
                   <div className="flex items-center gap-2">
                     <FaFile className="text-gray-400" />
                     <span className="text-sm">{upload.file.name}</span>
@@ -317,9 +326,18 @@ export default function DocumentosPage() {
                       value={upload.provider_id || ""}
                       onChange={(e) => {
                         const value = e.target.value;
-                        setPendingUploads(prev => prev.map((u, i) => 
-                          i === index ? { ...u, provider_id: value ? Number(value) : undefined } : u
-                        ));
+                        setPendingUploads((prev) =>
+                          prev.map((u, i) =>
+                            i === index
+                              ? {
+                                  ...u,
+                                  provider_id: value
+                                    ? Number(value)
+                                    : undefined,
+                                }
+                              : u,
+                          ),
+                        );
                       }}
                     >
                       <option value="">Sin talento</option>
@@ -403,7 +421,9 @@ export default function DocumentosPage() {
                   <button
                     aria-label="eliminar"
                     className="text-red-500 hover:text-red-700"
-                    onClick={() => eliminarDocumento(doc.id, doc.provider ? true : false)}
+                    onClick={() =>
+                      eliminarDocumento(doc.id, doc.provider ? true : false)
+                    }
                   >
                     <FaTrash />
                   </button>

@@ -9,4 +9,4 @@ class Document(Base):
     file_name = Column(String, nullable=False)
     file_url = Column(String, nullable=False)
     file_type = Column(String, nullable=True)  # For storing file extension/type
-    uploaded_at = Column(DateTime, default=datetime.utcnow) 
+    uploaded_at = Column(DateTime, default=datetime.utcnow)

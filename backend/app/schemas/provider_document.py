@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Optional
 
@@ -6,9 +6,8 @@ from typing import Optional
 class ProviderSimple(BaseModel):
     id: int
     name: str
-
-    class Config:
-        from_attributes = True  # Habilita la conversión desde ORM
+    
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ProviderDocumentBase(BaseModel):
@@ -25,6 +24,5 @@ class ProviderDocumentResponse(ProviderDocumentBase):
     id: int
     uploaded_at: datetime
     provider: Optional[ProviderSimple]  # <- Aquí incluyes la relación
-
-    class Config:
-        from_attributes = True
+    
+    model_config = ConfigDict(from_attributes=True)

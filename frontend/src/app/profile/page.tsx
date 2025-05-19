@@ -22,11 +22,10 @@ const schema = yup.object({
     .notRequired(),
   confirmPassword: yup
     .string()
-    .oneOf([yup.ref("newPassword"), null], "No coinciden")
-    .when("newPassword", {
-      is: (val: string) => !!val,
-      then: yup.string().required("Confirma la nueva contraseña"),
-    }),
+    .oneOf([yup.ref("newPassword"), undefined], "No coinciden")
+    .when("newPassword", (newPassword, schema) => 
+      newPassword ? schema.required("Confirma la nueva contraseña") : schema
+    ),
 });
 
 type FormData = yup.InferType<typeof schema>;
@@ -54,6 +53,11 @@ export default function ProfilePage() {
 
   const onSubmit = async (data: FormData) => {
     try {
+      if (!user) {
+        alert("Usuario no encontrado");
+        return;
+      }
+      
       // Llama a tu API (asegúrate de tener el endpoint proxy en /api/users/[userId])
       const res = await fetch(`/api/users/${user.id}`, {
         method: "PUT",

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas.document import DocumentResponse
@@ -7,7 +7,7 @@ from app.services.document import (
     get_all_documents,
     delete_document,
 )
-from typing import List
+from typing import List, Optional
 
 router = APIRouter()
 
@@ -26,14 +26,19 @@ router = APIRouter()
         500: {"description": "Internal server error"},
     },
 )
-async def upload_document(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def upload_document(
+    file: UploadFile = File(...), 
+    file_url: Optional[str] = Form(None),
+    db: Session = Depends(get_db)
+):
     """
     Upload a new document without associating it with a provider.
 
     - **file**: The file to upload (multipart/form-data)
+    - **file_url**: Optional pre-uploaded file URL
     """
     try:
-        return await upload_and_create_document(db, file)
+        return await upload_and_create_document(db, file, file_url)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)

@@ -12,6 +12,7 @@ import {
 } from "react-icons/fa";
 import axios from "axios";
 import * as XLSX from "xlsx";
+import ProtectedContent from "@/components/ui/ProtectedContent";
 
 // Define interfaces for our data types
 interface Provider {
@@ -472,12 +473,14 @@ export default function TalentosPage() {
       <div>
         <div className="flex justify-between items-center mb-4">
           <div className="flex space-x-2">
-            <button
-              onClick={handleAddNewRow}
-              className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 flex items-center"
-            >
-              <FaPlus className="mr-2" /> Añadir Talento
-            </button>
+            <ProtectedContent requiredPermission="modify">
+              <button
+                onClick={handleAddNewRow}
+                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 flex items-center"
+              >
+                <FaPlus className="mr-2" /> Añadir Talento
+              </button>
+            </ProtectedContent>
             <button
               onClick={exportToExcel}
               className="px-4 py-2 text-white rounded-md flex items-center transition-colors duration-200 bg-[#66ccff] hover:bg-[#56bceb]"
@@ -485,14 +488,16 @@ export default function TalentosPage() {
               <FaFileUpload className="mr-2" /> Exportar a Excel
             </button>
           </div>
-          {selectedIds.length > 0 && (
-            <button
-              onClick={handleDeleteSelected}
-              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 flex items-center"
-            >
-              <FaTrash className="mr-2" /> Eliminar talentos seleccionados
-            </button>
-          )}
+          <ProtectedContent requiredPermission="modify">
+            {selectedIds.length > 0 && (
+              <button
+                onClick={handleDeleteSelected}
+                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 flex items-center"
+              >
+                <FaTrash className="mr-2" /> Eliminar talentos seleccionados
+              </button>
+            )}
+          </ProtectedContent>
         </div>
 
         <div className="overflow-x-auto">
@@ -766,15 +771,23 @@ export default function TalentosPage() {
                     <td className="p-3 border">{proveedor.line}</td>
                     <td className="p-3 border">{proveedor.email}</td>
                     <td className="p-3 border text-center">
-                      <div className="flex justify-center items-center space-x-2">
-                        <FaEdit
-                          className="text-blue-500 cursor-pointer hover:text-blue-700"
-                          onClick={() => iniciarEdicion(proveedor)}
-                        />
-                        <FaTrash
-                          className="text-red-500 cursor-pointer hover:text-red-700"
-                          onClick={() => eliminarProveedor(proveedor.id)}
-                        />
+                      <div className="flex space-x-2 justify-center">
+                        <ProtectedContent requiredPermission="modify">
+                          <>
+                            <button
+                              onClick={() => iniciarEdicion(proveedor)}
+                              className="text-blue-500 hover:text-blue-700"
+                            >
+                              <FaEdit />
+                            </button>
+                            <button
+                              onClick={() => eliminarProveedor(proveedor.id)}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <FaTrash />
+                            </button>
+                          </>
+                        </ProtectedContent>
                       </div>
                     </td>
                   </tr>
@@ -895,22 +908,26 @@ export default function TalentosPage() {
             accept=".xlsx,.xls"
             onChange={handleFileUpload}
           />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="mt-2 flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
-          >
-            <FaFileUpload className="mr-2" />{" "}
-            {loading ? "Cargando..." : "Subir Archivo"}
-          </button>
+          <ProtectedContent requiredPermission="modify">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="mt-2 flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+            >
+              <FaFileUpload className="mr-2" />{" "}
+              {loading ? "Cargando..." : "Subir Archivo"}
+            </button>
+          </ProtectedContent>
         </div>
       </div>
 
       {/* Sección de Documentación unificada con mejor UX */}
       <div className="mt-8 space-y-6 bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-bold">Documentación del Talento</h2>
-        <p className="text-sm text-gray-600">
-          Selecciona un talento para ver y subir documentos asociados.
-        </p>
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-bold">Documentación del Talento</h2>
+          <p className="text-sm text-gray-600">
+            Selecciona un talento para ver y subir documentos asociados.
+          </p>
+        </div>
 
         {/* Notificación personalizada */}
         {uploadMessage && (
@@ -942,34 +959,36 @@ export default function TalentosPage() {
           </select>
         </div>
 
-        {/* Subida de archivo */}
-        {selectedProviderId && (
-          <div className="grid md:grid-cols-3 gap-4 items-end mt-4">
-            <div className="md:col-span-2">
-              <label className="text-sm font-medium text-gray-700 mb-1">
-                Archivo
-              </label>
-              <input
-                type="file"
-                ref={docFileInputRef}
-                onChange={handleDocFileChange}
-                className="border rounded p-2 w-full"
-              />
+        {/* Subida de archivo - solo para administradores */}
+        <ProtectedContent requiredPermission="modify">
+          {selectedProviderId && (
+            <div className="grid md:grid-cols-3 gap-4 items-end mt-4">
+              <div className="md:col-span-2">
+                <label className="text-sm font-medium text-gray-700 mb-1">
+                  Archivo
+                </label>
+                <input
+                  type="file"
+                  ref={docFileInputRef}
+                  onChange={handleDocFileChange}
+                  className="border rounded p-2 w-full"
+                />
+              </div>
+              <button
+                disabled={!docFile}
+                onClick={handleUploadDocument}
+                className={`h-full px-4 py-2 rounded text-white transition ${
+                  !docFile
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-[#a767d0] hover:bg-[#955bb8]"
+                }`}
+              >
+                <FaCloudUploadAlt className="inline mr-2" />
+                Subir Documento
+              </button>
             </div>
-            <button
-              disabled={!docFile}
-              onClick={handleUploadDocument}
-              className={`h-full px-4 py-2 rounded text-white transition ${
-                !docFile
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-[#a767d0] hover:bg-[#955bb8]"
-              }`}
-            >
-              <FaCloudUploadAlt className="inline mr-2" />
-              Subir Documento
-            </button>
-          </div>
-        )}
+          )}
+        </ProtectedContent>
 
         {/* Lista de documentos */}
         <div>

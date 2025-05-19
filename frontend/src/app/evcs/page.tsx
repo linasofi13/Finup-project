@@ -29,6 +29,7 @@ import "rc-slider/assets/index.css";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
 import { string } from "yup";
+import ProtectedContent from "@/components/ui/ProtectedContent";
 
 // Interfaces
 interface Entorno {
@@ -296,25 +297,27 @@ function EvcCard({
             </svg>
             Ver
           </button>
-          <button
-            className="flex items-center gap-1 bg-white/30 hover:bg-white/50 text-xs px-4 py-2 rounded-lg transition font-semibold focus:outline-none focus:ring-2 focus:ring-gray-400 text-gray-900"
-            onClick={() => onManageQuarters(evc)}
-          >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+          <ProtectedContent requiredPermission="modify">
+            <button
+              className="flex items-center gap-1 bg-white/30 hover:bg-white/50 text-xs px-4 py-2 rounded-lg transition font-semibold focus:outline-none focus:ring-2 focus:ring-gray-400 text-gray-900"
+              onClick={() => onManageQuarters(evc)}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-            Gestionar EVC
-          </button>
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+              Gestionar EVC
+            </button>
+          </ProtectedContent>
         </div>
       </div>
 
@@ -400,9 +403,17 @@ function QuarterCard({
   } | null>(null);
 
   const handlePercentageSave = async () => {
-    if (editValue >= 0 && editValue <= 100) {
-      await onUpdatePercentage(quarter.id, editValue);
+    if (editValue === "" || isNaN(Number(editValue))) {
+      toast.error("Por favor ingrese un valor numérico válido");
+      return;
+    }
+    
+    const value = Number(editValue);
+    if (value >= 0 && value <= 100) {
+      await onUpdatePercentage(quarter.id, value);
       setIsEditing(false);
+    } else {
+      toast.error("El porcentaje debe estar entre 0 y 100");
     }
   };
 
@@ -898,8 +909,11 @@ function QuarterCard({
               min="0"
               max="100"
               step="0.1"
-              value={editValue}
-              onChange={(e) => setEditValue(parseFloat(e.target.value))}
+              value={Number.isFinite(editValue) ? editValue : ""}
+              onChange={(e) => {
+                const val = parseFloat(e.target.value);
+                setEditValue(isNaN(val) ? "" : val);
+              }}
               className="w-20 px-2 py-1 border rounded text-gray-900 font-bold"
             />
             <button
@@ -1372,21 +1386,50 @@ function EvcsPage() {
   const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
 
   const onUpdatePercentage = async (quarterId: number, percentage: number) => {
+    if (percentage === undefined || percentage === null || isNaN(percentage)) {
+      toast.error("El porcentaje debe ser un número válido");
+      return;
+    }
+
+    // Asegurar que el porcentaje es un número con máximo 2 decimales
+    const formattedPercentage = Number(percentage.toFixed(2));
+    
+    if (formattedPercentage < 0 || formattedPercentage > 100) {
+      toast.error("El porcentaje debe estar entre 0 y 100");
+      return;
+    }
+
     try {
       const token = Cookies.get("auth_token");
-      await axios.patch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evc-qs/evc_qs/${quarterId}/percentage`,
-        { allocated_percentage: percentage },
+      const response = await axios.patch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evc-qs/evc_qs/${quarterId}/percentage?percentage=${formattedPercentage}`,
+        {}, // body vacío
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         },
       );
-      await fetchEvcs(); // Refresh data after update
+      // Actualizar el estado local de selectedEvc (si existe)
+      setSelectedEvc((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          evc_qs: prev.evc_qs.map((q) =>
+            q.id === quarterId
+              ? { ...q, allocated_percentage: formattedPercentage }
+              : q
+          ),
+        };
+      });
+      toast.success("Porcentaje actualizado exitosamente");
     } catch (error) {
       console.error("Error updating percentage:", error);
-      toast.error("Error al actualizar el porcentaje");
+      if (axios.isAxiosError(error) && error.response?.status === 400) {
+        toast.error("Error de validación: El porcentaje debe estar entre 0 y 100");
+      } else {
+        toast.error("Error al actualizar el porcentaje");
+      }
     }
   };
 
@@ -2454,17 +2497,19 @@ function EvcsPage() {
             />
             Seleccionar todos
           </label>
-          <button
-            className={`flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 ${
-              selectedEvcsForDelete.length === 0 || deleting
-                ? "opacity-50 cursor-not-allowed"
-                : ""
-            }`}
-            disabled={selectedEvcsForDelete.length === 0 || deleting}
-            onClick={() => setShowDeleteSelectedModal(true)}
-          >
-            <FaTrash className="mr-2" /> Eliminar
-          </button>
+          <ProtectedContent requiredPermission="modify">
+            <button
+              className={`flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 ${
+                selectedEvcsForDelete.length === 0 || deleting
+                  ? "opacity-50 cursor-not-allowed"
+                  : ""
+              }`}
+              disabled={selectedEvcsForDelete.length === 0 || deleting}
+              onClick={() => setShowDeleteSelectedModal(true)}
+            >
+              <FaTrash className="mr-2" /> Eliminar
+            </button>
+          </ProtectedContent>
           <button
             className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
             onClick={toggleFilters}
@@ -2478,12 +2523,14 @@ function EvcsPage() {
           >
             <FaDownload className="mr-2" /> Exportar
           </button>
-          <button
-            onClick={() => setShowForm(true)}
-            className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
-          >
-            <FaPlus className="mr-2" /> Crear EVC
-          </button>
+          <ProtectedContent requiredPermission="modify">
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+            >
+              <FaPlus className="mr-2" /> Crear EVC
+            </button>
+          </ProtectedContent>
         </div>
       </div>
 
@@ -2589,13 +2636,15 @@ function EvcsPage() {
             >
               Cancelar
             </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
-              onClick={createEvc}
-            >
-              Crear EVC
-            </button>
+            <ProtectedContent requiredPermission="modify">
+              <button
+                type="submit"
+                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+                onClick={createEvc}
+              >
+                Crear EVC
+              </button>
+            </ProtectedContent>
           </div>
         </div>
       )}
@@ -2812,13 +2861,15 @@ function EvcsPage() {
               >
                 Cancelar
               </button>
-              <button
-                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
-                onClick={exportToExcel}
-                disabled={selectedEvcsForExport.length === 0}
-              >
-                Exportar Seleccionadas
-              </button>
+              <ProtectedContent requiredPermission="modify">
+                <button
+                  className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+                  onClick={exportToExcel}
+                  disabled={selectedEvcsForExport.length === 0}
+                >
+                  Exportar Seleccionadas
+                </button>
+              </ProtectedContent>
             </div>
           </div>
         </div>
@@ -2952,27 +3003,28 @@ function EvcsPage() {
                 {selectedEvc.evc_qs && selectedEvc.evc_qs.length > 0 ? (
                   <div className="space-y-4">
                     {selectedEvc.evc_qs.map((quarter) => (
-                      <QuarterCard
-                        key={quarter.id}
-                        quarter={quarter}
-                        onUpdatePercentage={onUpdatePercentage}
-                        manualSpendingStatus={manualSpendingStatus}
-                        setManualSpendingStatus={setManualSpendingStatus}
-                        manualSpendings={manualSpendings}
-                        setManualSpendings={setManualSpendings}
-                        uploadStatus={uploadStatus}
-                        setUploadStatus={setUploadStatus}
-                        providerSelections={providerSelections}
-                        setProviderSelections={setProviderSelections}
-                        setProviderFilterModal={setProviderFilterModal}
-                        getFilteredProviders={getFilteredProviders}
-                        fetchEvcs={fetchEvcs}
-                        selectedEvc={selectedEvc}
-                        showDetailModal={showDetailModal}
-                        showEvcDetails={showEvcDetails}
-                        fetchSpendingsByEvcQ={fetchSpendingsByEvcQ}
-                        setSelectedEvc={setSelectedEvc}
-                      />
+                      <ProtectedContent key={quarter.id} requiredPermission="modify">
+                        <QuarterCard
+                          quarter={quarter}
+                          onUpdatePercentage={onUpdatePercentage}
+                          manualSpendingStatus={manualSpendingStatus}
+                          setManualSpendingStatus={setManualSpendingStatus}
+                          manualSpendings={manualSpendings}
+                          setManualSpendings={setManualSpendings}
+                          uploadStatus={uploadStatus}
+                          setUploadStatus={setUploadStatus}
+                          providerSelections={providerSelections}
+                          setProviderSelections={setProviderSelections}
+                          setProviderFilterModal={setProviderFilterModal}
+                          getFilteredProviders={getFilteredProviders}
+                          fetchEvcs={fetchEvcs}
+                          selectedEvc={selectedEvc}
+                          showDetailModal={showDetailModal}
+                          showEvcDetails={showEvcDetails}
+                          fetchSpendingsByEvcQ={fetchSpendingsByEvcQ}
+                          setSelectedEvc={setSelectedEvc}
+                        />
+                      </ProtectedContent>
                     ))}
                   </div>
                 ) : (
@@ -3059,17 +3111,19 @@ function EvcsPage() {
                       {alertMsg}
                     </div>
                   )}
-                  <button
-                    className={`px-4 py-2 ${
-                      isCreatingQuarter
-                        ? "bg-gray-400 cursor-not-allowed"
-                        : "bg-yellow-500 hover:bg-yellow-600"
-                    } text-white rounded-md`}
-                    onClick={() => createQuarter(selectedEvc.id)}
-                    disabled={isCreatingQuarter}
-                  >
-                    {isCreatingQuarter ? "Creando..." : "Agregar Quarter"}
-                  </button>
+                  <ProtectedContent requiredPermission="modify">
+                    <button
+                      className={`px-4 py-2 ${
+                        isCreatingQuarter
+                          ? "bg-gray-400 cursor-not-allowed"
+                          : "bg-yellow-500 hover:bg-yellow-600"
+                      } text-white rounded-md`}
+                      onClick={() => createQuarter(selectedEvc.id)}
+                      disabled={isCreatingQuarter}
+                    >
+                      {isCreatingQuarter ? "Creando..." : "Agregar Quarter"}
+                    </button>
+                  </ProtectedContent>
                 </div>
               </div>
             </div>
@@ -3079,8 +3133,9 @@ function EvcsPage() {
 
       {/* Modal de eliminación */}
       {showDeleteModal && evcToDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-white/20 backdrop-blur-sm" />
+          <div className="relative bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">Confirmar Eliminación</h2>
             <p className="mb-4">
               ¿Está seguro que desea eliminar la EVC "{evcToDelete.name}"? Esta
@@ -3096,12 +3151,14 @@ function EvcsPage() {
               >
                 Cancelar
               </button>
-              <button
-                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
-                onClick={() => deleteEvc(evcToDelete.id)}
-              >
-                Eliminar
-              </button>
+              <ProtectedContent requiredPermission="modify">
+                <button
+                  className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+                  onClick={() => deleteEvc(evcToDelete.id)}
+                >
+                  Eliminar
+                </button>
+              </ProtectedContent>
             </div>
           </div>
         </div>
@@ -3768,7 +3825,7 @@ function EvcsPage() {
       {/* Modal para eliminar EVCs seleccionados */}
       {showDeleteSelectedModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black bg-opacity-30" />
+          <div className="fixed inset-0 bg-white/20 backdrop-blur-sm" />
           <div className="relative bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md flex flex-col items-center">
             <h2 className="text-xl font-bold mb-4 text-center">
               ¿Estás seguro de que deseas eliminar los EVCs seleccionados?
@@ -3781,26 +3838,28 @@ function EvcsPage() {
               >
                 Cancelar
               </button>
-              <button
-                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
-                onClick={async () => {
-                  setDeleting(true);
-                  try {
-                    for (const id of selectedEvcsForDelete) {
-                      await deleteEvc(id);
+              <ProtectedContent requiredPermission="modify">
+                <button
+                  className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+                  onClick={async () => {
+                    setDeleting(true);
+                    try {
+                      for (const id of selectedEvcsForDelete) {
+                        await deleteEvc(id);
+                      }
+                      setSelectedEvcsForDelete([]);
+                      setShowDeleteSelectedModal(false);
+                    } catch (err) {
+                      alert("Error al eliminar los EVCs seleccionados");
+                    } finally {
+                      setDeleting(false);
                     }
-                    setSelectedEvcsForDelete([]);
-                    setShowDeleteSelectedModal(false);
-                  } catch (err) {
-                    alert("Error al eliminar los EVCs seleccionados");
-                  } finally {
-                    setDeleting(false);
-                  }
-                }}
-                disabled={deleting}
-              >
-                {deleting ? "Eliminando..." : "Eliminar"}
-              </button>
+                  }}
+                  disabled={deleting}
+                >
+                  {deleting ? "Eliminando..." : "Eliminar"}
+                </button>
+              </ProtectedContent>
             </div>
           </div>
         </div>
@@ -4000,14 +4059,16 @@ function EvcsPage() {
               >
                 Limpiar filtros
               </button>
-              <button
-                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-                onClick={() =>
-                  setProviderFilterModal({ quarterId: null, open: false })
-                }
-              >
-                Cerrar
-              </button>
+              <ProtectedContent requiredPermission="modify">
+                <button
+                  className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                  onClick={() =>
+                    setProviderFilterModal({ quarterId: null, open: false })
+                  }
+                >
+                  Cerrar
+                </button>
+              </ProtectedContent>
             </div>
           </div>
         </div>

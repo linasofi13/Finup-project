@@ -28,11 +28,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogPortal,
+  DialogOverlay,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import axios from "axios";
 import Cookies from "js-cookie";
+import ProtectedContent from "@/components/ui/ProtectedContent";
 
 interface BudgetPocket {
   id: number;
@@ -76,6 +79,7 @@ export default function BudgetPocketPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedPockets, setSelectedPockets] = useState<number[]>([]);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [formData, setFormData] = useState({
     year: new Date().getFullYear(),
     entorno_id: "",
@@ -226,14 +230,10 @@ export default function BudgetPocketPage() {
       return;
     }
 
-    if (
-      !confirm(
-        `¿Está seguro de eliminar ${selectedPockets.length} bolsa(s) presupuestal(es)?`,
-      )
-    ) {
-      return;
-    }
-
+    setShowDeleteConfirm(true);
+  };
+  
+  const confirmDeletePockets = async () => {
     try {
       const token = Cookies.get("auth_token");
       for (const pocketId of selectedPockets) {
@@ -250,6 +250,7 @@ export default function BudgetPocketPage() {
       toast.success("Bolsas presupuestales eliminadas exitosamente");
       setSelectedPockets([]);
       fetchBudgetPockets();
+      setShowDeleteConfirm(false);
     } catch (error) {
       console.error("Error deleting budget pockets:", error);
       toast.error("Error al eliminar las bolsas presupuestales");
@@ -271,20 +272,24 @@ export default function BudgetPocketPage() {
       <div className="flex justify-between items-center mb-12 mt-8">
         <h1 className="text-3xl font-bold">Bolsas Presupuestales</h1>
         <div className="flex gap-4">
-          {selectedPockets.length > 0 && (
-            <button
-              onClick={handleDeletePockets}
-              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2"
-            >
-              Eliminar Seleccionados
-            </button>
-          )}
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <button className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-blue-400 text-white hover:bg-blue-500 h-10 px-4 py-2">
-                Nueva Bolsa Presupuestal
+          <ProtectedContent requiredPermission="modify">
+            {selectedPockets.length > 0 && (
+              <button
+                onClick={handleDeletePockets}
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-red-500 text-white hover:bg-red-600 h-10 px-4 py-2"
+              >
+                Eliminar Seleccionados
               </button>
-            </DialogTrigger>
+            )}
+          </ProtectedContent>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <ProtectedContent requiredPermission="modify">
+              <DialogTrigger asChild>
+                <button className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-blue-400 text-white hover:bg-blue-500 h-10 px-4 py-2">
+                  Nueva Bolsa Presupuestal
+                </button>
+              </DialogTrigger>
+            </ProtectedContent>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Crear Nueva Bolsa Presupuestal</DialogTitle>
@@ -357,17 +362,19 @@ export default function BudgetPocketPage() {
           <TableHeader>
             <TableRow>
               <TableHead className="w-12">
-                <input
-                  type="checkbox"
-                  checked={selectedPockets.length === budgetPockets.length}
-                  onChange={() => {
-                    if (selectedPockets.length === budgetPockets.length) {
-                      setSelectedPockets([]);
-                    } else {
-                      setSelectedPockets(budgetPockets.map((p) => p.id));
-                    }
-                  }}
-                />
+                <ProtectedContent requiredPermission="modify">
+                  <input
+                    type="checkbox"
+                    checked={selectedPockets.length === budgetPockets.length}
+                    onChange={() => {
+                      if (selectedPockets.length === budgetPockets.length) {
+                        setSelectedPockets([]);
+                      } else {
+                        setSelectedPockets(budgetPockets.map((p) => p.id));
+                      }
+                    }}
+                  />
+                </ProtectedContent>
               </TableHead>
               <TableHead>Año</TableHead>
               <TableHead>Entorno</TableHead>
@@ -381,11 +388,13 @@ export default function BudgetPocketPage() {
             {budgetPockets.map((pocket) => (
               <TableRow key={pocket.id}>
                 <TableCell>
-                  <input
-                    type="checkbox"
-                    checked={selectedPockets.includes(pocket.id)}
-                    onChange={() => togglePocketSelection(pocket.id)}
-                  />
+                  <ProtectedContent requiredPermission="modify">
+                    <input
+                      type="checkbox"
+                      checked={selectedPockets.includes(pocket.id)}
+                      onChange={() => togglePocketSelection(pocket.id)}
+                    />
+                  </ProtectedContent>
                 </TableCell>
                 <TableCell>{pocket.year}</TableCell>
                 <TableCell>{pocket.entorno.name}</TableCell>
@@ -414,18 +423,20 @@ export default function BudgetPocketPage() {
                     >
                       Ver Detalles
                     </button>
-                    {pocket.is_available && (
-                      <button
-                        onClick={() =>
-                          router.push(
-                            `/asignacion-presupuestal/${pocket.id}?allocate=true`,
-                          )
-                        }
-                        className="text-green-500 hover:text-green-700"
-                      >
-                        Asignar
-                      </button>
-                    )}
+                    <ProtectedContent requiredPermission="modify">
+                      {pocket.is_available && (
+                        <button
+                          onClick={() =>
+                            router.push(
+                              `/asignacion-presupuestal/${pocket.id}?allocate=true`,
+                            )
+                          }
+                          className="text-green-500 hover:text-green-700"
+                        >
+                          Asignar
+                        </button>
+                      )}
+                    </ProtectedContent>
                   </div>
                 </TableCell>
               </TableRow>
@@ -433,6 +444,35 @@ export default function BudgetPocketPage() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Modal de confirmación para eliminar */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogPortal>
+          <DialogOverlay className="bg-white/20 backdrop-blur-sm" />
+          <DialogContent className="bg-white rounded-lg shadow-md">
+            <DialogHeader>
+              <DialogTitle>Confirmar eliminación</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p>¿Está seguro de eliminar {selectedPockets.length} bolsa(s) presupuestal(es)?</p>
+            </div>
+            <div className="flex justify-end gap-4">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 border rounded-md hover:bg-gray-100"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDeletePockets}
+                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+              >
+                Eliminar
+              </button>
+            </div>
+          </DialogContent>
+        </DialogPortal>
+      </Dialog>
     </div>
   );
 }

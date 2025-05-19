@@ -25,8 +25,30 @@ def suggest_next_q(q):
 
 
 def create_evc_q(db: Session, evc_q_data: EVC_QCreate):
-    db_evc_q = EVC_Q(**evc_q_data.model_dump())
-    db.add(db_evc_q)
+    # Check if an EVC_Q record already exists for the given evc_id, year, and q
+    existing_evc_q = (
+        db.query(EVC_Q)
+        .filter(
+            EVC_Q.evc_id == evc_q_data.evc_id,
+            EVC_Q.year == evc_q_data.year,
+            EVC_Q.q == evc_q_data.q,
+        )
+        .first()
+    )
+
+    if existing_evc_q:
+        # If it exists, update the allocated_budget
+        existing_evc_q.allocated_budget += evc_q_data.allocated_budget
+        # Potentially update other fields if necessary, e.g., comments or percentage
+        # For now, just summing the budget.
+        # existing_evc_q.comments = evc_q_data.comments (if comments need to be appended or replaced)
+        # existing_evc_q.allocated_percentage = new_percentage (if needs recalculation)
+        db_evc_q = existing_evc_q
+    else:
+        # If it does not exist, create a new one
+        db_evc_q = EVC_Q(**evc_q_data.model_dump())
+        db.add(db_evc_q)
+
     try:
         db.commit()
         db.refresh(db_evc_q)

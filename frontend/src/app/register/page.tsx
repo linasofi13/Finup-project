@@ -54,7 +54,7 @@ export default function RegisterPage() {
     try {
       setIsLoading(true);
       setError(null);
-      await registerUser(data.name, data.email, data.password);
+      await registerUser({ name: data.name, email: data.email, password: data.password });
     } catch (err: any) {
       setError(
         err.response?.data?.message || authError || "Error al registrarse",

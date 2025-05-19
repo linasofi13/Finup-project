@@ -138,42 +138,56 @@ def allocate_budget_to_evc(
     db: Session = Depends(get_db),
 ):
     try:
-        # Verify budget pocket exists and is available
+        # Verify budget pocket exists
         budget_pocket = crud.get_budget_pocket(db, budget_pocket_id)
         if not budget_pocket:
             raise HTTPException(status_code=404, detail="Budget pocket not found")
 
+        # Check if budget pocket is available
         if not budget_pocket.is_available:
-            raise HTTPException(
-                status_code=400, detail="Budget pocket is not available for allocation"
-            )
+            # If it's a total allocation, the subsequent logic in this function
+            # will correctly determine if there's truly no budget left (db_remaining_budget <= 0)
+            # and raise "No remaining budget to allocate...".
+            # If it's a partial allocation, then "not available" is a definitive block at this stage.
+            if not allocation.is_total_allocation:
+                raise HTTPException(
+                    status_code=400, detail="Budget pocket is not available for allocation"
+                )
+            # If allocation.is_total_allocation is true and pocket is not available,
+            # we let the code proceed to the db_remaining_budget check.
 
-        # Ensure total_allocated is not None
-        total_allocated = budget_pocket.total_allocated or 0
+        db_total_allocated = budget_pocket.total_allocated or 0
+        db_remaining_budget = budget_pocket.agreed_value - db_total_allocated
 
-        # Verify the allocation amount doesn't exceed available budget
-        remaining_budget = budget_pocket.agreed_value - total_allocated
-        if allocation.allocated_value > remaining_budget:
-            raise HTTPException(
-                status_code=400,
-                detail=f"El monto de la asignación excede el presupuesto disponible. Disponible: {remaining_budget}",
-            )
+        if allocation.is_total_allocation:
+            if db_remaining_budget <= 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail="No remaining budget to allocate. Budget may be already full or its agreed value is zero.",
+                )
+            allocation.allocated_value = db_remaining_budget  # Override with server-calculated remaining
+        else:
+            # For partial allocations, validate the client-provided amount
+            if not isinstance(allocation.allocated_value, (int, float)) or allocation.allocated_value <= 0:
+                raise HTTPException(
+                    status_code=400, detail="Allocated value must be a positive number."
+                )
+            if allocation.allocated_value > db_remaining_budget:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"El monto de la asignación excede el presupuesto disponible. Disponible: {db_remaining_budget}",
+                )
 
-        # Create the allocation
+        # Ensure budget_pocket_id is set on the allocation schema to be passed to CRUD
         allocation.budget_pocket_id = budget_pocket_id
+        
+        # Create the allocation - this CRUD function also updates budget_pocket totals and availability
         result = allocation_crud.create_budget_allocation(db=db, allocation=allocation)
 
-        # Update the budget pocket's total allocated amount
-        crud.update_budget_pocket(
-            db=db,
-            budget_pocket_id=budget_pocket_id,
-            budget_pocket=BudgetPocketUpdate(
-                total_allocated=total_allocated + allocation.allocated_value,
-                is_available=remaining_budget - allocation.allocated_value > 0,
-            ),
-        )
+        # The budget_pocket's total_allocated and is_available are handled by allocation_crud.create_budget_allocation
+        # No need for the explicit update_budget_pocket call that was here previously.
 
-        logger.info(f"Created budget allocation: {result.__dict__}")
+        logger.info(f"Created budget allocation: {BudgetAllocationResponse.model_validate(result).model_dump()}") # Use model_dump() for Pydantic models
         return result
     except HTTPException:
         raise

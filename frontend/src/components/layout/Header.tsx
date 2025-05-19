@@ -117,7 +117,7 @@ export default function Header({ isSidebarOpen }: HeaderProps) {
                 height={32}
                 className="h-8 w-auto mr-2"
               />
-            </Link> 
+            </Link>
           </div>
           <div className="relative w-1/3 hidden md:block">
             <input

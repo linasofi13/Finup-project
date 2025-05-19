@@ -15,7 +15,7 @@ export default function ClientWrapper({
   // Función simple para asegurar que nunca se use el tema oscuro
   useEffect(() => {
     // Si se llega a aplicar accidentalmente una clase 'dark', la quitamos
-    document.documentElement.classList.remove('dark');
+    document.documentElement.classList.remove("dark");
   }, []);
 
   return <ClientLayout>{children}</ClientLayout>;

@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
       const response = await axios.get(`${backendUrl}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       return NextResponse.json(response.data);
     } catch (apiError: any) {
       // Si el token expiró o es inválido (401), intentamos desconectar al usuario
@@ -29,13 +29,13 @@ export async function GET(req: NextRequest) {
         // Create response with error message
         const response = NextResponse.json(
           { message: "Session expired, please login again" },
-          { status: 401 }
+          { status: 401 },
         );
         // Delete the auth token cookie
         response.cookies.delete("auth_token");
         return response;
       }
-      
+
       // Otros errores del servidor
       throw apiError;
     }

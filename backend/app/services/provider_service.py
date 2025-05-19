@@ -57,7 +57,7 @@ def delete_provider(db: Session, provider_id: int):
         # Primero eliminar los documentos asociados al proveedor
         for document in provider.documents:
             db.delete(document)
-            
+
         # Luego eliminar el proveedor
         db.delete(provider)
         db.commit()

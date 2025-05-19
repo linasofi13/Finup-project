@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Función para validar el token actual
   const validateToken = async () => {
     try {
@@ -49,30 +49,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Asegurarnos de que el rol esté en el formato correcto
       const userData = {
         ...response.data,
-        rol: response.data.rol || response.data.role // Intentar ambos formatos
+        rol: response.data.rol || response.data.role, // Intentar ambos formatos
       };
-      
+
       console.log("Setting user with role:", userData.rol);
       setUser(userData);
       return true;
     } catch (err) {
       console.error("Error validating token:", err);
-      
+
       // Limpiar la cookie y el estado de usuario
       Cookies.remove("auth_token", { path: "/" });
       Cookies.remove("auth_token");
-      
+
       setUser(null);
-      
+
       // Si estamos en una ruta protegida, redirigir al login
-      if (typeof window !== 'undefined' && 
-          !window.location.pathname.startsWith('/login') && 
-          !window.location.pathname.startsWith('/register') &&
-          window.location.pathname !== '/') {
+      if (
+        typeof window !== "undefined" &&
+        !window.location.pathname.startsWith("/login") &&
+        !window.location.pathname.startsWith("/register") &&
+        window.location.pathname !== "/"
+      ) {
         console.log("Redirecting to login due to invalid token");
         window.location.href = "/login";
       }
-      
+
       return false;
     } finally {
       setLoading(false);
@@ -86,14 +88,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     validateToken();
-    
+
     // Configurar un intervalo para validar el token cada hora
-    const intervalId = setInterval(() => {
-      if (Cookies.get("auth_token")) {
-        validateToken();
-      }
-    }, 60 * 60 * 1000); // 1 hora
-    
+    const intervalId = setInterval(
+      () => {
+        if (Cookies.get("auth_token")) {
+          validateToken();
+        }
+      },
+      60 * 60 * 1000,
+    ); // 1 hora
+
     return () => clearInterval(intervalId);
   }, []);
 
@@ -110,7 +115,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         expires: 7, // 7 días en lugar de la expiración predeterminada
         sameSite: "strict", // Mejor seguridad
         secure: window.location.protocol === "https:", // Solo en HTTPS en producción
-        path: "/"
+        path: "/",
       });
 
       setUser(userData);
@@ -129,20 +134,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = async () => {
     try {
       // Llamar al endpoint de logout
-      await axios.post('/api/auth/logout');
+      await axios.post("/api/auth/logout");
     } catch (error) {
       console.error("Error during logout:", error);
     } finally {
       // Ejecutar siempre estas acciones, incluso si falla la llamada al API
-      
+
       // Eliminar la cookie de múltiples formas para garantizar que se elimine
       Cookies.remove("auth_token", { path: "/" });
       Cookies.remove("auth_token");
-      document.cookie = "auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-      
+      document.cookie =
+        "auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+
       // Limpiar el estado
       setUser(null);
-      
+
       // Forzar una redirección completa para asegurar que se refresque el estado
       window.location.replace("/login");
     }
@@ -170,6 +176,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <AuthContext.Provider value={{ user, loading, error, login, logout, refreshSession, setUser, register }}>
+
       {children}
     </AuthContext.Provider>
   );

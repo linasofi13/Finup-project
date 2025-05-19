@@ -34,4 +34,4 @@ export default function ProtectedContent({
 
   // Renderizar el contenido solo si tiene permiso, de lo contrario mostrar el fallback
   return hasPermission() ? <>{children}</> : <>{fallback}</>;
-} 
+}

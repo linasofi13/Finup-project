@@ -407,7 +407,7 @@ function QuarterCard({
       toast.error("Por favor ingrese un valor numérico válido");
       return;
     }
-    
+
     const value = Number(editValue);
     if (value >= 0 && value <= 100) {
       await onUpdatePercentage(quarter.id, value);
@@ -1393,7 +1393,7 @@ function EvcsPage() {
 
     // Asegurar que el porcentaje es un número con máximo 2 decimales
     const formattedPercentage = Number(percentage.toFixed(2));
-    
+
     if (formattedPercentage < 0 || formattedPercentage > 100) {
       toast.error("El porcentaje debe estar entre 0 y 100");
       return;
@@ -1418,7 +1418,7 @@ function EvcsPage() {
           evc_qs: prev.evc_qs.map((q) =>
             q.id === quarterId
               ? { ...q, allocated_percentage: formattedPercentage }
-              : q
+              : q,
           ),
         };
       });
@@ -1426,7 +1426,9 @@ function EvcsPage() {
     } catch (error) {
       console.error("Error updating percentage:", error);
       if (axios.isAxiosError(error) && error.response?.status === 400) {
-        toast.error("Error de validación: El porcentaje debe estar entre 0 y 100");
+        toast.error(
+          "Error de validación: El porcentaje debe estar entre 0 y 100",
+        );
       } else {
         toast.error("Error al actualizar el porcentaje");
       }
@@ -3003,7 +3005,10 @@ function EvcsPage() {
                 {selectedEvc.evc_qs && selectedEvc.evc_qs.length > 0 ? (
                   <div className="space-y-4">
                     {selectedEvc.evc_qs.map((quarter) => (
-                      <ProtectedContent key={quarter.id} requiredPermission="modify">
+                      <ProtectedContent
+                        key={quarter.id}
+                        requiredPermission="modify"
+                      >
                         <QuarterCard
                           quarter={quarter}
                           onUpdatePercentage={onUpdatePercentage}

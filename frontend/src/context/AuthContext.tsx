@@ -40,9 +40,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       console.log("Validating token...");
       const response = await axios.get("/api/auth/validate");
-      console.log("Token validated:", response.data);
+      console.log("Token validated, user data:", response.data);
 
-      setUser(response.data);
+      // Asegurarnos de que el rol esté en el formato correcto
+      const userData = {
+        ...response.data,
+        rol: response.data.rol || response.data.role // Intentar ambos formatos
+      };
+      
+      console.log("Setting user with role:", userData.rol);
+      setUser(userData);
       return true;
     } catch (err) {
       console.error("Error validating token:", err);

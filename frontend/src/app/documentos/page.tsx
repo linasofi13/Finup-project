@@ -10,6 +10,7 @@ import {
   FaUpload,
   FaFile,
 } from "react-icons/fa";
+import ProtectedContent from "@/components/ui/ProtectedContent";
 
 interface Provider {
   id: number;
@@ -261,38 +262,44 @@ export default function DocumentosPage() {
       </div>
 
       {/* Upload Section */}
-      <div className="mb-6">
-        <div
-          className={`p-8 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors mb-4
-            ${dragActive ? "border-yellow-500 bg-yellow-50" : "border-gray-300 hover:border-yellow-500"}`}
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            onChange={handleFileInput}
-            multiple
-          />
-          <FaUpload className="mx-auto text-4xl mb-4 text-gray-400" />
-          {uploading ? (
-            <p className="text-gray-600">Subiendo archivo...</p>
-          ) : dragActive ? (
-            <p className="text-gray-600">Suelta los archivos aquí...</p>
-          ) : (
-            <div>
-              <p className="text-gray-600">
-                Arrastra y suelta archivos aquí, o
-              </p>
-              <button className="mt-2 text-yellow-500 hover:text-yellow-600">
-                haz clic para seleccionar
-              </button>
-            </div>
-          )}
+      <ProtectedContent requiredPermission="modify" fallback={
+        <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50 text-center">
+          <p className="text-gray-500">Necesitas permisos de administrador para subir archivos</p>
+        </div>
+      }>
+        <div className="mb-6">
+          <div
+            className={`p-8 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors mb-4
+              ${dragActive ? "border-yellow-500 bg-yellow-50" : "border-gray-300 hover:border-yellow-500"}`}
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              onChange={handleFileInput}
+              multiple
+            />
+            <FaUpload className="mx-auto text-4xl mb-4 text-gray-400" />
+            {uploading ? (
+              <p className="text-gray-600">Subiendo archivo...</p>
+            ) : dragActive ? (
+              <p className="text-gray-600">Suelta los archivos aquí...</p>
+            ) : (
+              <div>
+                <p className="text-gray-600">
+                  Arrastra y suelta archivos aquí, o
+                </p>
+                <button className="mt-2 text-yellow-500 hover:text-yellow-600">
+                  haz clic para seleccionar
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Pending Uploads List */}
@@ -366,7 +373,7 @@ export default function DocumentosPage() {
             </div>
           </div>
         )}
-      </div>
+      </ProtectedContent>
 
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white border border-gray-300 rounded-lg">
@@ -418,15 +425,17 @@ export default function DocumentosPage() {
                   {new Date(doc.uploaded_at).toLocaleDateString()}
                 </td>
                 <td className="p-3 border text-center">
-                  <button
-                    aria-label="eliminar"
-                    className="text-red-500 hover:text-red-700"
-                    onClick={() =>
-                      eliminarDocumento(doc.id, doc.provider ? true : false)
-                    }
-                  >
-                    <FaTrash />
-                  </button>
+                  <ProtectedContent requiredPermission="modify" fallback={null}>
+                    <button
+                      aria-label="eliminar"
+                      className="text-red-500 hover:text-red-700"
+                      onClick={() =>
+                        eliminarDocumento(doc.id, doc.provider ? true : false)
+                      }
+                    >
+                      <FaTrash />
+                    </button>
+                  </ProtectedContent>
                 </td>
               </tr>
             ))}

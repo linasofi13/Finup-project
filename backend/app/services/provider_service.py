@@ -54,6 +54,11 @@ def get_provider_by_id(db: Session, provider_id: int):
 def delete_provider(db: Session, provider_id: int):
     provider = db.query(Provider).filter(Provider.id == provider_id).first()
     if provider:
+        # Primero eliminar los documentos asociados al proveedor
+        for document in provider.documents:
+            db.delete(document)
+            
+        # Luego eliminar el proveedor
         db.delete(provider)
         db.commit()
         return True

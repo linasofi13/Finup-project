@@ -653,18 +653,6 @@ export default function ConfiguracionPage() {
     return (
       <div className="mb-6 flex space-x-4">
         {renderDefaultRulesButton()}
-        <button
-          onClick={fixEvcNotificationRules}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
-        >
-          Arreglar Reglas Existentes
-        </button>
-        <button
-          onClick={forceRuleEvaluation}
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
-        >
-          Forzar Evaluación de Reglas
-        </button>
         {selectedRules.length > 0 && (
           <button
             onClick={deleteSelectedRules}

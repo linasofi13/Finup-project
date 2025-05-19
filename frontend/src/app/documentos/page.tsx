@@ -436,11 +436,16 @@ export default function DocumentosPage() {
       </div>
 
       {/* Upload Section */}
-      <ProtectedContent requiredPermission="modify" fallback={
-        <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50 text-center">
-          <p className="text-gray-500">Necesitas permisos de administrador para subir archivos</p>
-        </div>
-      }>
+      <ProtectedContent
+        requiredPermission="modify"
+        fallback={
+          <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50 text-center">
+            <p className="text-gray-500">
+              Necesitas permisos de administrador para subir archivos
+            </p>
+          </div>
+        }
+      >
         <div className="mb-6">
           <div
             className={`p-8 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors mb-4

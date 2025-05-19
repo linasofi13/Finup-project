@@ -322,14 +322,14 @@ export default function BudgetAllocationPage() {
             Bolsillo Presupuestal {budgetPocket.year} -{" "}
             {budgetPocket.entorno.name}
           </h1>
-          <ProtectedContent 
+          <ProtectedContent
             requiredPermission="modify"
             fallback={
-              <span className={`px-4 py-2 rounded-md ${
-                budgetPocket.is_available
-                  ? "bg-green-500"
-                  : "bg-red-500"
-              } text-white`}>
+              <span
+                className={`px-4 py-2 rounded-md ${
+                  budgetPocket.is_available ? "bg-green-500" : "bg-red-500"
+                } text-white`}
+              >
                 {budgetPocket.is_available ? "Disponible" : "No Disponible"}
               </span>
             }

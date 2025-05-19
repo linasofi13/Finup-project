@@ -232,7 +232,7 @@ export default function BudgetPocketPage() {
 
     setShowDeleteConfirm(true);
   };
-  
+
   const confirmDeletePockets = async () => {
     try {
       const token = Cookies.get("auth_token");
@@ -454,7 +454,10 @@ export default function BudgetPocketPage() {
               <DialogTitle>Confirmar eliminación</DialogTitle>
             </DialogHeader>
             <div className="py-4">
-              <p>¿Está seguro de eliminar {selectedPockets.length} bolsa(s) presupuestal(es)?</p>
+              <p>
+                ¿Está seguro de eliminar {selectedPockets.length} bolsa(s)
+                presupuestal(es)?
+              </p>
             </div>
             <div className="flex justify-end gap-4">
               <button

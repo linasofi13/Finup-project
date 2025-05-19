@@ -7,12 +7,10 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --legacy-peer-deps
 
-COPY .env .env
-
-# Copiar el resto del código
+# Copiar el resto del código (incluyendo .env si está en contexto)
 COPY . .
 
-# Construir la app
+# Construir aplicación Next.js
 RUN npm run build
 
 # Etapa 2: Producción
@@ -20,7 +18,7 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copiar artefactos de la build
+# Copiar artefactos del build
 COPY --from=builder /app ./
 
 ENV NODE_ENV=production

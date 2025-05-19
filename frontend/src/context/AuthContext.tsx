@@ -3,12 +3,14 @@
 import React, { createContext, useState, useEffect } from "react";
 import Cookies from "js-cookie";
 import axios from "axios";
+import { authService, RegisterData } from "../services/authService";
 
 interface User {
   id: string;
   email: string;
   username?: string;
   rol?: string;
+  name?: string;
 }
 
 export interface AuthContextType {
@@ -141,6 +143,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       // Forzar una redirección completa para asegurar que se refresque el estado
       window.location.replace("/login");
+    }
+  };
+
+  const register = async (data: RegisterData) => {
+    try {
+      setLoading(true);
+      setError(null);
+      await authService.register(data);
+      // Redirect to login page after successful registration
+      window.location.href = "/login";
+    } catch (err: any) {
+      console.error("Registration failed:", err);
+      const errorMessage =
+        err.response?.data?.message ||
+        err.response?.data?.detail ||
+        "Error during registration";
+      setError(errorMessage);
+      throw err; // Re-throw so UI can handle it if needed
+    } finally {
+      setLoading(false);
     }
   };
 

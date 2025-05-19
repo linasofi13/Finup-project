@@ -3,9 +3,90 @@
 import React from "react";
 import { useAuth } from "@/hooks/useAuth";
 import Card from "@/components/ui/Card";
+import Input from "@/components/ui/Input";
+import Button from "@/components/ui/Button";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+
+// Esquema de validación
+const schema = yup.object({
+  name: yup.string().required("Nombre es requerido"),
+  email: yup.string().email("Email inválido").required("Email es requerido"),
+  currentPassword: yup.string().required("Contraseña actual requerida"),
+  newPassword: yup
+    .string()
+    .min(8, "Mínimo 8 caracteres")
+    .matches(/[a-zA-Z]/, "Al menos una letra")
+    .matches(/[0-9]/, "Al menos un número")
+    .notRequired(),
+  confirmPassword: yup
+    .string()
+    .oneOf([yup.ref("newPassword"), undefined], "No coinciden")
+    .when("newPassword", (newPassword, schema) =>
+      newPassword ? schema.required("Confirma la nueva contraseña") : schema,
+    ),
+});
+
+type FormData = yup.InferType<typeof schema>;
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
+  const [showEdit, setShowEdit] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset,
+  } = useForm<FormData>({
+    resolver: yupResolver(schema),
+    defaultValues: {
+      name: user?.username || "",
+      email: user?.email || "",
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+
+  const onSubmit = async (data: FormData) => {
+    try {
+      if (!user) {
+        alert("Usuario no encontrado");
+        return;
+      }
+
+      // Llama a tu API (asegúrate de tener el endpoint proxy en /api/users/[userId])
+      const res = await fetch(`/api/users/${user.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: data.name,
+          email: data.email,
+          password: data.newPassword || undefined,
+          rol: user.rol,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Error al actualizar perfil");
+
+      const updatedUser = await res.json();
+      setUser && setUser(updatedUser); // Actualiza el usuario global si tienes setUser
+      setSuccess(true);
+      setShowEdit(false);
+      setTimeout(() => setSuccess(false), 2000);
+      reset({
+        ...data,
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+    } catch (err) {
+      alert("Error al actualizar el perfil");
+    }
+  };
 
   // SVGs inline
   const Svg = {

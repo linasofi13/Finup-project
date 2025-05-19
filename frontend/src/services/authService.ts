@@ -1,4 +1,5 @@
 import axios from "axios";
+import Cookies from "js-cookie";
 
 // Create an axios instance with the proper base URL
 const api = axios.create({
@@ -65,8 +66,18 @@ export const authService = {
   },
 
   validateToken: async () => {
-    // Cambiando la ruta a /api/auth/validate que es la correcta
-    const response = await axios.get("/api/auth/validate");
+    const token = Cookies.get("auth_token");
+    if (!token) {
+      throw new Error("No token found");
+    }
+
+    const response = await api.get("/auth/me", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
     if (!response.data) {
       throw new Error("No se pudo validar el token");
     }

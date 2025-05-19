@@ -14,6 +14,44 @@ import axios from "axios";
 import * as XLSX from "xlsx";
 import ProtectedContent from "@/components/ui/ProtectedContent";
 
+// Define interfaces for our data types
+interface Provider {
+  id: string;
+  name: string;
+  role: string;
+  company: string;
+  country: string;
+  cost_usd: string;
+  category: string;
+  line: string;
+  email: string;
+}
+
+interface NewProvider extends Omit<Provider, "id"> {
+  tempId: number;
+}
+
+interface FilterState {
+  name: string;
+  role: string;
+  company: string;
+  country: string;
+  costUsdMin: string;
+  costUsdMax: string;
+  category: string;
+  line: string;
+  email: string;
+}
+
+interface ProviderDocument {
+  id: string;
+  provider_id: string;
+  filename: string;
+  file_name?: string;
+  uploaded_at: string;
+  file_url: string;
+}
+
 // Endpoints (ajusta según tu backend)
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const API_URL = `${apiUrl}/providers/providers/`;
@@ -26,16 +64,18 @@ import { finupBucket } from "@/services/supabaseClient";
 // Ajusta la ruta si es necesario
 
 export default function TalentosPage() {
-  const [proveedores, setProveedores] = useState([]);
-  const [editingProveedor, setEditingProveedor] = useState(null);
-  const [newRows, setNewRows] = useState([]);
+  const [proveedores, setProveedores] = useState<Provider[]>([]);
+  const [editingProveedor, setEditingProveedor] = useState<Provider | null>(
+    null,
+  );
+  const [newRows, setNewRows] = useState<NewProvider[]>([]);
   const [loading, setLoading] = useState(false);
-  const [filePreview, setFilePreview] = useState([]);
+  const [filePreview, setFilePreview] = useState<any[]>([]);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
-  const [selectedIds, setSelectedIds] = useState([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   // Filtros para cada campo
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<FilterState>({
     name: "",
     role: "",
     company: "",
@@ -47,12 +87,12 @@ export default function TalentosPage() {
     email: "",
   });
 
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Estado para Documentos
   const [selectedProviderId, setSelectedProviderId] = useState("");
-  const [docFile, setDocFile] = useState(null);
-  const [docList, setDocList] = useState([]);
+  const [docFile, setDocFile] = useState<File | null>(null);
+  const [docList, setDocList] = useState<ProviderDocument[]>([]);
 
   useEffect(() => {
     fetchProveedores();
@@ -68,7 +108,7 @@ export default function TalentosPage() {
   };
 
   const [uploadMessage, setUploadMessage] = useState("");
-  const docFileInputRef = useRef(null);
+  const docFileInputRef = useRef<HTMLInputElement>(null);
   const [filterProviderId, setFilterProviderId] = useState("");
 
   useEffect(() => {
@@ -80,7 +120,7 @@ export default function TalentosPage() {
     }
   }, [filterProviderId, selectedProviderId]);
 
-  const fetchProviderDocuments = async (providerId) => {
+  const fetchProviderDocuments = async (providerId: string) => {
     try {
       const response = await axios.get(
         `${apiUrl}/provider-documents/by-provider/${providerId}`,
@@ -100,11 +140,11 @@ export default function TalentosPage() {
   };
 
   // Manejo de filtros
-  const handleFilterChange = (e) => {
+  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
   };
 
-  const filteredProviders = proveedores.filter((prov) => {
+  const filteredProviders = proveedores.filter((prov: Provider) => {
     if (!prov.name.toLowerCase().includes(filters.name.toLowerCase()))
       return false;
     if (!prov.role.toLowerCase().includes(filters.role.toLowerCase()))
@@ -133,7 +173,7 @@ export default function TalentosPage() {
   });
 
   // Selección múltiple
-  const handleSelectRow = (id) => {
+  const handleSelectRow = (id: string) => {
     if (selectedIds.includes(id)) {
       setSelectedIds(selectedIds.filter((item) => item !== id));
     } else {
@@ -141,7 +181,7 @@ export default function TalentosPage() {
     }
   };
 
-  const handleSelectAll = (checked) => {
+  const handleSelectAll = (checked: boolean) => {
     if (checked) {
       setSelectedIds(filteredProviders.map((prov) => prov.id));
     } else {
@@ -181,7 +221,10 @@ export default function TalentosPage() {
     setNewRows([...newRows, newRow]);
   };
 
-  const handleNewRowInputChange = (tempId, e) => {
+  const handleNewRowInputChange = (
+    tempId: number,
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     setNewRows(
       newRows.map((row) => {
         if (row.tempId === tempId) {
@@ -192,7 +235,7 @@ export default function TalentosPage() {
     );
   };
 
-  const addNewRow = async (tempId) => {
+  const addNewRow = async (tempId: number) => {
     const newRow = newRows.find((row) => row.tempId === tempId);
     if (!newRow) return;
     try {
@@ -204,12 +247,12 @@ export default function TalentosPage() {
     }
   };
 
-  const cancelNewRow = (tempId) => {
+  const cancelNewRow = (tempId: number) => {
     setNewRows(newRows.filter((row) => row.tempId !== tempId));
   };
 
   // Edición inline
-  const iniciarEdicion = (proveedor) => {
+  const iniciarEdicion = (proveedor: Provider) => {
     setEditingProveedor({ ...proveedor });
   };
 
@@ -219,7 +262,10 @@ export default function TalentosPage() {
 
   const actualizarProveedor = async () => {
     try {
-      await axios.put(`${API_URL}/${editingProveedor.id}`, editingProveedor);
+      if (!editingProveedor) return;
+
+      const url = `${apiUrl}/providers/providers/${editingProveedor.id}`;
+      await axios.put(url, editingProveedor);
       setProveedores(
         proveedores.map((prov) =>
           prov.id === editingProveedor.id ? editingProveedor : prov,
@@ -231,10 +277,10 @@ export default function TalentosPage() {
     }
   };
 
-  const eliminarProveedor = async (id) => {
+  const eliminarProveedor = async (id: string) => {
     if (!window.confirm("¿Confirmas la eliminación de este talento?")) return;
     try {
-      await axios.delete(`${API_URL}/${id}`);
+      await axios.delete(`${API_URL}${id}`);
       setProveedores(proveedores.filter((prov) => prov.id !== id));
       setSelectedIds(selectedIds.filter((item) => item !== id));
     } catch (error) {
@@ -243,8 +289,10 @@ export default function TalentosPage() {
   };
 
   // Carga Masiva de Excel
-  const handleFileUpload = async (event) => {
-    const file = event.target.files[0];
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
     if (!file) return;
 
     if (!file.name.endsWith(".xlsx") && !file.name.endsWith(".xls")) {
@@ -260,13 +308,16 @@ export default function TalentosPage() {
       console.error("Error al leer el archivo", e);
       setLoading(false);
     };
-    reader.onload = async (e) => {
+    reader.onload = async (e: ProgressEvent<FileReader>) => {
       try {
-        const data = new Uint8Array(e.target.result);
+        if (!e.target?.result) {
+          throw new Error("Failed to read file");
+        }
+        const data = new Uint8Array(e.target.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: "array" });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
-        let jsonData = XLSX.utils.sheet_to_json(sheet);
+        let jsonData = XLSX.utils.sheet_to_json(sheet) as Record<string, any>[];
         const requiredColumns = [
           "Nombre",
           "Rol",
@@ -326,7 +377,7 @@ export default function TalentosPage() {
   };
 
   // Manejo de Documentación (subir archivos)
-  const handleDocFileChange = (e) => {
+  const handleDocFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     setDocFile(e.target.files[0]);
   };
@@ -387,7 +438,7 @@ export default function TalentosPage() {
   };
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [docToDelete, setDocToDelete] = useState(null);
+  const [docToDelete, setDocToDelete] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
@@ -398,17 +449,20 @@ export default function TalentosPage() {
 
   const totalPages = Math.ceil(docList.length / itemsPerPage);
 
-  const confirmDelete = (id) => {
+  const confirmDelete = (id: string) => {
     setDocToDelete(id);
     setShowDeleteModal(true);
   };
 
   const handleConfirmedDelete = () => {
+    if (!docToDelete) return;
+
     handleDeleteDocument(docToDelete);
+    setDocToDelete(null);
     setShowDeleteModal(false);
   };
 
-  const handleDeleteDocument = (docId) => {
+  const handleDeleteDocument = (docId: string) => {
     if (!window.confirm("¿Confirmas la eliminación de este documento?")) return;
     setDocList(docList.filter((d) => d.id !== docId));
   };
@@ -942,9 +996,7 @@ export default function TalentosPage() {
             Documentos Cargados
           </h3>
           {docList.filter(
-            (doc) =>
-              !filterProviderId ||
-              doc.provider_id === parseInt(filterProviderId),
+            (doc) => !filterProviderId || doc.provider_id === filterProviderId,
           ).length === 0 ? (
             <p className="text-sm italic text-gray-500">
               No hay documentos registrados para el talento seleccionado.
@@ -954,8 +1006,7 @@ export default function TalentosPage() {
               {docList
                 .filter(
                   (doc) =>
-                    !filterProviderId ||
-                    doc.provider_id === parseInt(filterProviderId),
+                    !filterProviderId || doc.provider_id === filterProviderId,
                 )
                 .map((doc) => {
                   const prov = proveedores.find(

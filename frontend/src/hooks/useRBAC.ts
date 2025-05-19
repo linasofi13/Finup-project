@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 // Definimos los roles disponibles en la aplicación
 export const Roles = {
   ADMIN: "Admin",
-  CONSULTOR: "Consultor"
+  CONSULTOR: "Consultor",
 };
 
 // Función para verificar si un usuario tiene un rol específico
@@ -50,6 +50,6 @@ export const useRBAC = () => {
     isAdmin,
     isConsultor,
     canModify,
-    canAccessConfig
+    canAccessConfig,
   };
-}; 
+};

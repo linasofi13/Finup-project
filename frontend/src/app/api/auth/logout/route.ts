@@ -9,13 +9,13 @@ export async function POST(req: NextRequest) {
       name: "auth_token",
       path: "/",
     });
-    
+
     return NextResponse.json({ message: "Logged out successfully" });
   } catch (error: any) {
     console.error("Logout error:", error.message);
     return NextResponse.json(
       { message: "Error during logout" },
-      { status: 500 }
+      { status: 500 },
     );
   }
-} 
+}

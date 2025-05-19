@@ -10,6 +10,7 @@ import {
   FaUpload,
   FaFile,
 } from "react-icons/fa";
+import { finupBucket } from "@/services/supabaseClient";
 
 interface Provider {
   id: number;
@@ -83,31 +84,76 @@ export default function DocumentosPage() {
   const handleUpload = async (pendingUpload: PendingUpload) => {
     setUploading(true);
     const formData = new FormData();
-
-    // Ensure we're sending the file with the correct field name and filename
     const file = pendingUpload.file;
-    formData.append("file", file);
 
     try {
-      let endpoint;
-      if (pendingUpload.provider_id) {
-        // If there's a provider, use provider-documents endpoint and include provider_id
-        endpoint = `${apiUrl}/provider-documents/`;
-        formData.append("provider_id", pendingUpload.provider_id.toString());
-        formData.append("file_name", file.name);
-        formData.append("file_url", ""); // This will be set by the backend
-      } else {
-        // If no provider, use the documents upload endpoint
-        endpoint = `${apiUrl}/documents/upload`;
-      }
+      let response;
 
-      const response = await axios.post(endpoint, formData, {
-        headers: {
-          Accept: "application/json",
-          // Let the browser set the Content-Type with boundary
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      if (pendingUpload.provider_id) {
+        // Use the Supabase approach for provider documents, same as in proveedores page
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${Date.now()}_${file.name}`;
+        
+        const { data, error } = await finupBucket.upload(
+          `provider_docs/${fileName}`,
+          file,
+          {
+            cacheControl: "3600",
+            upsert: false,
+          },
+        );
+
+        if (error) {
+          throw error;
+        }
+
+        const { data: urlData } = finupBucket.getPublicUrl(
+          `provider_docs/${fileName}`,
+        );
+
+        // Send only metadata to the API
+        const docInfo = {
+          provider_id: pendingUpload.provider_id.toString(),
+          file_name: file.name,
+          file_url: urlData.publicUrl,
+          file_type: fileExt,
+          date_uploaded: new Date().toISOString(),
+        };
+
+        response = await axios.post(`${apiUrl}/provider-documents/`, docInfo);
+      } else {
+        // For regular documents, also use Supabase storage
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${Date.now()}_${file.name}`;
+        
+        const { data, error } = await finupBucket.upload(
+          `documents/${fileName}`,
+          file,
+          {
+            cacheControl: "3600",
+            upsert: false,
+          },
+        );
+
+        if (error) {
+          throw error;
+        }
+
+        const { data: urlData } = finupBucket.getPublicUrl(
+          `documents/${fileName}`,
+        );
+
+        // Now send the URL to the backend
+        formData.append("file", file);
+        formData.append("file_url", urlData.publicUrl);
+        
+        response = await axios.post(`${apiUrl}/documents/upload`, formData, {
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "multipart/form-data",
+          },
+        });
+      }
 
       if (response.data) {
         setDocumentos((prev) => [...prev, response.data]);
@@ -156,16 +202,45 @@ export default function DocumentosPage() {
         axios.get(`${apiUrl}/documents/`),
       ]);
 
-      // Combine both results
+      // Combine both results and ensure URLs are complete
       const allDocuments = [
         ...providerDocsResponse.data,
         ...generalDocsResponse.data,
-      ];
+      ].map(doc => ({
+        ...doc,
+        file_url: ensureCompleteUrl(doc.file_url)
+      }));
 
       setDocumentos(allDocuments);
     } catch (error) {
       console.error("Error al obtener documentos:", error);
     }
+  };
+
+  // Helper to ensure URLs are complete
+  const ensureCompleteUrl = (url: string) => {
+    // If URL already starts with http(s), return as is
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    
+    // If it's a /storage/ path, prepend the API URL base
+    if (url.startsWith('/storage/')) {
+      // Extract just the path after /storage/
+      const path = url.substring(9); // Remove '/storage/'
+      // Get Supabase URL 
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://your-project-id.supabase.co';
+      return `${supabaseUrl}/storage/v1/object/public/finup-bucket/${path}`;
+    }
+    
+    // Handle direct paths like "documents/filename.pdf"
+    if (url.startsWith('documents/') || url.startsWith('provider_docs/')) {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://your-project-id.supabase.co';
+      return `${supabaseUrl}/storage/v1/object/public/finup-bucket/${url}`;
+    }
+    
+    // If all else fails, return the original URL
+    return url;
   };
 
   const getProviderName = (id: number) => {
@@ -194,17 +269,96 @@ export default function DocumentosPage() {
       "¿Estás seguro de que deseas eliminar este documento?",
     );
     if (!confirmar) return;
+    
+    // Find the document to get more details
+    const docToDelete = documentos.find(doc => doc.id === id);
+    if (!docToDelete) {
+      alert("Error: No se encontró el documento a eliminar.");
+      return;
+    }
+    
+    // Double-check if document has a provider by examining the document object
+    const actuallyHasProvider = !!docToDelete.provider;
+    
+    console.log("Intentando eliminar documento:", { 
+      id, 
+      hasProvider: actuallyHasProvider,
+      file_name: docToDelete.file_name,
+      provider_id: docToDelete.provider?.id
+    });
+    
     try {
-      // Choose the endpoint based on whether the document has a provider
-      const endpoint = hasProvider ? "provider-documents" : "documents";
-      await axios.delete(`${apiUrl}/${endpoint}/${id}`);
+      // Use the correct endpoints based on the API documentation and actual document properties
+      if (actuallyHasProvider) {
+        console.log("Usando endpoint de documentos de proveedor");
+        await axios.delete(`${apiUrl}/provider-documents/${id}/`);
+      } else {
+        console.log("Usando endpoint general de documentos");
+        await axios.delete(`${apiUrl}/documents/${id}/`);
+      }
 
+      // Remove from UI
       setDocumentos(documentos.filter((doc) => doc.id !== id));
       setSeleccionados(
         new Set([...seleccionados].filter((selId) => selId !== id)),
       );
-    } catch (error) {
+      
+      console.log("Documento eliminado exitosamente");
+    } catch (error: any) {
       console.error("Error al eliminar documento:", error);
+      
+      const errorMsg = error.response?.data?.detail || 
+        error.response?.statusText || 
+        "Error desconocido";
+      
+      alert(`Error al eliminar el documento: ${errorMsg}`);
+    }
+  };
+
+  const eliminarSeleccionados = async () => {
+    const confirmar = window.confirm(
+      `¿Estás seguro de que deseas eliminar ${seleccionados.size} documento(s) seleccionado(s)?`
+    );
+    if (!confirmar) return;
+    
+    try {
+      const idsToDelete = [...seleccionados];
+      let deletedCount = 0;
+      let errorCount = 0;
+      
+      for (const id of idsToDelete) {
+        const doc = documentos.find(d => d.id === id);
+        if (!doc) continue;
+        
+        // Check if document actually has a provider
+        const hasProvider = !!doc.provider;
+        
+        try {
+          if (hasProvider) {
+            await axios.delete(`${apiUrl}/provider-documents/${id}/`);
+          } else {
+            await axios.delete(`${apiUrl}/documents/${id}/`);
+          }
+          deletedCount++;
+        } catch (err) {
+          console.error(`Error al eliminar documento ${id}:`, err);
+          errorCount++;
+        }
+      }
+      
+      // Update the UI even if some deletions failed
+      setDocumentos(documentos.filter(doc => !seleccionados.has(doc.id)));
+      setSeleccionados(new Set());
+      setSeleccionarTodos(false);
+      
+      if (errorCount > 0) {
+        alert(`${deletedCount} documento(s) eliminado(s) exitosamente. ${errorCount} documento(s) no pudieron ser eliminados.`);
+      } else {
+        alert(`${deletedCount} documento(s) eliminado(s) exitosamente.`);
+      }
+    } catch (error) {
+      console.error("Error al eliminar documentos:", error);
+      alert("Ocurrió un error al eliminar algunos documentos.");
     }
   };
 
@@ -217,7 +371,12 @@ export default function DocumentosPage() {
   const documentosFiltrados = documentos.filter((doc) => {
     const valor = (() => {
       if (filtroCampo === "uploaded_at") {
-        return new Date(doc.uploaded_at).toLocaleDateString();
+        return new Date(doc.uploaded_at).toLocaleString('es-CO', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          timeZone: 'America/Bogota'
+        });
       }
       if (filtroCampo === "provider_name") {
         return doc.provider?.name?.toLowerCase() || "";
@@ -241,6 +400,14 @@ export default function DocumentosPage() {
       <div className="flex flex-wrap justify-between items-center mb-4 gap-4">
         <h1 className="text-3xl font-bold">Documentos</h1>
         <div className="flex items-center gap-2">
+          {seleccionados.size > 0 && (
+            <button
+              onClick={eliminarSeleccionados}
+              className="bg-red-500 text-white px-3 py-1 rounded text-sm flex items-center gap-2 hover:bg-red-600"
+            >
+              <FaTrash /> Eliminar {seleccionados.size} seleccionado(s)
+            </button>
+          )}
           <select
             className="border px-2 py-1 rounded text-sm"
             value={filtroCampo}
@@ -389,7 +556,7 @@ export default function DocumentosPage() {
           <tbody>
             {documentosPaginados.map((doc) => (
               <tr
-                key={doc.id}
+                key={`${doc.provider ? 'provider' : 'general'}-${doc.id}-${doc.file_name}`}
                 className="border text-gray-700 hover:bg-yellow-100"
               >
                 <td className="p-3 border">
@@ -408,14 +575,19 @@ export default function DocumentosPage() {
                     href={doc.file_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    download
+                    download={doc.file_name}
                     className="text-yellow-500 hover:text-yellow-700 inline-block"
                   >
                     <FaDownload className="mx-auto" />
                   </a>
                 </td>
                 <td className="p-3 border">
-                  {new Date(doc.uploaded_at).toLocaleDateString()}
+                  {new Date(doc.uploaded_at).toLocaleString('es-CO', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    timeZone: 'America/Bogota'
+                  })}
                 </td>
                 <td className="p-3 border text-center">
                   <button

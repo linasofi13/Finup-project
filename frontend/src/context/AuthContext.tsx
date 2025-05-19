@@ -3,12 +3,14 @@
 import React, { createContext, useState, useEffect } from "react";
 import Cookies from "js-cookie";
 import axios from "axios";
+import { authService, RegisterData } from "../services/authService";
 
 interface User {
   id: string;
   email: string;
   username?: string;
   rol?: string;
+  name?: string;
 }
 
 export interface AuthContextType {
@@ -17,6 +19,8 @@ export interface AuthContextType {
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
+  register: (data: RegisterData) => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -86,8 +90,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     window.location.href = "/login";
   };
 
+  const register = async (data: RegisterData) => {
+    try {
+      setLoading(true);
+      setError(null);
+      await authService.register(data);
+      // Redirect to login page after successful registration
+      window.location.href = "/login";
+    } catch (err: any) {
+      console.error("Registration failed:", err);
+      const errorMessage = err.response?.data?.message || err.response?.data?.detail || "Error during registration";
+      setError(errorMessage);
+      throw err; // Re-throw so UI can handle it if needed
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, error, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, error, login, logout, setUser, register }}>
       {children}
     </AuthContext.Provider>
   );

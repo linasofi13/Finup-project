@@ -172,7 +172,7 @@ export default function BudgetAllocationPage() {
 
     try {
       const token = Cookies.get("auth_token");
-      const allocationData = {
+      const allocationDataForPocket = {
         budget_pocket_id: parseInt(id),
         evc_id: selectedEvc,
         allocated_value: isTotalAllocation
@@ -180,14 +180,22 @@ export default function BudgetAllocationPage() {
           : parseFloat(amount),
         is_total_allocation: isTotalAllocation,
         comments: formData.comments,
-        quarter: selectedQuarter,
+      };
+
+      const allocationDataForEvcQs = {
+        evc_id: selectedEvc,
         year: selectedYear,
+        q: selectedQuarter,
+        allocated_budget: isTotalAllocation
+          ? budgetPocket.agreed_value - totalAllocated
+          : parseFloat(amount),
+        allocated_percentage: 0, // This can be updated later if needed
       };
 
       // First create the budget allocation
       const allocationResponse = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/budget-pockets/${id}/allocate`,
-        allocationData,
+        allocationDataForPocket,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -198,13 +206,7 @@ export default function BudgetAllocationPage() {
       // Then create/update the EVC_Q with the allocated budget
       await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/evc-qs/evc_qs/`,
-        {
-          evc_id: selectedEvc,
-          year: selectedYear,
-          q: selectedQuarter,
-          allocated_budget: allocationData.allocated_value,
-          allocated_percentage: 0, // This can be updated later if needed
-        },
+        allocationDataForEvcQs,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -462,7 +464,7 @@ export default function BudgetAllocationPage() {
                       Monto disponible: $
                       {(
                         budgetPocket!.agreed_value -
-                        budgetPocket!.total_allocated
+                        totalAllocated
                       ).toLocaleString()}
                     </p>
                   )}

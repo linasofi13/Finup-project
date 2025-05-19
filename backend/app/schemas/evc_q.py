@@ -22,6 +22,9 @@ class EVC_QCreate(EVC_QBase):
 
 class EVC_Q(EVC_QBase):
     id: int
+    total_spendings: Optional[float] = None
+    percentage: Optional[float] = None
+    budget_message: Optional[str] = None
 
     # Relationships to EVC_Q
     evc: Optional["EVC"] = None
@@ -50,7 +53,7 @@ class EVC_QShortResponse(BaseModel):
 
 class EVC_QResponse(EVC_QShortResponse):
     evc_id: Optional[int] = None
-    evc_financials: Optional[List[EVC_FinancialResponse]] = None  #
+    evc_financials: Optional[List[EVC_FinancialResponse]] = None
 
 
 class EVC_QUpdate(EVC_QBase):

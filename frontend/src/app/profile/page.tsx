@@ -23,8 +23,8 @@ const schema = yup.object({
   confirmPassword: yup
     .string()
     .oneOf([yup.ref("newPassword"), undefined], "No coinciden")
-    .when("newPassword", (newPassword, schema) => 
-      newPassword ? schema.required("Confirma la nueva contraseña") : schema
+    .when("newPassword", (newPassword, schema) =>
+      newPassword ? schema.required("Confirma la nueva contraseña") : schema,
     ),
 });
 
@@ -57,7 +57,7 @@ export default function ProfilePage() {
         alert("Usuario no encontrado");
         return;
       }
-      
+
       // Llama a tu API (asegúrate de tener el endpoint proxy en /api/users/[userId])
       const res = await fetch(`/api/users/${user.id}`, {
         method: "PUT",

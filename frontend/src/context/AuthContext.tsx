@@ -99,7 +99,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       window.location.href = "/login";
     } catch (err: any) {
       console.error("Registration failed:", err);
-      const errorMessage = err.response?.data?.message || err.response?.data?.detail || "Error during registration";
+      const errorMessage =
+        err.response?.data?.message ||
+        err.response?.data?.detail ||
+        "Error during registration";
       setError(errorMessage);
       throw err; // Re-throw so UI can handle it if needed
     } finally {
@@ -108,7 +111,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, login, logout, setUser, register }}>
+    <AuthContext.Provider
+      value={{ user, loading, error, login, logout, setUser, register }}
+    >
       {children}
     </AuthContext.Provider>
   );

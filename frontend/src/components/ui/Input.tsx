@@ -28,7 +28,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           <input
             ref={ref}
             id={id}
-            className={`w-full ${icon ? 'pl-10' : 'px-3'} py-2 border rounded-md shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+            className={`w-full ${icon ? "pl-10" : "px-3"} py-2 border rounded-md shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
               error
                 ? "border-red-300 bg-red-50"
                 : "border-gray-300 hover:border-blue-400 bg-white hover:bg-gray-50"

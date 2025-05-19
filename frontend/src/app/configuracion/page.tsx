@@ -563,69 +563,76 @@ export default function ConfiguracionPage() {
       const res = await axios.get(
         `${API_BASE_URL}/notification-rules/notification-rules/`,
       );
-      
+
       const existingRules = res.data;
       let fixedCount = 0;
-      
+
       // Find and update the problematic rules
       for (const rule of existingRules) {
         let needsUpdate = false;
-        let updatedRule = { ...rule };
-        
+        const updatedRule = { ...rule };
+
         // EVC with missing technical leader
         if (
-          rule.target_table === "evc" && 
-          rule.condition_field === "technical_leader_id" && 
-          (rule.comparison === "custom:evc_no_technical" || rule.comparison === "==")
+          rule.target_table === "evc" &&
+          rule.condition_field === "technical_leader_id" &&
+          (rule.comparison === "custom:evc_no_technical" ||
+            rule.comparison === "==")
         ) {
           updatedRule.comparison = "is_null";
           needsUpdate = true;
         }
-        
+
         // EVC with missing functional leader
         if (
-          rule.target_table === "evc" && 
-          rule.condition_field === "functional_leader_id" && 
-          (rule.comparison === "custom:evc_no_functional" || rule.comparison === "==")
+          rule.target_table === "evc" &&
+          rule.condition_field === "functional_leader_id" &&
+          (rule.comparison === "custom:evc_no_functional" ||
+            rule.comparison === "==")
         ) {
           updatedRule.comparison = "is_null";
           needsUpdate = true;
         }
-        
+
         // EVC with missing entorno
         if (
-          rule.target_table === "evc" && 
-          rule.condition_field === "entorno_id" && 
-          (rule.comparison === "custom:evc_no_entorno" || rule.comparison === "==")
+          rule.target_table === "evc" &&
+          rule.condition_field === "entorno_id" &&
+          (rule.comparison === "custom:evc_no_entorno" ||
+            rule.comparison === "==")
         ) {
           updatedRule.comparison = "is_null";
           needsUpdate = true;
         }
-        
+
         // Check for talent cost rule that might not be working
         if (
-          rule.target_table === "provider" && 
+          rule.target_table === "provider" &&
           rule.condition_field === "cost_usd" &&
           rule.threshold > 0
         ) {
           // Ensure it's using standard comparison
-          if (rule.comparison !== ">" && rule.comparison !== ">=" && rule.comparison !== "==") {
+          if (
+            rule.comparison !== ">" &&
+            rule.comparison !== ">=" &&
+            rule.comparison !== "=="
+          ) {
             updatedRule.comparison = ">";
             needsUpdate = true;
           }
         }
-        
+
         if (needsUpdate) {
           // Update the rule
           await axios.patch(
             `${API_BASE_URL}/notification-rules/notification-rules/${rule.id}`,
-            updatedRule
+            updatedRule,
           );
           fixedCount++;
           console.log(`Fixed rule: ${rule.name}`);
         }
       }
-      
+
       alert(`${fixedCount} reglas de notificación arregladas correctamente`);
       await fetchRules(); // Refresh the rules list
     } catch (err) {
@@ -638,10 +645,12 @@ export default function ConfiguracionPage() {
   const forceRuleEvaluation = async () => {
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/notification-rules/notification-rules/evaluate-all`
+        `${API_BASE_URL}/notification-rules/notification-rules/evaluate-all`,
       );
       console.log("Force evaluation response:", response.data);
-      alert("Evaluación de reglas forzada exitosamente. Revise notificaciones.");
+      alert(
+        "Evaluación de reglas forzada exitosamente. Revise notificaciones.",
+      );
     } catch (err) {
       console.error("Error al forzar evaluación de reglas", err);
       alert("Error al forzar evaluación de reglas");

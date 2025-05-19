@@ -1689,19 +1689,20 @@ function EvcsPage() {
   const createEvc = async () => {
     try {
       const token = Cookies.get("auth_token");
-      
+
       if (!token) {
         toast.error("No se encontró token de autenticación");
         return;
       }
-      
+
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/evcs/`,
         {
           name: newEvc.name,
           description: newEvc.description,
           technical_leader_id: parseInt(newEvc.technical_leader_id, 10) || null,
-          functional_leader_id: parseInt(newEvc.functional_leader_id, 10) || null,
+          functional_leader_id:
+            parseInt(newEvc.functional_leader_id, 10) || null,
           entorno_id: parseInt(newEvc.entorno_id, 10) || null,
           status: newEvc.status,
         },
@@ -1722,7 +1723,8 @@ function EvcsPage() {
     } catch (error) {
       console.error("Error creando EVC:", error);
       if (axios.isAxiosError(error)) {
-        const errorMsg = error.response?.data?.detail || "Error al crear la EVC";
+        const errorMsg =
+          error.response?.data?.detail || "Error al crear la EVC";
         setAlertMsg(errorMsg);
         toast.error(errorMsg);
       } else {
@@ -1753,8 +1755,7 @@ function EvcsPage() {
         isNaN(Number(q)) ||
         isNaN(Number(allocated_budget)) ||
         isNaN(Number(allocated_percentage))
-      )
-       {
+      ) {
         setAlertMsg("Por favor complete todos los campos con valores válidos");
         setIsCreatingQuarter(false);
         return;
@@ -2330,24 +2331,31 @@ function EvcsPage() {
       let freshEvcDataFromServer = updatedEvcBaseResponse.data;
 
       // Re-enrich the evc_qs with financial details
-      if (freshEvcDataFromServer && freshEvcDataFromServer.evc_qs && Array.isArray(freshEvcDataFromServer.evc_qs)) {
+      if (
+        freshEvcDataFromServer &&
+        freshEvcDataFromServer.evc_qs &&
+        Array.isArray(freshEvcDataFromServer.evc_qs)
+      ) {
         // Stage 1: Enrich with spendings
         const evcQsWithSpendings = await Promise.all(
           freshEvcDataFromServer.evc_qs.map(async (q_from_server: EVC_Q) => {
-            const { total_spendings, percentage, message } = await fetchSpendingsByEvcQ(q_from_server.id);
+            const { total_spendings, percentage, message } =
+              await fetchSpendingsByEvcQ(q_from_server.id);
             return {
               ...q_from_server,
               total_spendings,
               percentage,
               budget_message: message,
             };
-          })
+          }),
         );
 
         // Stage 2: Enrich with providers (financials)
         const enrichedEvcQs = await Promise.all(
           evcQsWithSpendings.map(async (quarter_with_spendings) => {
-            const providers = await fetchProvidersByEvcQ(quarter_with_spendings.id);
+            const providers = await fetchProvidersByEvcQ(
+              quarter_with_spendings.id,
+            );
             return {
               ...quarter_with_spendings,
               evc_financials: providers.map((provider: Provider) => ({
@@ -2355,9 +2363,12 @@ function EvcsPage() {
                 provider,
               })),
             };
-          })
+          }),
         );
-        freshEvcDataFromServer = { ...freshEvcDataFromServer, evc_qs: enrichedEvcQs };
+        freshEvcDataFromServer = {
+          ...freshEvcDataFromServer,
+          evc_qs: enrichedEvcQs,
+        };
       }
 
       // Update the selected EVC with the full refreshed and enriched data
@@ -2365,7 +2376,9 @@ function EvcsPage() {
 
       // Update the EVCs list with the updated and enriched EVC
       setEvcs((prevEvcs) =>
-        prevEvcs.map((evc) => (evc.id === evcId ? freshEvcDataFromServer : evc)),
+        prevEvcs.map((evc) =>
+          evc.id === evcId ? freshEvcDataFromServer : evc,
+        ),
       );
 
       // Also fetch all EVCs to ensure the list is up to date

@@ -93,7 +93,7 @@ export default function DocumentosPage() {
         // Use the Supabase approach for provider documents, same as in proveedores page
         const fileExt = file.name.split(".").pop();
         const fileName = `${Date.now()}_${file.name}`;
-        
+
         const { data, error } = await finupBucket.upload(
           `provider_docs/${fileName}`,
           file,
@@ -125,7 +125,7 @@ export default function DocumentosPage() {
         // For regular documents, also use Supabase storage
         const fileExt = file.name.split(".").pop();
         const fileName = `${Date.now()}_${file.name}`;
-        
+
         const { data, error } = await finupBucket.upload(
           `documents/${fileName}`,
           file,
@@ -146,7 +146,7 @@ export default function DocumentosPage() {
         // Now send the URL to the backend
         formData.append("file", file);
         formData.append("file_url", urlData.publicUrl);
-        
+
         response = await axios.post(`${apiUrl}/documents/upload`, formData, {
           headers: {
             Accept: "application/json",
@@ -206,9 +206,9 @@ export default function DocumentosPage() {
       const allDocuments = [
         ...providerDocsResponse.data,
         ...generalDocsResponse.data,
-      ].map(doc => ({
+      ].map((doc) => ({
         ...doc,
-        file_url: ensureCompleteUrl(doc.file_url)
+        file_url: ensureCompleteUrl(doc.file_url),
       }));
 
       setDocumentos(allDocuments);
@@ -220,25 +220,29 @@ export default function DocumentosPage() {
   // Helper to ensure URLs are complete
   const ensureCompleteUrl = (url: string) => {
     // If URL already starts with http(s), return as is
-    if (url.startsWith('http://') || url.startsWith('https://')) {
+    if (url.startsWith("http://") || url.startsWith("https://")) {
       return url;
     }
-    
+
     // If it's a /storage/ path, prepend the API URL base
-    if (url.startsWith('/storage/')) {
+    if (url.startsWith("/storage/")) {
       // Extract just the path after /storage/
       const path = url.substring(9); // Remove '/storage/'
-      // Get Supabase URL 
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://your-project-id.supabase.co';
+      // Get Supabase URL
+      const supabaseUrl =
+        process.env.NEXT_PUBLIC_SUPABASE_URL ||
+        "https://your-project-id.supabase.co";
       return `${supabaseUrl}/storage/v1/object/public/finup-bucket/${path}`;
     }
-    
+
     // Handle direct paths like "documents/filename.pdf"
-    if (url.startsWith('documents/') || url.startsWith('provider_docs/')) {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://your-project-id.supabase.co';
+    if (url.startsWith("documents/") || url.startsWith("provider_docs/")) {
+      const supabaseUrl =
+        process.env.NEXT_PUBLIC_SUPABASE_URL ||
+        "https://your-project-id.supabase.co";
       return `${supabaseUrl}/storage/v1/object/public/finup-bucket/${url}`;
     }
-    
+
     // If all else fails, return the original URL
     return url;
   };
@@ -269,24 +273,24 @@ export default function DocumentosPage() {
       "¿Estás seguro de que deseas eliminar este documento?",
     );
     if (!confirmar) return;
-    
+
     // Find the document to get more details
-    const docToDelete = documentos.find(doc => doc.id === id);
+    const docToDelete = documentos.find((doc) => doc.id === id);
     if (!docToDelete) {
       alert("Error: No se encontró el documento a eliminar.");
       return;
     }
-    
+
     // Double-check if document has a provider by examining the document object
     const actuallyHasProvider = !!docToDelete.provider;
-    
-    console.log("Intentando eliminar documento:", { 
-      id, 
+
+    console.log("Intentando eliminar documento:", {
+      id,
       hasProvider: actuallyHasProvider,
       file_name: docToDelete.file_name,
-      provider_id: docToDelete.provider?.id
+      provider_id: docToDelete.provider?.id,
     });
-    
+
     try {
       // Use the correct endpoints based on the API documentation and actual document properties
       if (actuallyHasProvider) {
@@ -302,37 +306,38 @@ export default function DocumentosPage() {
       setSeleccionados(
         new Set([...seleccionados].filter((selId) => selId !== id)),
       );
-      
+
       console.log("Documento eliminado exitosamente");
     } catch (error: any) {
       console.error("Error al eliminar documento:", error);
-      
-      const errorMsg = error.response?.data?.detail || 
-        error.response?.statusText || 
+
+      const errorMsg =
+        error.response?.data?.detail ||
+        error.response?.statusText ||
         "Error desconocido";
-      
+
       alert(`Error al eliminar el documento: ${errorMsg}`);
     }
   };
 
   const eliminarSeleccionados = async () => {
     const confirmar = window.confirm(
-      `¿Estás seguro de que deseas eliminar ${seleccionados.size} documento(s) seleccionado(s)?`
+      `¿Estás seguro de que deseas eliminar ${seleccionados.size} documento(s) seleccionado(s)?`,
     );
     if (!confirmar) return;
-    
+
     try {
       const idsToDelete = [...seleccionados];
       let deletedCount = 0;
       let errorCount = 0;
-      
+
       for (const id of idsToDelete) {
-        const doc = documentos.find(d => d.id === id);
+        const doc = documentos.find((d) => d.id === id);
         if (!doc) continue;
-        
+
         // Check if document actually has a provider
         const hasProvider = !!doc.provider;
-        
+
         try {
           if (hasProvider) {
             await axios.delete(`${apiUrl}/provider-documents/${id}/`);
@@ -345,14 +350,16 @@ export default function DocumentosPage() {
           errorCount++;
         }
       }
-      
+
       // Update the UI even if some deletions failed
-      setDocumentos(documentos.filter(doc => !seleccionados.has(doc.id)));
+      setDocumentos(documentos.filter((doc) => !seleccionados.has(doc.id)));
       setSeleccionados(new Set());
       setSeleccionarTodos(false);
-      
+
       if (errorCount > 0) {
-        alert(`${deletedCount} documento(s) eliminado(s) exitosamente. ${errorCount} documento(s) no pudieron ser eliminados.`);
+        alert(
+          `${deletedCount} documento(s) eliminado(s) exitosamente. ${errorCount} documento(s) no pudieron ser eliminados.`,
+        );
       } else {
         alert(`${deletedCount} documento(s) eliminado(s) exitosamente.`);
       }
@@ -371,11 +378,11 @@ export default function DocumentosPage() {
   const documentosFiltrados = documentos.filter((doc) => {
     const valor = (() => {
       if (filtroCampo === "uploaded_at") {
-        return new Date(doc.uploaded_at).toLocaleString('es-CO', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          timeZone: 'America/Bogota'
+        return new Date(doc.uploaded_at).toLocaleString("es-CO", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          timeZone: "America/Bogota",
         });
       }
       if (filtroCampo === "provider_name") {
@@ -556,7 +563,7 @@ export default function DocumentosPage() {
           <tbody>
             {documentosPaginados.map((doc) => (
               <tr
-                key={`${doc.provider ? 'provider' : 'general'}-${doc.id}-${doc.file_name}`}
+                key={`${doc.provider ? "provider" : "general"}-${doc.id}-${doc.file_name}`}
                 className="border text-gray-700 hover:bg-yellow-100"
               >
                 <td className="p-3 border">
@@ -582,11 +589,11 @@ export default function DocumentosPage() {
                   </a>
                 </td>
                 <td className="p-3 border">
-                  {new Date(doc.uploaded_at).toLocaleString('es-CO', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    timeZone: 'America/Bogota'
+                  {new Date(doc.uploaded_at).toLocaleString("es-CO", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                    timeZone: "America/Bogota",
                   })}
                 </td>
                 <td className="p-3 border text-center">

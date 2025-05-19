@@ -463,8 +463,7 @@ export default function BudgetAllocationPage() {
                     <p className="text-sm text-gray-500 mt-1">
                       Monto disponible: $
                       {(
-                        budgetPocket!.agreed_value -
-                        totalAllocated
+                        budgetPocket!.agreed_value - totalAllocated
                       ).toLocaleString()}
                     </p>
                   )}

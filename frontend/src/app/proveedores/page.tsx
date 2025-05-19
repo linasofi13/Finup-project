@@ -26,7 +26,7 @@ interface Provider {
   email: string;
 }
 
-interface NewProvider extends Omit<Provider, 'id'> {
+interface NewProvider extends Omit<Provider, "id"> {
   tempId: number;
 }
 
@@ -64,7 +64,9 @@ import { finupBucket } from "@/services/supabaseClient";
 
 export default function TalentosPage() {
   const [proveedores, setProveedores] = useState<Provider[]>([]);
-  const [editingProveedor, setEditingProveedor] = useState<Provider | null>(null);
+  const [editingProveedor, setEditingProveedor] = useState<Provider | null>(
+    null,
+  );
   const [newRows, setNewRows] = useState<NewProvider[]>([]);
   const [loading, setLoading] = useState(false);
   const [filePreview, setFilePreview] = useState<any[]>([]);
@@ -218,7 +220,10 @@ export default function TalentosPage() {
     setNewRows([...newRows, newRow]);
   };
 
-  const handleNewRowInputChange = (tempId: number, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNewRowInputChange = (
+    tempId: number,
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     setNewRows(
       newRows.map((row) => {
         if (row.tempId === tempId) {
@@ -257,7 +262,7 @@ export default function TalentosPage() {
   const actualizarProveedor = async () => {
     try {
       if (!editingProveedor) return;
-      
+
       const url = `${apiUrl}/providers/providers/${editingProveedor.id}`;
       await axios.put(url, editingProveedor);
       setProveedores(
@@ -283,7 +288,9 @@ export default function TalentosPage() {
   };
 
   // Carga Masiva de Excel
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -448,7 +455,7 @@ export default function TalentosPage() {
 
   const handleConfirmedDelete = () => {
     if (!docToDelete) return;
-    
+
     handleDeleteDocument(docToDelete);
     setDocToDelete(null);
     setShowDeleteModal(false);
@@ -970,9 +977,7 @@ export default function TalentosPage() {
             Documentos Cargados
           </h3>
           {docList.filter(
-            (doc) =>
-              !filterProviderId ||
-              doc.provider_id === filterProviderId,
+            (doc) => !filterProviderId || doc.provider_id === filterProviderId,
           ).length === 0 ? (
             <p className="text-sm italic text-gray-500">
               No hay documentos registrados para el talento seleccionado.
@@ -982,8 +987,7 @@ export default function TalentosPage() {
               {docList
                 .filter(
                   (doc) =>
-                    !filterProviderId ||
-                    doc.provider_id === filterProviderId,
+                    !filterProviderId || doc.provider_id === filterProviderId,
                 )
                 .map((doc) => {
                   const prov = proveedores.find(

@@ -8,11 +8,13 @@ from app.services.supabase_client import finup_bucket
 from typing import Optional
 
 
-async def upload_and_create_document(db: Session, file: UploadFile, file_url: Optional[str] = None) -> Document:
+async def upload_and_create_document(
+    db: Session, file: UploadFile, file_url: Optional[str] = None
+) -> Document:
     """Upload file to Supabase and create document record"""
     # Get file extension
     file_ext = os.path.splitext(file.filename)[1] if file.filename else ""
-    
+
     # If file_url is provided, use it directly
     if file_url:
         # Create document record
@@ -24,7 +26,7 @@ async def upload_and_create_document(db: Session, file: UploadFile, file_url: Op
     else:
         # Upload to storage as before
         file_content = await file.read()
-        
+
         # Create unique filename
         unique_filename = f"{datetime.now().timestamp()}{file_ext}"
 

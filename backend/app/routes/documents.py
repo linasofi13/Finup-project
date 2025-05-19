@@ -27,9 +27,9 @@ router = APIRouter()
     },
 )
 async def upload_document(
-    file: UploadFile = File(...), 
+    file: UploadFile = File(...),
     file_url: Optional[str] = Form(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Upload a new document without associating it with a provider.

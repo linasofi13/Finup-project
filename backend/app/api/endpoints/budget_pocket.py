@@ -151,7 +151,8 @@ def allocate_budget_to_evc(
             # If it's a partial allocation, then "not available" is a definitive block at this stage.
             if not allocation.is_total_allocation:
                 raise HTTPException(
-                    status_code=400, detail="Budget pocket is not available for allocation"
+                    status_code=400,
+                    detail="Budget pocket is not available for allocation",
                 )
             # If allocation.is_total_allocation is true and pocket is not available,
             # we let the code proceed to the db_remaining_budget check.
@@ -165,10 +166,15 @@ def allocate_budget_to_evc(
                     status_code=400,
                     detail="No remaining budget to allocate. Budget may be already full or its agreed value is zero.",
                 )
-            allocation.allocated_value = db_remaining_budget  # Override with server-calculated remaining
+            allocation.allocated_value = (
+                db_remaining_budget  # Override with server-calculated remaining
+            )
         else:
             # For partial allocations, validate the client-provided amount
-            if not isinstance(allocation.allocated_value, (int, float)) or allocation.allocated_value <= 0:
+            if (
+                not isinstance(allocation.allocated_value, (int, float))
+                or allocation.allocated_value <= 0
+            ):
                 raise HTTPException(
                     status_code=400, detail="Allocated value must be a positive number."
                 )
@@ -180,14 +186,16 @@ def allocate_budget_to_evc(
 
         # Ensure budget_pocket_id is set on the allocation schema to be passed to CRUD
         allocation.budget_pocket_id = budget_pocket_id
-        
+
         # Create the allocation - this CRUD function also updates budget_pocket totals and availability
         result = allocation_crud.create_budget_allocation(db=db, allocation=allocation)
 
         # The budget_pocket's total_allocated and is_available are handled by allocation_crud.create_budget_allocation
         # No need for the explicit update_budget_pocket call that was here previously.
 
-        logger.info(f"Created budget allocation: {BudgetAllocationResponse.model_validate(result).model_dump()}") # Use model_dump() for Pydantic models
+        logger.info(
+            f"Created budget allocation: {BudgetAllocationResponse.model_validate(result).model_dump()}"
+        )  # Use model_dump() for Pydantic models
         return result
     except HTTPException:
         raise

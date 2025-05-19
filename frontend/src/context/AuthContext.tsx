@@ -16,7 +16,8 @@ export interface AuthContextType {
   loading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
+  refreshSession: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -25,33 +26,64 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Función para validar el token actual
+  const validateToken = async () => {
+    try {
+      setLoading(true);
+      const token = Cookies.get("auth_token");
+
+      if (!token) {
+        setLoading(false);
+        return false;
+      }
+
+      console.log("Validating token...");
+      const response = await axios.get("/api/auth/validate");
+      console.log("Token validated:", response.data);
+
+      setUser(response.data);
+      return true;
+    } catch (err) {
+      console.error("Error validating token:", err);
+      
+      // Limpiar la cookie y el estado de usuario
+      Cookies.remove("auth_token", { path: "/" });
+      Cookies.remove("auth_token");
+      
+      setUser(null);
+      
+      // Si estamos en una ruta protegida, redirigir al login
+      if (typeof window !== 'undefined' && 
+          !window.location.pathname.startsWith('/login') && 
+          !window.location.pathname.startsWith('/register') &&
+          window.location.pathname !== '/') {
+        console.log("Redirecting to login due to invalid token");
+        window.location.href = "/login";
+      }
+      
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Función para actualizar la sesión del usuario
+  const refreshSession = async () => {
+    await validateToken();
+  };
 
   useEffect(() => {
-    const validateToken = async () => {
-      try {
-        setLoading(true);
-        const token = Cookies.get("auth_token");
-
-        if (!token) {
-          setLoading(false);
-          return;
-        }
-
-        console.log("Validating token...");
-        const response = await axios.get("/api/auth/validate");
-        console.log("Token validated:", response.data);
-
-        setUser(response.data);
-      } catch (err) {
-        console.error("Error validating token:", err);
-        Cookies.remove("auth_token");
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     validateToken();
+    
+    // Configurar un intervalo para validar el token cada hora
+    const intervalId = setInterval(() => {
+      if (Cookies.get("auth_token")) {
+        validateToken();
+      }
+    }, 60 * 60 * 1000); // 1 hora
+    
+    return () => clearInterval(intervalId);
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -62,9 +94,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const response = await axios.post("/api/auth/login", { email, password });
       const { access_token, user: userData } = response.data;
 
+      // Configurar cookie con expiración de 7 días
       Cookies.set("auth_token", access_token, {
-        expires: 7,
-        sameSite: "lax",
+        expires: 7, // 7 días en lugar de la expiración predeterminada
+        sameSite: "strict", // Mejor seguridad
+        secure: window.location.protocol === "https:", // Solo en HTTPS en producción
+        path: "/"
       });
 
       setUser(userData);
@@ -80,14 +115,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const logout = () => {
-    Cookies.remove("auth_token");
-    setUser(null);
-    window.location.href = "/login";
+  const logout = async () => {
+    try {
+      // Llamar al endpoint de logout
+      await axios.post('/api/auth/logout');
+    } catch (error) {
+      console.error("Error during logout:", error);
+    } finally {
+      // Ejecutar siempre estas acciones, incluso si falla la llamada al API
+      
+      // Eliminar la cookie de múltiples formas para garantizar que se elimine
+      Cookies.remove("auth_token", { path: "/" });
+      Cookies.remove("auth_token");
+      document.cookie = "auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      
+      // Limpiar el estado
+      setUser(null);
+      
+      // Forzar una redirección completa para asegurar que se refresque el estado
+      window.location.replace("/login");
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, error, login, logout, refreshSession }}>
       {children}
     </AuthContext.Provider>
   );

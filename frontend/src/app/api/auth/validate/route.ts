@@ -26,12 +26,14 @@ export async function GET(req: NextRequest) {
     } catch (apiError: any) {
       // Si el token expiró o es inválido (401), intentamos desconectar al usuario
       if (apiError.response?.status === 401) {
-        // Eliminar la cookie de autenticación
-        cookies().delete("auth_token");
-        return NextResponse.json(
+        // Create response with error message
+        const response = NextResponse.json(
           { message: "Session expired, please login again" },
           { status: 401 },
         );
+        // Delete the auth token cookie
+        response.cookies.delete("auth_token");
+        return response;
       }
 
       // Otros errores del servidor

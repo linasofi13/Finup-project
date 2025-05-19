@@ -392,7 +392,7 @@ function QuarterCard({
   setSelectedEvc: React.Dispatch<React.SetStateAction<EVC | null>>;
 }) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editValue, setEditValue] = useState(quarter.allocated_percentage);
+  const [editValue, setEditValue] = useState<number | string>(quarter.allocated_percentage);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState<{
@@ -403,7 +403,7 @@ function QuarterCard({
   } | null>(null);
 
   const handlePercentageSave = async () => {
-    if (editValue === "" || isNaN(Number(editValue))) {
+    if (editValue === null || editValue === undefined || editValue === "" || isNaN(Number(editValue))) {
       toast.error("Por favor ingrese un valor numérico válido");
       return;
     }

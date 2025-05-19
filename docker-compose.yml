@@ -1,6 +1,29 @@
 version: "3.8"
 
 services:
+  frontend:
+    build:
+      context: ./frontend
+    container_name: finup-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      BACKEND_URL: ${BACKEND_URL}
+      NEXT_PUBLIC_PROVIDERS_ENDPOINT: ${NEXT_PUBLIC_PROVIDERS_ENDPOINT}
+      NEXT_PUBLIC_CATEGORY_PROVIDERS_ENDPOINT: ${NEXT_PUBLIC_CATEGORY_PROVIDERS_ENDPOINT}
+      NEXT_PUBLIC_CATEGORY_ROLES_ENDPOINT: ${NEXT_PUBLIC_CATEGORY_ROLES_ENDPOINT}
+      NEXT_PUBLIC_COUNTRIES_ENDPOINT: ${NEXT_PUBLIC_COUNTRIES_ENDPOINT}
+      NEXT_PUBLIC_CATEGORY_LINES_ENDPOINT: ${NEXT_PUBLIC_CATEGORY_LINES_ENDPOINT}
+      NEXT_PUBLIC_ROLE_PROVIDER_ENDPOINT: ${NEXT_PUBLIC_ROLE_PROVIDER_ENDPOINT}
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      NEXT_PUBLIC_SUPABASE_BUCKET: ${NEXT_PUBLIC_SUPABASE_BUCKET}
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL}
+    depends_on:
+      - backend
+
   backend:
     build:
       context: ./backend
@@ -13,19 +36,6 @@ services:
       - ./backend:/app
     depends_on:
       - db
-
-  frontend:
-    build:
-      context: ./frontend
-      args:
-        NEXT_PUBLIC_API_URL: http://localhost:8000
-    container_name: finup-frontend
-    ports:
-      - "3000:3000"
-    env_file:
-      - ./frontend/.env
-    depends_on:
-      - backend
 
   db:
     image: postgres:15

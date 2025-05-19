@@ -8,8 +8,12 @@ const mockLogin = jest
 
 const mockLogout = jest.fn() as jest.MockedFunction<() => void>;
 const mockSetUser = jest.fn() as jest.MockedFunction<(user: any) => void>;
-const mockRefreshSession = jest.fn() as jest.MockedFunction<() => Promise<void>>;
-const mockRegister = jest.fn() as jest.MockedFunction<(data: any) => Promise<void>>;
+const mockRefreshSession = jest.fn() as jest.MockedFunction<
+  () => Promise<void>
+>;
+const mockRegister = jest.fn() as jest.MockedFunction<
+  (data: any) => Promise<void>
+>;
 
 export const mockAuthContext: AuthContextType = {
   user: null,

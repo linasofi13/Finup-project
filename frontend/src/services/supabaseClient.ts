@@ -7,7 +7,9 @@ console.log("🔍 SUPABASE URL:", supabaseUrl);
 console.log("🔍 SUPABASE ANON KEY:", supabaseAnonKey);
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error("❌ Supabase env vars missing. Check .env.local or build step.");
+  console.error(
+    "❌ Supabase env vars missing. Check .env.local or build step.",
+  );
 }
 
 const bucketName = "finup-bucket";

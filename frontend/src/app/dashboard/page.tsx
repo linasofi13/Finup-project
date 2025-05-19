@@ -684,7 +684,7 @@ export default function DashboardPage() {
                 <Button
                   variant="primary"
                   className="w-full"
-                  onClick={() => router.push("/providers")}
+                  onClick={() => router.push("/proveedores")}
                 >
                   Ir a Talentos
                 </Button>

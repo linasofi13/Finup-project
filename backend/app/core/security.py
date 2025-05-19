@@ -10,7 +10,7 @@ load_dotenv()
 # Configuración de seguridad
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-for-development")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 480  # Aumentado de 30 minutos a 8 horas
 
 # Contexto para el hashing de contraseñas
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

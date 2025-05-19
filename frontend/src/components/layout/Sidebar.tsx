@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
+import ProtectedContent from "@/components/ui/ProtectedContent";
 
 // Carga diferida de los iconos para evitar errores en SSR
 const FaChartPie = dynamic(
@@ -119,13 +120,15 @@ const Sidebar = ({ isOpen, toggleSidebar }: SidebarProps) => {
       </nav>
 
       <div className="mt-auto flex flex-col space-y-4">
-        <Link
-          href="/configuracion"
-          className="sidebar-link flex items-center gap-3 p-2 rounded-md hover:bg-gray-200 transition-all"
-        >
-          <FaCog className="sidebar-icon" />
-          {mounted && isOpen && <span>Configuración</span>}
-        </Link>
+        <ProtectedContent requiredPermission="accessConfig">
+          <Link
+            href="/configuracion"
+            className="sidebar-link flex items-center gap-3 p-2 rounded-md hover:bg-gray-200 transition-all"
+          >
+            <FaCog className="sidebar-icon" />
+            {mounted && isOpen && <span>Configuración</span>}
+          </Link>
+        </ProtectedContent>
         <Link
           href="/logout"
           className="sidebar-link flex items-center gap-3 p-2 rounded-md hover:bg-red-100 text-red-500 transition-all"

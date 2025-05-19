@@ -249,13 +249,29 @@ def evaluate_rules(db: Session, changed_table: str = None, changed_id: int = Non
                 else:
                     # Process standard comparison rules with existing logic
                     if changed_id:
-                        sql = f"SELECT COUNT(*) FROM {table} WHERE id = :id AND {field} {comparison} :val"
-                        result = db.execute(
-                            text(sql), {"id": changed_id, "val": threshold}
-                        ).scalar()
+                        # Handle NULL checks properly
+                        if comparison == "is_null":
+                            sql = f"SELECT COUNT(*) FROM {table} WHERE id = :id AND {field} IS NULL"
+                            result = db.execute(text(sql), {"id": changed_id}).scalar()
+                        elif comparison == "is_not_null":
+                            sql = f"SELECT COUNT(*) FROM {table} WHERE id = :id AND {field} IS NOT NULL"
+                            result = db.execute(text(sql), {"id": changed_id}).scalar()
+                        else:
+                            sql = f"SELECT COUNT(*) FROM {table} WHERE id = :id AND {field} {comparison} :val"
+                            result = db.execute(
+                                text(sql), {"id": changed_id, "val": threshold}
+                            ).scalar()
                     else:
-                        sql = f"SELECT COUNT(*) FROM {table} WHERE {field} {comparison} :val"
-                        result = db.execute(text(sql), {"val": threshold}).scalar()
+                        # Handle NULL checks properly
+                        if comparison == "is_null":
+                            sql = f"SELECT COUNT(*) FROM {table} WHERE {field} IS NULL"
+                            result = db.execute(text(sql)).scalar()
+                        elif comparison == "is_not_null":
+                            sql = f"SELECT COUNT(*) FROM {table} WHERE {field} IS NOT NULL"
+                            result = db.execute(text(sql)).scalar()
+                        else:
+                            sql = f"SELECT COUNT(*) FROM {table} WHERE {field} {comparison} :val"
+                            result = db.execute(text(sql), {"val": threshold}).scalar()
 
                     if result > 0:
                         # Only add default notification if not duplicated

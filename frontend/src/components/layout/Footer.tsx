@@ -5,7 +5,7 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="bg-[#2c2a29] text-white">
+    <footer className="bg-[#2c2a29] text-white text-center">
       <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         {/* Sección principal del Footer */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
@@ -13,7 +13,7 @@ export default function Footer() {
           <div>
             <Link
               href="/"
-              className="font-bold text-xl flex items-center mb-4 transition-transform duration-200 hover:scale-105"
+              className="font-bold text-xl flex items-center justify-center mb-4 transition-transform duration-200 hover:scale-105"
             >
               <span className="text-[#FFE600] mr-1">Fin</span>
               <span className="text-white">Up</span>
@@ -21,7 +21,7 @@ export default function Footer() {
             <p className="text-sm text-gray-300 mb-4">
               Optimización de la gestión del talento humano y presupuesto.
             </p>
-            <div className="flex space-x-4">
+            <div className="flex justify-center space-x-4">
               {/* Facebook */}
               <a
                 href="#"

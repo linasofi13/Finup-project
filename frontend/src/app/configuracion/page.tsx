@@ -59,6 +59,9 @@ const comparisonOptions = [
   { label: "Igual a", value: "==" },
   { label: "Mayor o igual que", value: ">=" },
   { label: "Menor o igual que", value: "<=" },
+  { label: "No igual a", value: "!=" },
+  { label: "Es nulo", value: "is_null" },
+  { label: "No es nulo", value: "is_not_null" },
   { label: "Presupuesto gastado 50%", value: "custom:evc_budget_spent_half" },
   { label: "Presupuesto gastado 80%", value: "custom:evc_budget_spent_high" },
   {
@@ -341,13 +344,13 @@ export default function ConfiguracionPage() {
       active: true,
     },
 
-    // EVC status rules
+    // EVC status rules - changed from custom to standard operators
     {
       name: "EVC sin líder técnico",
       target_table: "evc",
       condition_field: "technical_leader_id",
       threshold: 0,
-      comparison: "custom:evc_no_technical",
+      comparison: "is_null", // Changed from custom:evc_no_technical and == to is_null
       message: "Hay EVCs sin líder técnico asignado",
       type: "warning",
       active: true,
@@ -357,7 +360,7 @@ export default function ConfiguracionPage() {
       target_table: "evc",
       condition_field: "functional_leader_id",
       threshold: 0,
-      comparison: "custom:evc_no_functional",
+      comparison: "is_null", // Changed from custom:evc_no_functional and == to is_null
       message: "Hay EVCs sin líder funcional asignado",
       type: "warning",
       active: true,
@@ -367,19 +370,19 @@ export default function ConfiguracionPage() {
       target_table: "evc",
       condition_field: "entorno_id",
       threshold: 0,
-      comparison: "custom:evc_no_entorno",
+      comparison: "is_null", // Changed from custom:evc_no_entorno and == to is_null
       message: "Hay EVCs sin entorno asignado",
       type: "warning",
       active: true,
     },
 
-    // Talent cost rule
+    // Talent cost rule - modified to ensure it works
     {
       name: "Alerta de costo alto de Talento",
       target_table: "provider",
       condition_field: "cost_usd",
       threshold: 3000,
-      comparison: ">",
+      comparison: ">", // Using standard comparison operator
       message: "El talento tiene un costo superior a $3000.",
       type: "alert",
       active: true,
@@ -553,14 +556,111 @@ export default function ConfiguracionPage() {
     }
   };
 
-  return (
-    <div className="container mx-auto px-4 py-8 mt-16">
-      <h1 className="text-2xl font-bold mb-6">
-        Configuración de Notificaciones
-      </h1>
+  // Add this function after fetchRules()
+  const fixEvcNotificationRules = async () => {
+    try {
+      // Get existing rules
+      const res = await axios.get(
+        `${API_BASE_URL}/notification-rules/notification-rules/`,
+      );
 
-      {/* Add default rules button and bulk delete button */}
-      <div className="mb-6 flex justify-between items-center">
+      const existingRules = res.data;
+      let fixedCount = 0;
+
+      // Find and update the problematic rules
+      for (const rule of existingRules) {
+        let needsUpdate = false;
+        const updatedRule = { ...rule };
+
+        // EVC with missing technical leader
+        if (
+          rule.target_table === "evc" &&
+          rule.condition_field === "technical_leader_id" &&
+          (rule.comparison === "custom:evc_no_technical" ||
+            rule.comparison === "==")
+        ) {
+          updatedRule.comparison = "is_null";
+          needsUpdate = true;
+        }
+
+        // EVC with missing functional leader
+        if (
+          rule.target_table === "evc" &&
+          rule.condition_field === "functional_leader_id" &&
+          (rule.comparison === "custom:evc_no_functional" ||
+            rule.comparison === "==")
+        ) {
+          updatedRule.comparison = "is_null";
+          needsUpdate = true;
+        }
+
+        // EVC with missing entorno
+        if (
+          rule.target_table === "evc" &&
+          rule.condition_field === "entorno_id" &&
+          (rule.comparison === "custom:evc_no_entorno" ||
+            rule.comparison === "==")
+        ) {
+          updatedRule.comparison = "is_null";
+          needsUpdate = true;
+        }
+
+        // Check for talent cost rule that might not be working
+        if (
+          rule.target_table === "provider" &&
+          rule.condition_field === "cost_usd" &&
+          rule.threshold > 0
+        ) {
+          // Ensure it's using standard comparison
+          if (
+            rule.comparison !== ">" &&
+            rule.comparison !== ">=" &&
+            rule.comparison !== "=="
+          ) {
+            updatedRule.comparison = ">";
+            needsUpdate = true;
+          }
+        }
+
+        if (needsUpdate) {
+          // Update the rule
+          await axios.patch(
+            `${API_BASE_URL}/notification-rules/notification-rules/${rule.id}`,
+            updatedRule,
+          );
+          fixedCount++;
+          console.log(`Fixed rule: ${rule.name}`);
+        }
+      }
+
+      alert(`${fixedCount} reglas de notificación arregladas correctamente`);
+      await fetchRules(); // Refresh the rules list
+    } catch (err) {
+      console.error("Error al arreglar las reglas", err);
+      alert("Error al arreglar las reglas de notificación");
+    }
+  };
+
+  // Add button to force evaluation of rules
+  const forceRuleEvaluation = async () => {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/notification-rules/notification-rules/evaluate-all`,
+      );
+      console.log("Force evaluation response:", response.data);
+      alert(
+        "Evaluación de reglas forzada exitosamente. Revise notificaciones.",
+      );
+    } catch (err) {
+      console.error("Error al forzar evaluación de reglas", err);
+      alert("Error al forzar evaluación de reglas");
+    }
+  };
+
+  // Add this function to render buttons
+  const renderHeaderButtons = () => {
+    return (
+      <div className="mb-6 flex space-x-4">
         {renderDefaultRulesButton()}
         {selectedRules.length > 0 && (
           <button
@@ -571,6 +671,19 @@ export default function ConfiguracionPage() {
             Eliminar {selectedRules.length} reglas seleccionadas
           </button>
         )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="container mx-auto px-4 py-8 mt-16">
+      <h1 className="text-2xl font-bold mb-6">
+        Configuración de Notificaciones
+      </h1>
+
+      {/* Add buttons for managing rules */}
+      <div className="mb-6 flex justify-between items-center">
+        {renderHeaderButtons()}
       </div>
 
       {loading ? (

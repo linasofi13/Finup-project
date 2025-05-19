@@ -233,7 +233,7 @@ export default function TalentosPage() {
   const eliminarProveedor = async (id) => {
     if (!window.confirm("¿Confirmas la eliminación de este talento?")) return;
     try {
-      await axios.delete(`${API_URL}/${id}`);
+      await axios.delete(`${API_URL}${id}`);
       setProveedores(proveedores.filter((prov) => prov.id !== id));
       setSelectedIds(selectedIds.filter((item) => item !== id));
     } catch (error) {

@@ -28,6 +28,8 @@ import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
+import { string } from "yup";
+import ProtectedContent from "@/components/ui/ProtectedContent";
 
 // Interfaces
 interface Entorno {
@@ -143,7 +145,6 @@ function EvcCard({
   // Assign color from palette
   const bgColor = evcColors[index % evcColors.length];
   // Status badge
-
   const status = evc.status ? "Activo" : "Inactivo";
   const statusColor = evc.status
     ? "bg-green-400 text-green-900"
@@ -167,37 +168,21 @@ function EvcCard({
     0,
   );
 
-  const asignado = totalAssignedPercentage;
+  // Update asignado to be 100 if there is any budget assigned, 0 otherwise
+  const asignado = totalAssigned > 0 ? 100 : 0;
   // Update the gastado calculation to be percentage of budget spent
   const gastado =
     totalAssigned > 0
       ? Math.min(Math.round((totalSpent / totalAssigned) * 100), 100)
-      : 0;
-  // Update progreso to calculate average of correctly calculated percentages
-  const progreso =
-    evc.evc_qs.length > 0
-      ? Math.round(
-          evc.evc_qs.reduce((sum, q) => {
-            // Calculate correct percentage for each quarter
-            const quarterPercentage =
-              q.allocated_budget > 0
-                ? Math.min(
-                    Math.round(
-                      ((q.total_spendings || 0) / q.allocated_budget) * 100,
-                    ),
-                    100,
-                  )
-                : 0;
-            return sum + quarterPercentage;
-          }, 0) / evc.evc_qs.length,
-        )
       : 0;
 
   const qActual =
     evc.evc_qs?.length > 0 ? evc.evc_qs[evc.evc_qs.length - 1].q : 1;
   return (
     <div
-      className={`rounded-2xl shadow-lg p-6 w-full text-gray-900 relative flex flex-col min-h-[320px] group transition-all duration-200 ${selected ? "border-2 border-yellow-400 bg-yellow-50" : ""}`}
+      className={`rounded-2xl shadow-lg p-6 w-full text-gray-900 relative flex flex-col min-h-[320px] group transition-all duration-200 ${
+        selected ? "border-2 border-yellow-400 bg-yellow-50" : ""
+      }`}
       style={{ background: !selected ? bgColor : undefined }}
     >
       {/* Selection checkbox */}
@@ -312,25 +297,27 @@ function EvcCard({
             </svg>
             Ver
           </button>
-          <button
-            className="flex items-center gap-1 bg-white/30 hover:bg-white/50 text-xs px-4 py-2 rounded-lg transition font-semibold focus:outline-none focus:ring-2 focus:ring-gray-400 text-gray-900"
-            onClick={() => onManageQuarters(evc)}
-          >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+          <ProtectedContent requiredPermission="modify">
+            <button
+              className="flex items-center gap-1 bg-white/30 hover:bg-white/50 text-xs px-4 py-2 rounded-lg transition font-semibold focus:outline-none focus:ring-2 focus:ring-gray-400 text-gray-900"
+              onClick={() => onManageQuarters(evc)}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-            Gestionar EVC
-          </button>
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+              Gestionar EVC
+            </button>
+          </ProtectedContent>
         </div>
       </div>
 
@@ -338,7 +325,6 @@ function EvcCard({
       <div className="space-y-2 mt-auto">
         <ProgressBar label="Asignado" value={asignado} color="bg-green-400" />
         <ProgressBar label="Gastado" value={gastado} color="bg-orange-400" />
-        <ProgressBar label="Progreso" value={progreso} color="bg-blue-400" />
       </div>
     </div>
   );
@@ -358,6 +344,11 @@ function QuarterCard({
   setProviderFilterModal,
   getFilteredProviders,
   fetchEvcs,
+  selectedEvc,
+  showDetailModal,
+  showEvcDetails,
+  fetchSpendingsByEvcQ,
+  setSelectedEvc,
 }: {
   quarter: EVC_Q;
   onUpdatePercentage: (id: number, percentage: number) => Promise<void>;
@@ -394,9 +385,16 @@ function QuarterCard({
   >;
   getFilteredProviders: (quarterId: number) => Provider[];
   fetchEvcs: () => Promise<void>;
+  selectedEvc: EVC | null;
+  showDetailModal: boolean;
+  showEvcDetails: (evc: EVC) => Promise<void>;
+  fetchSpendingsByEvcQ: (evc_q_id: number) => Promise<any>;
+  setSelectedEvc: React.Dispatch<React.SetStateAction<EVC | null>>;
 }) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editValue, setEditValue] = useState(quarter.allocated_percentage);
+  const [editValue, setEditValue] = useState<number | string>(
+    quarter.allocated_percentage,
+  );
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState<{
@@ -407,9 +405,22 @@ function QuarterCard({
   } | null>(null);
 
   const handlePercentageSave = async () => {
-    if (editValue >= 0 && editValue <= 100) {
-      await onUpdatePercentage(quarter.id, editValue);
+    if (
+      editValue === null ||
+      editValue === undefined ||
+      editValue === "" ||
+      isNaN(Number(editValue))
+    ) {
+      toast.error("Por favor ingrese un valor numérico válido");
+      return;
+    }
+
+    const value = Number(editValue);
+    if (value >= 0 && value <= 100) {
+      await onUpdatePercentage(quarter.id, value);
       setIsEditing(false);
+    } else {
+      toast.error("El porcentaje debe estar entre 0 y 100");
     }
   };
 
@@ -461,8 +472,8 @@ function QuarterCard({
   ) => {
     try {
       const token = Cookies.get("auth_token");
-      await axios.post(
-        `http://127.0.0.1:8000/evc-financials/evc_financials/concept`,
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evc-financials/evc_financials/concept`,
         {
           evc_q_id: quarterId,
           value_usd: spending.value_usd,
@@ -487,8 +498,41 @@ function QuarterCard({
         [quarterId]: { success: "Gasto agregado exitosamente" },
       }));
 
-      // Refresh the EVC data to update the progress bars
-      await fetchEvcs();
+      // Get the updated spend data for this quarter
+      const updatedSpendData = await fetchSpendingsByEvcQ(quarterId);
+
+      // Directly update the quarter in the current view
+      if (quarter.id === quarterId) {
+        // Update the current quarter data directly
+        quarter.total_spendings = updatedSpendData.total_spendings;
+        quarter.percentage = updatedSpendData.percentage;
+        quarter.budget_message = updatedSpendData.message;
+      }
+
+      // If we're in the detail view, update the selectedEvc data as well
+      if (selectedEvc && showDetailModal) {
+        // First update the quarter in selectedEvc
+        const updatedEvcQs = selectedEvc.evc_qs.map((q) => {
+          if (q.id === quarterId) {
+            return {
+              ...q,
+              total_spendings: updatedSpendData.total_spendings,
+              percentage: updatedSpendData.percentage,
+              budget_message: updatedSpendData.message,
+            };
+          }
+          return q;
+        });
+
+        // Update the selectedEvc with the new quarters data
+        setSelectedEvc({
+          ...selectedEvc,
+          evc_qs: updatedEvcQs,
+        });
+      }
+
+      // Also refresh all EVCs data in the background
+      fetchEvcs();
 
       // Clear success message after 3 seconds
       setTimeout(() => {
@@ -540,7 +584,7 @@ function QuarterCard({
       try {
         // Simulate an OCR service call
         // In production, this would be an actual API call like:
-        // const ocrResponse = await axios.post(`http://127.0.0.1:8000/ocr/extract-total`, formData);
+        // const ocrResponse = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/ocr/extract-total`, formData);
         // extractedAmount = ocrResponse.data.total;
 
         // For demonstration purposes, we're using the file's last modified date to simulate
@@ -617,7 +661,7 @@ function QuarterCard({
       );
 
       await axios.post(
-        `http://127.0.0.1:8000/evc-financials/evc_financials/upload`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evc-financials/evc_financials/upload`,
         formData,
         {
           headers: {
@@ -627,15 +671,50 @@ function QuarterCard({
         },
       );
 
-      // Refresh the EVC data to update the progress bars
-      await fetchEvcs();
+      // Get the updated spend data for this quarter
+      const updatedSpendData = await fetchSpendingsByEvcQ(quarterId);
+
+      // Directly update the quarter in the current view
+      if (quarter.id === quarterId) {
+        // Update the current quarter data directly
+        quarter.total_spendings = updatedSpendData.total_spendings;
+        quarter.percentage = updatedSpendData.percentage;
+        quarter.budget_message = updatedSpendData.message;
+      }
+
+      // If we're in the detail view, update the selectedEvc data as well
+      if (selectedEvc && showDetailModal) {
+        // First update the quarter in selectedEvc
+        const updatedEvcQs = selectedEvc.evc_qs.map((q) => {
+          if (q.id === quarterId) {
+            return {
+              ...q,
+              total_spendings: updatedSpendData.total_spendings,
+              percentage: updatedSpendData.percentage,
+              budget_message: updatedSpendData.message,
+            };
+          }
+          return q;
+        });
+
+        // Update the selectedEvc with the new quarters data
+        setSelectedEvc({
+          ...selectedEvc,
+          evc_qs: updatedEvcQs,
+        });
+      }
+
+      // Also refresh all EVCs data in the background
+      fetchEvcs();
 
       // Show success message with the extracted amount
       setUploadStatus((prev) => ({
         ...prev,
         [quarterId]: {
           uploading: false,
-          success: `Factura subida exitosamente. Monto: $${extractedAmount?.toLocaleString() ?? "No detectado"}`,
+          success: `Factura subida exitosamente. Monto: $${
+            extractedAmount?.toLocaleString() ?? "No detectado"
+          }`,
         },
       }));
 
@@ -651,7 +730,10 @@ function QuarterCard({
       console.error("Error uploading file:", error);
       setUploadStatus((prev) => ({
         ...prev,
-        [quarterId]: { uploading: false, error: "Error al subir el archivo" },
+        [quarterId]: {
+          uploading: false,
+          error: "Error al subir el archivo",
+        },
       }));
     } finally {
       setUploading(false);
@@ -673,8 +755,12 @@ function QuarterCard({
             </h3>
             <p className="mb-4">
               {showConfirmDialog.type === "manual"
-                ? `El gasto de $${showConfirmDialog.data.value_usd.toLocaleString()} excede el presupuesto disponible de $${(quarter.allocated_budget - (quarter.total_spendings || 0)).toLocaleString()}.`
-                : `La factura contiene un gasto de $${showConfirmDialog.data.extractedAmount.toLocaleString()}, que excede el presupuesto disponible de $${(quarter.allocated_budget - (quarter.total_spendings || 0)).toLocaleString()}.`}
+                ? `El gasto de $${showConfirmDialog.data.value_usd.toLocaleString()} excede el presupuesto disponible de $${(
+                    quarter.allocated_budget - (quarter.total_spendings || 0)
+                  ).toLocaleString()}.`
+                : `La factura contiene un gasto de $${showConfirmDialog.data.extractedAmount.toLocaleString()}, que excede el presupuesto disponible de $${(
+                    quarter.allocated_budget - (quarter.total_spendings || 0)
+                  ).toLocaleString()}.`}
             </p>
             <p className="mb-4 text-sm text-gray-600">
               Registrar este gasto hará que se exceda el presupuesto asignado
@@ -730,7 +816,7 @@ function QuarterCard({
         <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden relative">
           <div
             className="h-2 bg-green-400 rounded-full absolute left-0 transition-all duration-500"
-            style={{ width: `${Math.min(quarter.allocated_percentage, 100)}%` }}
+            style={{ width: `${quarter.allocated_budget > 0 ? 100 : 0}%` }}
           />
         </div>
       </div>
@@ -790,7 +876,11 @@ function QuarterCard({
       <div className="mb-4 text-sm text-gray-700">
         Presupuesto disponible:
         <span
-          className={`font-bold ${quarter.allocated_budget - (quarter.total_spendings || 0) > 0 ? "text-green-600" : "text-red-600"}`}
+          className={`font-bold ${
+            quarter.allocated_budget - (quarter.total_spendings || 0) > 0
+              ? "text-green-600"
+              : "text-red-600"
+          }`}
         >
           $
           {(
@@ -826,8 +916,11 @@ function QuarterCard({
               min="0"
               max="100"
               step="0.1"
-              value={editValue}
-              onChange={(e) => setEditValue(parseFloat(e.target.value))}
+              value={Number.isFinite(editValue) ? editValue : ""}
+              onChange={(e) => {
+                const val = parseFloat(e.target.value);
+                setEditValue(isNaN(val) ? "" : val);
+              }}
               className="w-20 px-2 py-1 border rounded text-gray-900 font-bold"
             />
             <button
@@ -997,7 +1090,9 @@ function QuarterCard({
       {/* File Upload Section */}
       <div className="mt-4">
         <div
-          className={`w-full px-4 py-8 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${uploading ? "bg-blue-50" : "hover:bg-blue-50"}`}
+          className={`w-full px-4 py-8 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${
+            uploading ? "bg-blue-50" : "hover:bg-blue-50"
+          }`}
           onDragOver={(e) => e.preventDefault()}
           onDrop={async (e) => {
             e.preventDefault();
@@ -1135,7 +1230,7 @@ function QuarterCard({
 
             try {
               await axios.post(
-                "http://127.0.0.1:8000/evc-financials/evc_financials/",
+                `${process.env.NEXT_PUBLIC_API_BASE_URL}/evc-financials/evc_financials/`,
                 { evc_q_id: quarter.id, provider_id: parseInt(providerId, 10) },
               );
               setProviderSelections((prev) => ({ ...prev, [quarter.id]: "" }));
@@ -1172,6 +1267,13 @@ function EvcsPage() {
   const [entornosData, setEntornosData] = useState<{ [key: number]: string }>(
     {},
   );
+
+  const [defaultQuarterValues, setDefaultQuarterValues] = useState<{
+    year?: string;
+    budget?: string;
+    quarter?: string;
+  }>({});
+
   const [technicalLeadersData, setTechnicalLeadersData] = useState<{
     [key: number]: string;
   }>({});
@@ -1276,24 +1378,67 @@ function EvcsPage() {
   const [uploadedFiles, setUploadedFiles] = useState<{ [key: number]: string }>(
     {},
   );
+
+  const fetchDefaultQuarterValues = async (evcId: number) => {
+    try {
+      const resp = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evc-qs/default_values/evc/${evcId}`,
+      );
+      setDefaultQuarterValues(resp.data);
+    } catch (error) {
+      setDefaultQuarterValues({});
+    }
+  };
+
   const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
 
   const onUpdatePercentage = async (quarterId: number, percentage: number) => {
+    if (percentage === undefined || percentage === null || isNaN(percentage)) {
+      toast.error("El porcentaje debe ser un número válido");
+      return;
+    }
+
+    // Asegurar que el porcentaje es un número con máximo 2 decimales
+    const formattedPercentage = Number(percentage.toFixed(2));
+
+    if (formattedPercentage < 0 || formattedPercentage > 100) {
+      toast.error("El porcentaje debe estar entre 0 y 100");
+      return;
+    }
+
     try {
       const token = Cookies.get("auth_token");
-      await axios.patch(
-        `http://127.0.0.1:8000/evc-qs/evc_qs/${quarterId}/percentage`,
-        { allocated_percentage: percentage },
+      const response = await axios.patch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evc-qs/evc_qs/${quarterId}/percentage?percentage=${formattedPercentage}`,
+        {}, // body vacío
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         },
       );
-      await fetchEvcs(); // Refresh data after update
+      // Actualizar el estado local de selectedEvc (si existe)
+      setSelectedEvc((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          evc_qs: prev.evc_qs.map((q) =>
+            q.id === quarterId
+              ? { ...q, allocated_percentage: formattedPercentage }
+              : q,
+          ),
+        };
+      });
+      toast.success("Porcentaje actualizado exitosamente");
     } catch (error) {
       console.error("Error updating percentage:", error);
-      toast.error("Error al actualizar el porcentaje");
+      if (axios.isAxiosError(error) && error.response?.status === 400) {
+        toast.error(
+          "Error de validación: El porcentaje debe estar entre 0 y 100",
+        );
+      } else {
+        toast.error("Error al actualizar el porcentaje");
+      }
     }
   };
 
@@ -1407,7 +1552,7 @@ function EvcsPage() {
   const fetchDistinctCountries = async () => {
     try {
       const resp = await axios.get(
-        "http://127.0.0.1:8000/providers/providers/distinct-countries",
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/providers/providers/distinct-countries`,
       );
       setProviderCountryOptions(resp.data);
     } catch (error) {
@@ -1420,7 +1565,7 @@ function EvcsPage() {
   const loadTechnicalLeadersData = async () => {
     try {
       const response = await axios.get(
-        "http://127.0.0.1:8000/technical-leaders/technical-leaders/",
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/technical-leaders/technical-leaders/`,
       );
       const data: { [key: number]: string } = {};
       response.data.forEach((leader: TechnicalLeader) => {
@@ -1435,7 +1580,7 @@ function EvcsPage() {
   const loadFunctionalLeadersData = async () => {
     try {
       const response = await axios.get(
-        "http://127.0.0.1:8000/functional-leaders/functional-leaders",
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/functional-leaders/functional-leaders`,
       );
       const data: { [key: number]: string } = {};
       response.data.forEach((leader: any) => {
@@ -1451,7 +1596,7 @@ function EvcsPage() {
   const loadEntornosData = async () => {
     try {
       const response = await axios.get(
-        "http://127.0.0.1:8000/entornos/entornos/",
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/entornos/entornos/`,
       );
       const data: { [key: number]: string } = {};
       response.data.forEach((entorno: Entorno) => {
@@ -1501,7 +1646,9 @@ function EvcsPage() {
   // Fetch data del backend
   const fetchEvcs = async () => {
     try {
-      const response = await axios.get(`http://127.0.0.1:8000/evcs/`);
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evcs/`,
+      );
       console.log("EVCs recibidos:", response.data);
       console.log("Primer EVC:", response.data[0]);
       setEvcs(response.data);
@@ -1514,7 +1661,7 @@ function EvcsPage() {
   const fetchAvailableTechnicalLeaders = async () => {
     try {
       const resp = await axios.get(
-        "http://127.0.0.1:8000/technical-leaders/technical-leaders/",
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/technical-leaders/technical-leaders/`,
       );
       setAvailableTechnicalLeaders(resp.data);
     } catch (error) {
@@ -1525,7 +1672,7 @@ function EvcsPage() {
   const fetchAvailableFunctionalLeaders = async () => {
     try {
       const resp = await axios.get(
-        "http://127.0.0.1:8000/functional-leaders/functional-leaders",
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/functional-leaders/functional-leaders`,
       );
       setAvailableFunctionalLeaders(resp.data);
     } catch (error) {
@@ -1535,7 +1682,9 @@ function EvcsPage() {
 
   const fetchAvailableEntornos = async () => {
     try {
-      const resp = await axios.get("http://127.0.0.1:8000/entornos/entornos/");
+      const resp = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/entornos/entornos/`,
+      );
       setAvailableEntornos(resp.data);
     } catch (error) {
       console.error("Error al cargar entornos:", error);
@@ -1545,7 +1694,7 @@ function EvcsPage() {
   const fetchAvailableProviders = async () => {
     try {
       const resp = await axios.get(
-        "http://127.0.0.1:8000/providers/providers/",
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/providers/providers/`,
       );
       setAvailableProviders(resp.data);
     } catch (error) {
@@ -1556,7 +1705,7 @@ function EvcsPage() {
   const fetchProvidersByEvcQ = async (evc_q_id: number) => {
     try {
       const response = await axios.get(
-        `http://127.0.0.1:8000/evc-financials/evc-financials/${evc_q_id}/providers`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evc-financials/evc-financials/${evc_q_id}/providers`,
       );
       return response.data;
     } catch (error) {
@@ -1572,7 +1721,7 @@ function EvcsPage() {
     try {
       console.log(`Fetching spendings for EVC_Q ID: ${evc_q_id}`);
       const response = await axios.get(
-        `http://127.0.0.1:8000/evc-financials/evc_financials/${evc_q_id}/spendings`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evc-financials/evc_financials/${evc_q_id}/spendings`,
       );
 
       console.log(`Spendings for EVC_Q ${evc_q_id}:`, response.data);
@@ -1591,18 +1740,30 @@ function EvcsPage() {
   // Crear EVC
   const createEvc = async () => {
     try {
-      const response = await axios.post("http://127.0.0.1:8000/evcs/", {
-        name: newEvc.name,
-        description: newEvc.description,
-        technical_leader_id: parseInt(newEvc.technical_leader_id, 10) || null,
-        functional_leader_id: parseInt(newEvc.functional_leader_id, 10) || null,
-        entorno_id: parseInt(newEvc.entorno_id, 10) || null,
-        status: newEvc.status,
-      });
+      const token = Cookies.get("auth_token");
+
+      if (!token) {
+        toast.error("No se encontró token de autenticación");
+        return;
+      }
+
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evcs/`,
+        {
+          name: newEvc.name,
+          description: newEvc.description,
+          technical_leader_id: parseInt(newEvc.technical_leader_id, 10) || null,
+          functional_leader_id:
+            parseInt(newEvc.functional_leader_id, 10) || null,
+          entorno_id: parseInt(newEvc.entorno_id, 10) || null,
+          status: newEvc.status,
+        },
+      );
       console.log("EVC creada:", response.data);
       fetchEvcs();
       setShowForm(false);
       setAlertMsg("");
+      toast.success("EVC creada exitosamente");
       setNewEvc({
         name: "",
         description: "",
@@ -1613,7 +1774,15 @@ function EvcsPage() {
       });
     } catch (error) {
       console.error("Error creando EVC:", error);
-      setAlertMsg("Error al crear la EVC");
+      if (axios.isAxiosError(error)) {
+        const errorMsg =
+          error.response?.data?.detail || "Error al crear la EVC";
+        setAlertMsg(errorMsg);
+        toast.error(errorMsg);
+      } else {
+        setAlertMsg("Error al crear la EVC");
+        toast.error("Error al crear la EVC");
+      }
     }
   };
 
@@ -1626,17 +1795,18 @@ function EvcsPage() {
       setAlertMsg("");
 
       // Validate inputs
-      const year = parseInt(newQuarter.year, 10);
-      const q = parseInt(newQuarter.q, 10);
-      const allocated_budget = parseFloat(newQuarter.allocated_budget);
+      const year = parseInt(newQuarter.year) || defaultQuarterValues.year;
+      const q = parseInt(newQuarter.q) || defaultQuarterValues.quarter;
+      const allocated_budget =
+        parseFloat(newQuarter.allocated_budget) || defaultQuarterValues.budget;
       const allocated_percentage = parseFloat(newQuarter.allocated_percentage);
 
       // Check for invalid values
       if (
-        isNaN(year) ||
-        isNaN(q) ||
-        isNaN(allocated_budget) ||
-        isNaN(allocated_percentage)
+        isNaN(Number(year)) ||
+        isNaN(Number(q)) ||
+        isNaN(Number(allocated_budget)) ||
+        isNaN(Number(allocated_percentage))
       ) {
         setAlertMsg("Por favor complete todos los campos con valores válidos");
         setIsCreatingQuarter(false);
@@ -1644,7 +1814,7 @@ function EvcsPage() {
       }
 
       // Validate quarter number
-      if (q < 1 || q > 4) {
+      if (Number(q) < 1 || Number(q) > 4) {
         setAlertMsg("El quarter debe ser un número entre 1 y 4");
         setIsCreatingQuarter(false);
         return;
@@ -1652,7 +1822,7 @@ function EvcsPage() {
 
       // Validate year
       const currentYear = new Date().getFullYear();
-      if (year < currentYear - 1 || year > currentYear + 1) {
+      if (Number(year) < currentYear - 1 || Number(year) > currentYear + 1) {
         setAlertMsg(
           `El año debe estar entre ${currentYear - 1} y ${currentYear + 1}`,
         );
@@ -1661,7 +1831,7 @@ function EvcsPage() {
       }
 
       // Validate budget and percentage
-      if (allocated_budget <= 0) {
+      if (Number(allocated_budget) <= 0) {
         setAlertMsg("El presupuesto debe ser mayor a 0");
         setIsCreatingQuarter(false);
         return;
@@ -1689,7 +1859,7 @@ function EvcsPage() {
       // Create the quarter
       toast.loading("Creando quarter...", { id: "create-quarter" });
       const response = await axios.post(
-        "http://127.0.0.1:8000/evc-qs/evc_qs/",
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evc-qs/evc_qs/`,
         {
           evc_id: evcId,
           year,
@@ -1702,7 +1872,9 @@ function EvcsPage() {
       console.log("Quarter creado:", response.data);
 
       // Fetch the updated EVC with the new quarter
-      const updatedEvc = await axios.get(`http://127.0.0.1:8000/evcs/${evcId}`);
+      const updatedEvc = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evcs/${evcId}`,
+      );
 
       // Update the selected EVC state
       setSelectedEvc(updatedEvc.data);
@@ -1756,14 +1928,16 @@ function EvcsPage() {
     }
     try {
       const response = await axios.post(
-        "http://127.0.0.1:8000/evc-financials/evc_financials/",
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evc-financials/evc_financials/`,
         {
           evc_q_id: evc_q_id,
           provider_id: parseInt(provider_id, 10) || null,
         },
       );
       console.log("Financial creado:", response.data);
-      const updatedEvc = await axios.get(`http://127.0.0.1:8000/evcs/${evcId}`);
+      const updatedEvc = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evcs/${evcId}`,
+      );
       setSelectedEvc(updatedEvc.data);
       setFinancialSelections((prev) => ({
         ...prev,
@@ -1788,11 +1962,14 @@ function EvcsPage() {
   const deleteEvc = async (evcId: number) => {
     try {
       const token = Cookies.get("auth_token");
-      await axios.delete(`http://127.0.0.1:8000/evcs/${evcId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      await axios.delete(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evcs/${evcId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
       setEvcs((prev) => prev.filter((e) => e.id !== evcId));
       setShowDeleteModal(false);
       setEvcToDelete(null);
@@ -2040,7 +2217,7 @@ function EvcsPage() {
 
     try {
       const response = await axios.post(
-        "http://127.0.0.1:8000/evc-financials/evc_financials/upload",
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evc-financials/evc_financials/upload`,
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -2062,7 +2239,7 @@ function EvcsPage() {
       // Actualizar EVC seleccionado
       if (selectedEvc) {
         const updatedEvc = await axios.get(
-          `http://127.0.0.1:8000/evcs/${selectedEvc.id}`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/evcs/${selectedEvc.id}`,
         );
         setSelectedEvc(updatedEvc.data);
       }
@@ -2086,7 +2263,7 @@ function EvcsPage() {
   const fetchGastosByQuarter = async (quarter: EVC_Q) => {
     try {
       const res = await axios.get(
-        `http://127.0.0.1:8000/evc-financials/evc_financials/`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evc-financials/evc_financials/`,
       );
       // Filter by quarter id
       const gastos = res.data.filter((g: any) => g.evc_q_id === quarter.id);
@@ -2109,7 +2286,7 @@ function EvcsPage() {
     try {
       // Fetch all unread notifications
       const response = await axios.get(
-        "http://127.0.0.1:8000/notifications/notifications/",
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/notifications/`,
       );
       const notifications = response.data;
 
@@ -2146,7 +2323,7 @@ function EvcsPage() {
       // Mark each related notification as read
       const markPromises = relatedNotifications.map((notification: any) =>
         axios.patch(
-          `http://127.0.0.1:8000/notifications/notifications/${notification.id}/read`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/notifications/${notification.id}/read`,
         ),
       );
 
@@ -2164,18 +2341,20 @@ function EvcsPage() {
     try {
       const token = Cookies.get("auth_token");
 
-      // First, fetch the current EVC to get all its data
-      const response = await axios.get(`http://127.0.0.1:8000/evcs/${evcId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      // First, fetch the current EVC to get all its data for the PUT payload
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evcs/${evcId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
-
+      );
       const currentEvc = response.data;
 
       // Then update with PUT, sending the entire object with the modified field
       await axios.put(
-        `http://127.0.0.1:8000/evcs/${evcId}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evcs/${evcId}`,
         {
           ...currentEvc,
           [field]: value,
@@ -2193,21 +2372,65 @@ function EvcsPage() {
       }
 
       // Refetch the EVC to ensure all data is up to date including backend validations
-      const updatedResponse = await axios.get(
-        `http://127.0.0.1:8000/evcs/${evcId}`,
+      const updatedEvcBaseResponse = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evcs/${evcId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         },
       );
+      let freshEvcDataFromServer = updatedEvcBaseResponse.data;
 
-      // Update the selected EVC with the full refreshed data from the server
-      setSelectedEvc(updatedResponse.data);
+      // Re-enrich the evc_qs with financial details
+      if (
+        freshEvcDataFromServer &&
+        freshEvcDataFromServer.evc_qs &&
+        Array.isArray(freshEvcDataFromServer.evc_qs)
+      ) {
+        // Stage 1: Enrich with spendings
+        const evcQsWithSpendings = await Promise.all(
+          freshEvcDataFromServer.evc_qs.map(async (q_from_server: EVC_Q) => {
+            const { total_spendings, percentage, message } =
+              await fetchSpendingsByEvcQ(q_from_server.id);
+            return {
+              ...q_from_server,
+              total_spendings,
+              percentage,
+              budget_message: message,
+            };
+          }),
+        );
 
-      // Update the EVCs list with the updated EVC
+        // Stage 2: Enrich with providers (financials)
+        const enrichedEvcQs = await Promise.all(
+          evcQsWithSpendings.map(async (quarter_with_spendings) => {
+            const providers = await fetchProvidersByEvcQ(
+              quarter_with_spendings.id,
+            );
+            return {
+              ...quarter_with_spendings,
+              evc_financials: providers.map((provider: Provider) => ({
+                id: provider.id, // Assuming this matches the structure used in showEvcDetails
+                provider,
+              })),
+            };
+          }),
+        );
+        freshEvcDataFromServer = {
+          ...freshEvcDataFromServer,
+          evc_qs: enrichedEvcQs,
+        };
+      }
+
+      // Update the selected EVC with the full refreshed and enriched data
+      setSelectedEvc(freshEvcDataFromServer);
+
+      // Update the EVCs list with the updated and enriched EVC
       setEvcs((prevEvcs) =>
-        prevEvcs.map((evc) => (evc.id === evcId ? updatedResponse.data : evc)),
+        prevEvcs.map((evc) =>
+          evc.id === evcId ? freshEvcDataFromServer : evc,
+        ),
       );
 
       // Also fetch all EVCs to ensure the list is up to date
@@ -2225,7 +2448,7 @@ function EvcsPage() {
     try {
       const token = Cookies.get("auth_token");
       await axios.put(
-        `http://127.0.0.1:8000/evcs/${evc.id}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/evcs/${evc.id}`,
         { ...evc, status: !evc.status },
         {
           headers: {
@@ -2283,13 +2506,19 @@ function EvcsPage() {
             />
             Seleccionar todos
           </label>
-          <button
-            className={`flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 ${selectedEvcsForDelete.length === 0 || deleting ? "opacity-50 cursor-not-allowed" : ""}`}
-            disabled={selectedEvcsForDelete.length === 0 || deleting}
-            onClick={() => setShowDeleteSelectedModal(true)}
-          >
-            <FaTrash className="mr-2" /> Eliminar
-          </button>
+          <ProtectedContent requiredPermission="modify">
+            <button
+              className={`flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 ${
+                selectedEvcsForDelete.length === 0 || deleting
+                  ? "opacity-50 cursor-not-allowed"
+                  : ""
+              }`}
+              disabled={selectedEvcsForDelete.length === 0 || deleting}
+              onClick={() => setShowDeleteSelectedModal(true)}
+            >
+              <FaTrash className="mr-2" /> Eliminar
+            </button>
+          </ProtectedContent>
           <button
             className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
             onClick={toggleFilters}
@@ -2303,12 +2532,14 @@ function EvcsPage() {
           >
             <FaDownload className="mr-2" /> Exportar
           </button>
-          <button
-            onClick={() => setShowForm(true)}
-            className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
-          >
-            <FaPlus className="mr-2" /> Crear EVC
-          </button>
+          <ProtectedContent requiredPermission="modify">
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+            >
+              <FaPlus className="mr-2" /> Crear EVC
+            </button>
+          </ProtectedContent>
         </div>
       </div>
 
@@ -2414,13 +2645,15 @@ function EvcsPage() {
             >
               Cancelar
             </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
-              onClick={createEvc}
-            >
-              Crear EVC
-            </button>
+            <ProtectedContent requiredPermission="modify">
+              <button
+                type="submit"
+                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+                onClick={createEvc}
+              >
+                Crear EVC
+              </button>
+            </ProtectedContent>
           </div>
         </div>
       )}
@@ -2637,13 +2870,15 @@ function EvcsPage() {
               >
                 Cancelar
               </button>
-              <button
-                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
-                onClick={exportToExcel}
-                disabled={selectedEvcsForExport.length === 0}
-              >
-                Exportar Seleccionadas
-              </button>
+              <ProtectedContent requiredPermission="modify">
+                <button
+                  className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+                  onClick={exportToExcel}
+                  disabled={selectedEvcsForExport.length === 0}
+                >
+                  Exportar Seleccionadas
+                </button>
+              </ProtectedContent>
             </div>
           </div>
         </div>
@@ -2721,7 +2956,9 @@ function EvcsPage() {
                     Estado
                   </div>
                   <div
-                    className={`text-base font-bold ${selectedEvc.status ? "text-green-700" : "text-red-700"}`}
+                    className={`text-base font-bold ${
+                      selectedEvc.status ? "text-green-700" : "text-red-700"
+                    }`}
                   >
                     {selectedEvc.status ? "Activo" : "Inactivo"}
                   </div>
@@ -2775,22 +3012,31 @@ function EvcsPage() {
                 {selectedEvc.evc_qs && selectedEvc.evc_qs.length > 0 ? (
                   <div className="space-y-4">
                     {selectedEvc.evc_qs.map((quarter) => (
-                      <QuarterCard
+                      <ProtectedContent
                         key={quarter.id}
-                        quarter={quarter}
-                        onUpdatePercentage={onUpdatePercentage}
-                        manualSpendingStatus={manualSpendingStatus}
-                        setManualSpendingStatus={setManualSpendingStatus}
-                        manualSpendings={manualSpendings}
-                        setManualSpendings={setManualSpendings}
-                        uploadStatus={uploadStatus}
-                        setUploadStatus={setUploadStatus}
-                        providerSelections={providerSelections}
-                        setProviderSelections={setProviderSelections}
-                        setProviderFilterModal={setProviderFilterModal}
-                        getFilteredProviders={getFilteredProviders}
-                        fetchEvcs={fetchEvcs}
-                      />
+                        requiredPermission="modify"
+                      >
+                        <QuarterCard
+                          quarter={quarter}
+                          onUpdatePercentage={onUpdatePercentage}
+                          manualSpendingStatus={manualSpendingStatus}
+                          setManualSpendingStatus={setManualSpendingStatus}
+                          manualSpendings={manualSpendings}
+                          setManualSpendings={setManualSpendings}
+                          uploadStatus={uploadStatus}
+                          setUploadStatus={setUploadStatus}
+                          providerSelections={providerSelections}
+                          setProviderSelections={setProviderSelections}
+                          setProviderFilterModal={setProviderFilterModal}
+                          getFilteredProviders={getFilteredProviders}
+                          fetchEvcs={fetchEvcs}
+                          selectedEvc={selectedEvc}
+                          showDetailModal={showDetailModal}
+                          showEvcDetails={showEvcDetails}
+                          fetchSpendingsByEvcQ={fetchSpendingsByEvcQ}
+                          setSelectedEvc={setSelectedEvc}
+                        />
+                      </ProtectedContent>
                     ))}
                   </div>
                 ) : (
@@ -2815,7 +3061,7 @@ function EvcsPage() {
                       className="p-2 border rounded w-full"
                       value={newQuarter.year}
                       onChange={handleQuarterChange}
-                      placeholder="YYYY"
+                      placeholder={defaultQuarterValues.year || "YYYY"}
                     />
                   </div>
                   <div>
@@ -2833,7 +3079,11 @@ function EvcsPage() {
                       onChange={handleQuarterChange}
                       aria-label="Quarter"
                     >
-                      <option value="">Seleccionar Q</option>
+                      <option value="">
+                        {defaultQuarterValues.quarter
+                          ? `Sugerido: Q${defaultQuarterValues.quarter}`
+                          : "Seleccionar Q"}
+                      </option>
                       <option value="1">Q1</option>
                       <option value="2">Q2</option>
                       <option value="3">Q3</option>
@@ -2850,7 +3100,7 @@ function EvcsPage() {
                       className="p-2 border rounded w-full"
                       value={newQuarter.allocated_budget}
                       onChange={handleQuarterChange}
-                      placeholder="$"
+                      placeholder={defaultQuarterValues.budget || "$"}
                     />
                   </div>
                   <div>
@@ -2873,17 +3123,19 @@ function EvcsPage() {
                       {alertMsg}
                     </div>
                   )}
-                  <button
-                    className={`px-4 py-2 ${
-                      isCreatingQuarter
-                        ? "bg-gray-400 cursor-not-allowed"
-                        : "bg-yellow-500 hover:bg-yellow-600"
-                    } text-white rounded-md`}
-                    onClick={() => createQuarter(selectedEvc.id)}
-                    disabled={isCreatingQuarter}
-                  >
-                    {isCreatingQuarter ? "Creando..." : "Agregar Quarter"}
-                  </button>
+                  <ProtectedContent requiredPermission="modify">
+                    <button
+                      className={`px-4 py-2 ${
+                        isCreatingQuarter
+                          ? "bg-gray-400 cursor-not-allowed"
+                          : "bg-yellow-500 hover:bg-yellow-600"
+                      } text-white rounded-md`}
+                      onClick={() => createQuarter(selectedEvc.id)}
+                      disabled={isCreatingQuarter}
+                    >
+                      {isCreatingQuarter ? "Creando..." : "Agregar Quarter"}
+                    </button>
+                  </ProtectedContent>
                 </div>
               </div>
             </div>
@@ -2893,8 +3145,9 @@ function EvcsPage() {
 
       {/* Modal de eliminación */}
       {showDeleteModal && evcToDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-white/20 backdrop-blur-sm" />
+          <div className="relative bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">Confirmar Eliminación</h2>
             <p className="mb-4">
               ¿Está seguro que desea eliminar la EVC "{evcToDelete.name}"? Esta
@@ -2910,12 +3163,14 @@ function EvcsPage() {
               >
                 Cancelar
               </button>
-              <button
-                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
-                onClick={() => deleteEvc(evcToDelete.id)}
-              >
-                Eliminar
-              </button>
+              <ProtectedContent requiredPermission="modify">
+                <button
+                  className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+                  onClick={() => deleteEvc(evcToDelete.id)}
+                >
+                  Eliminar
+                </button>
+              </ProtectedContent>
             </div>
           </div>
         </div>
@@ -3316,7 +3571,9 @@ function EvcsPage() {
                     Estado
                   </div>
                   <div
-                    className={`text-base font-bold ${selectedEvc.status ? "text-green-700" : "text-red-700"}`}
+                    className={`text-base font-bold ${
+                      selectedEvc.status ? "text-green-700" : "text-red-700"
+                    }`}
                   >
                     {selectedEvc.status ? "Activo" : "Inactivo"}
                   </div>
@@ -3385,7 +3642,7 @@ function EvcsPage() {
                             <div
                               className="h-2 bg-green-400 rounded-full absolute left-0 transition-all duration-500"
                               style={{
-                                width: `${Math.min(quarter.allocated_percentage, 100)}%`,
+                                width: `${quarter.allocated_budget > 0 ? 100 : 0}%`,
                               }}
                             />
                           </div>
@@ -3580,7 +3837,7 @@ function EvcsPage() {
       {/* Modal para eliminar EVCs seleccionados */}
       {showDeleteSelectedModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black bg-opacity-30" />
+          <div className="fixed inset-0 bg-white/20 backdrop-blur-sm" />
           <div className="relative bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md flex flex-col items-center">
             <h2 className="text-xl font-bold mb-4 text-center">
               ¿Estás seguro de que deseas eliminar los EVCs seleccionados?
@@ -3593,26 +3850,28 @@ function EvcsPage() {
               >
                 Cancelar
               </button>
-              <button
-                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
-                onClick={async () => {
-                  setDeleting(true);
-                  try {
-                    for (const id of selectedEvcsForDelete) {
-                      await deleteEvc(id);
+              <ProtectedContent requiredPermission="modify">
+                <button
+                  className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+                  onClick={async () => {
+                    setDeleting(true);
+                    try {
+                      for (const id of selectedEvcsForDelete) {
+                        await deleteEvc(id);
+                      }
+                      setSelectedEvcsForDelete([]);
+                      setShowDeleteSelectedModal(false);
+                    } catch (err) {
+                      alert("Error al eliminar los EVCs seleccionados");
+                    } finally {
+                      setDeleting(false);
                     }
-                    setSelectedEvcsForDelete([]);
-                    setShowDeleteSelectedModal(false);
-                  } catch (err) {
-                    alert("Error al eliminar los EVCs seleccionados");
-                  } finally {
-                    setDeleting(false);
-                  }
-                }}
-                disabled={deleting}
-              >
-                {deleting ? "Eliminando..." : "Eliminar"}
-              </button>
+                  }}
+                  disabled={deleting}
+                >
+                  {deleting ? "Eliminando..." : "Eliminar"}
+                </button>
+              </ProtectedContent>
             </div>
           </div>
         </div>
@@ -3634,6 +3893,7 @@ function EvcsPage() {
             onManageQuarters={(evc) => {
               setSelectedEvc(evc);
               setShowQuartersModal(true);
+              fetchDefaultQuarterValues(evc.id);
             }}
             index={idx}
             selected={selectedEvcsForDelete.includes(evc.id)}
@@ -3811,14 +4071,16 @@ function EvcsPage() {
               >
                 Limpiar filtros
               </button>
-              <button
-                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-                onClick={() =>
-                  setProviderFilterModal({ quarterId: null, open: false })
-                }
-              >
-                Cerrar
-              </button>
+              <ProtectedContent requiredPermission="modify">
+                <button
+                  className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                  onClick={() =>
+                    setProviderFilterModal({ quarterId: null, open: false })
+                  }
+                >
+                  Cerrar
+                </button>
+              </ProtectedContent>
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { act } from "react";
 import EvcsPage from "@/app/evcs/page";
 import axios from "axios";
+import { TEST_API_URL } from "../config/testConfig";
 
 // Mock axios
 jest.mock("axios");
@@ -96,7 +97,7 @@ describe("Quarter Creation", () => {
 
     // 7. Verify API calls
     expect(mockAxios.post).toHaveBeenCalledWith(
-      "http://127.0.0.1:8000/evc-qs/evc_qs/",
+      `${TEST_API_URL}/evc-qs/evc_qs/`,
       {
         evc_id: mockEvc.id,
         year: 2024,

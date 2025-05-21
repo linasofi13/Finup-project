@@ -19,25 +19,25 @@
   --color-primary-hover: var(--primary-hover);
   --color-error: var(--error);
   --color-success: var(--success);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --primary: #ffe500;
+    --background: #ffffff;
+    --foreground: #333333;
+    --primary: #ededed;
     --primary-hover: #fff159;
-    --error: #f87171;
-    --success: #34d399;
+    --error: #ef4444;
+    --success: #10b981;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: "Inter", Arial, sans-serif;
+  font-family: var(--font-inter), "Inter", Arial, sans-serif;
 }
 
 /* Custom form styles */

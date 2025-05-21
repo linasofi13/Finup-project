@@ -29,11 +29,12 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Checkbox } from "@/components/ui/Checkbox";
+import { Checkbox } from "@/components/ui/checkbox";
 import axios from "axios";
 import { useParams } from "next/navigation";
 import Cookies from "js-cookie";
 import { ArrowLeft } from "lucide-react";
+import ProtectedContent from "@/components/ui/ProtectedContent";
 
 interface BudgetPocket {
   id: number;
@@ -172,7 +173,7 @@ export default function BudgetAllocationPage() {
 
     try {
       const token = Cookies.get("auth_token");
-      const allocationData = {
+      const allocationDataForPocket = {
         budget_pocket_id: parseInt(id),
         evc_id: selectedEvc,
         allocated_value: isTotalAllocation
@@ -180,14 +181,22 @@ export default function BudgetAllocationPage() {
           : parseFloat(amount),
         is_total_allocation: isTotalAllocation,
         comments: formData.comments,
-        quarter: selectedQuarter,
+      };
+
+      const allocationDataForEvcQs = {
+        evc_id: selectedEvc,
         year: selectedYear,
+        q: selectedQuarter,
+        allocated_budget: isTotalAllocation
+          ? budgetPocket.agreed_value - totalAllocated
+          : parseFloat(amount),
+        allocated_percentage: 0, // This can be updated later if needed
       };
 
       // First create the budget allocation
       const allocationResponse = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/budget-pockets/${id}/allocate`,
-        allocationData,
+        allocationDataForPocket,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -198,13 +207,7 @@ export default function BudgetAllocationPage() {
       // Then create/update the EVC_Q with the allocated budget
       await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/evc-qs/evc_qs/`,
-        {
-          evc_id: selectedEvc,
-          year: selectedYear,
-          q: selectedQuarter,
-          allocated_budget: allocationData.allocated_value,
-          allocated_percentage: 0, // This can be updated later if needed
-        },
+        allocationDataForEvcQs,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -319,16 +322,29 @@ export default function BudgetAllocationPage() {
             Bolsillo Presupuestal {budgetPocket.year} -{" "}
             {budgetPocket.entorno.name}
           </h1>
-          <button
-            onClick={toggleAvailability}
-            className={`px-4 py-2 rounded-md ${
-              budgetPocket.is_available
-                ? "bg-green-500 hover:bg-green-600"
-                : "bg-red-500 hover:bg-red-600"
-            } text-white transition-colors`}
+          <ProtectedContent
+            requiredPermission="modify"
+            fallback={
+              <span
+                className={`px-4 py-2 rounded-md ${
+                  budgetPocket.is_available ? "bg-green-500" : "bg-red-500"
+                } text-white`}
+              >
+                {budgetPocket.is_available ? "Disponible" : "No Disponible"}
+              </span>
+            }
           >
-            {budgetPocket.is_available ? "Disponible" : "No Disponible"}
-          </button>
+            <button
+              onClick={toggleAvailability}
+              className={`px-4 py-2 rounded-md ${
+                budgetPocket.is_available
+                  ? "bg-green-500 hover:bg-green-600"
+                  : "bg-red-500 hover:bg-red-600"
+              } text-white transition-colors`}
+            >
+              {budgetPocket.is_available ? "Disponible" : "No Disponible"}
+            </button>
+          </ProtectedContent>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -364,12 +380,14 @@ export default function BudgetAllocationPage() {
               Asignaciones Actuales
             </h2>
             {budgetPocket.is_available && (
-              <button
-                onClick={() => setIsDialogOpen(true)}
-                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
-              >
-                Nueva Asignación
-              </button>
+              <ProtectedContent requiredPermission="modify">
+                <button
+                  onClick={() => setIsDialogOpen(true)}
+                  className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+                >
+                  Nueva Asignación
+                </button>
+              </ProtectedContent>
             )}
           </div>
 
@@ -461,8 +479,7 @@ export default function BudgetAllocationPage() {
                     <p className="text-sm text-gray-500 mt-1">
                       Monto disponible: $
                       {(
-                        budgetPocket!.agreed_value -
-                        budgetPocket!.total_allocated
+                        budgetPocket!.agreed_value - totalAllocated
                       ).toLocaleString()}
                     </p>
                   )}

@@ -4,7 +4,11 @@ import { AuthProvider } from "@/context/AuthContext";
 import ClientWrapper from "@/components/layout/ClientWrapper";
 import { Toaster } from "sonner";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
 
 export const metadata = {
   title: "Finup",
@@ -26,8 +30,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className={inter.className}>
-      <body>
+    <html lang="es">
+      <body className={inter.variable}>
         <AuthProvider>
           <ClientWrapper>{children}</ClientWrapper>
           <Toaster />

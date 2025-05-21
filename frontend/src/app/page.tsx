@@ -67,7 +67,7 @@ export default function Home() {
                 <div className="mt-8 sm:max-w-lg sm:mx-auto sm:text-center lg:text-left lg:mx-0">
                   <div className="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start">
                     <div className="rounded-full shadow-lg overflow-hidden">
-                      <Link href="/register" legacyBehavior>
+                      <Link href="/login" legacyBehavior>
                         <a className="block rounded-full overflow-hidden">
                           <Button
                             variant="primary"
@@ -181,7 +181,7 @@ export default function Home() {
                   nuestra plataforma intuitiva y eficiente.
                 </p>
                 <div className="mt-4">
-                  <Link href="/features/automation" legacyBehavior>
+                  <Link href="/login" legacyBehavior>
                     <a className="inline-flex items-center text-gray-900 font-medium hover:text-[#00448D] transition-colors">
                       Ver más
                       <svg
@@ -216,7 +216,7 @@ export default function Home() {
                   ahorro con gráficos interactivos.
                 </p>
                 <div className="mt-4">
-                  <Link href="/features/cost-comparison" legacyBehavior>
+                  <Link href="/login" legacyBehavior>
                     <a className="inline-flex items-center text-gray-900 font-medium hover:text-[#00448D] transition-colors">
                       Ver más
                       <svg
@@ -251,7 +251,7 @@ export default function Home() {
                   actualizados para anticipar necesidades.
                 </p>
                 <div className="mt-4">
-                  <Link href="/features/reporting" legacyBehavior>
+                  <Link href="/login" legacyBehavior>
                     <a className="inline-flex items-center text-gray-900 font-medium hover:text-[#00448D] transition-colors">
                       Ver más
                       <svg
@@ -289,7 +289,7 @@ export default function Home() {
               </p>
               <div className="mt-8 flex justify-center">
                 <div className="rounded-full shadow-lg overflow-hidden">
-                  <Link href="/register" legacyBehavior>
+                  <Link href="/login" legacyBehavior>
                     <a className="block rounded-full overflow-hidden">
                       <Button
                         variant="primary"

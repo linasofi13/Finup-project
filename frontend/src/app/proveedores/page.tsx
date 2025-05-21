@@ -12,10 +12,50 @@ import {
 } from "react-icons/fa";
 import axios from "axios";
 import * as XLSX from "xlsx";
+import ProtectedContent from "@/components/ui/ProtectedContent";
+
+// Define interfaces for our data types
+interface Provider {
+  id: string;
+  name: string;
+  role: string;
+  company: string;
+  country: string;
+  cost_usd: string;
+  category: string;
+  line: string;
+  email: string;
+}
+
+interface NewProvider extends Omit<Provider, "id"> {
+  tempId: number;
+}
+
+interface FilterState {
+  name: string;
+  role: string;
+  company: string;
+  country: string;
+  costUsdMin: string;
+  costUsdMax: string;
+  category: string;
+  line: string;
+  email: string;
+}
+
+interface ProviderDocument {
+  id: string;
+  provider_id: string;
+  filename: string;
+  file_name?: string;
+  uploaded_at: string;
+  file_url: string;
+}
 
 // Endpoints (ajusta según tu backend)
-const API_URL = "http://127.0.0.1:8000/providers/providers";
-const BULK_UPLOAD_URL = "http://127.0.0.1:8000/providers/providers/bulk-upload";
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = `${apiUrl}/providers/providers/`;
+const BULK_UPLOAD_URL = `${apiUrl}/providers/providers/bulk-upload`;
 
 // inicio de codigo para cargar el archivo a supabase
 import { finupBucket } from "@/services/supabaseClient";
@@ -24,16 +64,18 @@ import { finupBucket } from "@/services/supabaseClient";
 // Ajusta la ruta si es necesario
 
 export default function TalentosPage() {
-  const [proveedores, setProveedores] = useState([]);
-  const [editingProveedor, setEditingProveedor] = useState(null);
-  const [newRows, setNewRows] = useState([]);
+  const [proveedores, setProveedores] = useState<Provider[]>([]);
+  const [editingProveedor, setEditingProveedor] = useState<Provider | null>(
+    null,
+  );
+  const [newRows, setNewRows] = useState<NewProvider[]>([]);
   const [loading, setLoading] = useState(false);
-  const [filePreview, setFilePreview] = useState([]);
+  const [filePreview, setFilePreview] = useState<any[]>([]);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
-  const [selectedIds, setSelectedIds] = useState([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   // Filtros para cada campo
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<FilterState>({
     name: "",
     role: "",
     company: "",
@@ -45,12 +87,12 @@ export default function TalentosPage() {
     email: "",
   });
 
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Estado para Documentos
   const [selectedProviderId, setSelectedProviderId] = useState("");
-  const [docFile, setDocFile] = useState(null);
-  const [docList, setDocList] = useState([]);
+  const [docFile, setDocFile] = useState<File | null>(null);
+  const [docList, setDocList] = useState<ProviderDocument[]>([]);
 
   useEffect(() => {
     fetchProveedores();
@@ -66,7 +108,7 @@ export default function TalentosPage() {
   };
 
   const [uploadMessage, setUploadMessage] = useState("");
-  const docFileInputRef = useRef(null);
+  const docFileInputRef = useRef<HTMLInputElement>(null);
   const [filterProviderId, setFilterProviderId] = useState("");
 
   useEffect(() => {
@@ -78,10 +120,10 @@ export default function TalentosPage() {
     }
   }, [filterProviderId, selectedProviderId]);
 
-  const fetchProviderDocuments = async (providerId) => {
+  const fetchProviderDocuments = async (providerId: string) => {
     try {
       const response = await axios.get(
-        `http://127.0.0.1:8000/provider-documents/by-provider/${providerId}`,
+        `${apiUrl}/provider-documents/by-provider/${providerId}`,
       );
       setDocList(response.data);
     } catch (error) {
@@ -98,11 +140,11 @@ export default function TalentosPage() {
   };
 
   // Manejo de filtros
-  const handleFilterChange = (e) => {
+  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
   };
 
-  const filteredProviders = proveedores.filter((prov) => {
+  const filteredProviders = proveedores.filter((prov: Provider) => {
     if (!prov.name.toLowerCase().includes(filters.name.toLowerCase()))
       return false;
     if (!prov.role.toLowerCase().includes(filters.role.toLowerCase()))
@@ -131,7 +173,7 @@ export default function TalentosPage() {
   });
 
   // Selección múltiple
-  const handleSelectRow = (id) => {
+  const handleSelectRow = (id: string) => {
     if (selectedIds.includes(id)) {
       setSelectedIds(selectedIds.filter((item) => item !== id));
     } else {
@@ -139,7 +181,7 @@ export default function TalentosPage() {
     }
   };
 
-  const handleSelectAll = (checked) => {
+  const handleSelectAll = (checked: boolean) => {
     if (checked) {
       setSelectedIds(filteredProviders.map((prov) => prov.id));
     } else {
@@ -154,7 +196,7 @@ export default function TalentosPage() {
       return;
     try {
       for (const id of selectedIds) {
-        await axios.delete(`${API_URL}/${id}`);
+        await axios.delete(`${apiUrl}/providers/providers/${id}`);
       }
       setSelectedIds([]);
       fetchProveedores();
@@ -179,7 +221,10 @@ export default function TalentosPage() {
     setNewRows([...newRows, newRow]);
   };
 
-  const handleNewRowInputChange = (tempId, e) => {
+  const handleNewRowInputChange = (
+    tempId: number,
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     setNewRows(
       newRows.map((row) => {
         if (row.tempId === tempId) {
@@ -190,7 +235,7 @@ export default function TalentosPage() {
     );
   };
 
-  const addNewRow = async (tempId) => {
+  const addNewRow = async (tempId: number) => {
     const newRow = newRows.find((row) => row.tempId === tempId);
     if (!newRow) return;
     try {
@@ -202,12 +247,12 @@ export default function TalentosPage() {
     }
   };
 
-  const cancelNewRow = (tempId) => {
+  const cancelNewRow = (tempId: number) => {
     setNewRows(newRows.filter((row) => row.tempId !== tempId));
   };
 
   // Edición inline
-  const iniciarEdicion = (proveedor) => {
+  const iniciarEdicion = (proveedor: Provider) => {
     setEditingProveedor({ ...proveedor });
   };
 
@@ -217,7 +262,10 @@ export default function TalentosPage() {
 
   const actualizarProveedor = async () => {
     try {
-      await axios.put(`${API_URL}/${editingProveedor.id}`, editingProveedor);
+      if (!editingProveedor) return;
+
+      const url = `${apiUrl}/providers/providers/${editingProveedor.id}`;
+      await axios.put(url, editingProveedor);
       setProveedores(
         proveedores.map((prov) =>
           prov.id === editingProveedor.id ? editingProveedor : prov,
@@ -229,10 +277,10 @@ export default function TalentosPage() {
     }
   };
 
-  const eliminarProveedor = async (id) => {
+  const eliminarProveedor = async (id: string) => {
     if (!window.confirm("¿Confirmas la eliminación de este talento?")) return;
     try {
-      await axios.delete(`${API_URL}/${id}`);
+      await axios.delete(`${API_URL}${id}`);
       setProveedores(proveedores.filter((prov) => prov.id !== id));
       setSelectedIds(selectedIds.filter((item) => item !== id));
     } catch (error) {
@@ -241,8 +289,10 @@ export default function TalentosPage() {
   };
 
   // Carga Masiva de Excel
-  const handleFileUpload = async (event) => {
-    const file = event.target.files[0];
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
     if (!file) return;
 
     if (!file.name.endsWith(".xlsx") && !file.name.endsWith(".xls")) {
@@ -258,13 +308,16 @@ export default function TalentosPage() {
       console.error("Error al leer el archivo", e);
       setLoading(false);
     };
-    reader.onload = async (e) => {
+    reader.onload = async (e: ProgressEvent<FileReader>) => {
       try {
-        const data = new Uint8Array(e.target.result);
+        if (!e.target?.result) {
+          throw new Error("Failed to read file");
+        }
+        const data = new Uint8Array(e.target.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: "array" });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
-        let jsonData = XLSX.utils.sheet_to_json(sheet);
+        let jsonData = XLSX.utils.sheet_to_json(sheet) as Record<string, any>[];
         const requiredColumns = [
           "Nombre",
           "Rol",
@@ -324,54 +377,68 @@ export default function TalentosPage() {
   };
 
   // Manejo de Documentación (subir archivos)
-  const handleDocFileChange = (e) => {
+  const handleDocFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     setDocFile(e.target.files[0]);
   };
 
   const handleUploadDocument = async () => {
-    if (!docFile) return alert("Por favor selecciona un archivo.");
-    if (!selectedProviderId || selectedProviderId === "0")
-      return alert("Selecciona un talento válido.");
+    if (!docFile || !selectedProviderId) {
+      setUploadMessage("Seleccione un archivo y un talento");
+      return;
+    }
+
+    setLoading(true);
+    setUploadMessage("Subiendo archivo...");
 
     try {
-      const fileName = `${Date.now()}-${docFile.name}`;
-      const filePath = `${selectedProviderId}/${fileName}`;
-      const { data, error } = await finupBucket.upload(filePath, docFile, {
-        upsert: true,
-      });
-
-      if (error) throw new Error(error.message);
-
-      const { data: publicUrlData } = finupBucket.getPublicUrl(filePath);
-      const publicUrl = publicUrlData?.publicUrl;
-
-      const response = await axios.post(
-        "http://127.0.0.1:8000/provider-documents/",
+      const fileExt = docFile.name.split(".").pop();
+      const fileName = `${Date.now()}_${docFile.name}`;
+      const { data, error } = await finupBucket.upload(
+        `provider_docs/${fileName}`,
+        docFile,
         {
-          provider_id: parseInt(selectedProviderId),
-          file_name: docFile.name,
-          file_url: publicUrl,
+          cacheControl: "3600",
+          upsert: false,
         },
       );
 
-      setDocList((prev) => [...prev, response.data]);
-      setUploadMessage(
-        `✅ Documento "${docFile.name}" subido con éxito para el talento seleccionado.`,
-      );
-      setDocFile(null);
-      if (docFileInputRef.current) docFileInputRef.current.value = "";
+      if (error) {
+        throw error;
+      }
 
-      // 💡 UX Mejorada: aplicar filtro automáticamente al talento recién usado
-      setFilterProviderId(selectedProviderId);
-    } catch (err) {
-      console.error("Error en subida:", err);
-      alert("Ocurrió un error al subir el documento.");
+      const { data: urlData } = finupBucket.getPublicUrl(
+        `provider_docs/${fileName}`,
+      );
+
+      // Guardar referencia a la BD
+      const docInfo = {
+        provider_id: selectedProviderId,
+        file_name: docFile.name,
+        file_url: urlData.publicUrl,
+        file_type: fileExt,
+        date_uploaded: new Date().toISOString(),
+      };
+
+      await axios.post(`${apiUrl}/provider-documents/`, docInfo);
+
+      // Limpiar estado
+      setDocFile(null);
+      if (docFileInputRef.current) {
+        docFileInputRef.current.value = "";
+      }
+      fetchProviderDocuments(selectedProviderId);
+      setUploadMessage("Archivo subido exitosamente");
+    } catch (error) {
+      console.error("Error uploading document:", error);
+      setUploadMessage("Error al subir el archivo");
+    } finally {
+      setLoading(false);
     }
   };
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [docToDelete, setDocToDelete] = useState(null);
+  const [docToDelete, setDocToDelete] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
@@ -382,17 +449,20 @@ export default function TalentosPage() {
 
   const totalPages = Math.ceil(docList.length / itemsPerPage);
 
-  const confirmDelete = (id) => {
+  const confirmDelete = (id: string) => {
     setDocToDelete(id);
     setShowDeleteModal(true);
   };
 
   const handleConfirmedDelete = () => {
+    if (!docToDelete) return;
+
     handleDeleteDocument(docToDelete);
+    setDocToDelete(null);
     setShowDeleteModal(false);
   };
 
-  const handleDeleteDocument = (docId) => {
+  const handleDeleteDocument = (docId: string) => {
     if (!window.confirm("¿Confirmas la eliminación de este documento?")) return;
     setDocList(docList.filter((d) => d.id !== docId));
   };
@@ -403,12 +473,14 @@ export default function TalentosPage() {
       <div>
         <div className="flex justify-between items-center mb-4">
           <div className="flex space-x-2">
-            <button
-              onClick={handleAddNewRow}
-              className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 flex items-center"
-            >
-              <FaPlus className="mr-2" /> Añadir Talento
-            </button>
+            <ProtectedContent requiredPermission="modify">
+              <button
+                onClick={handleAddNewRow}
+                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 flex items-center"
+              >
+                <FaPlus className="mr-2" /> Añadir Talento
+              </button>
+            </ProtectedContent>
             <button
               onClick={exportToExcel}
               className="px-4 py-2 text-white rounded-md flex items-center transition-colors duration-200 bg-[#66ccff] hover:bg-[#56bceb]"
@@ -416,14 +488,16 @@ export default function TalentosPage() {
               <FaFileUpload className="mr-2" /> Exportar a Excel
             </button>
           </div>
-          {selectedIds.length > 0 && (
-            <button
-              onClick={handleDeleteSelected}
-              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 flex items-center"
-            >
-              <FaTrash className="mr-2" /> Eliminar talentos seleccionados
-            </button>
-          )}
+          <ProtectedContent requiredPermission="modify">
+            {selectedIds.length > 0 && (
+              <button
+                onClick={handleDeleteSelected}
+                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 flex items-center"
+              >
+                <FaTrash className="mr-2" /> Eliminar talentos seleccionados
+              </button>
+            )}
+          </ProtectedContent>
         </div>
 
         <div className="overflow-x-auto">
@@ -697,15 +771,23 @@ export default function TalentosPage() {
                     <td className="p-3 border">{proveedor.line}</td>
                     <td className="p-3 border">{proveedor.email}</td>
                     <td className="p-3 border text-center">
-                      <div className="flex justify-center items-center space-x-2">
-                        <FaEdit
-                          className="text-blue-500 cursor-pointer hover:text-blue-700"
-                          onClick={() => iniciarEdicion(proveedor)}
-                        />
-                        <FaTrash
-                          className="text-red-500 cursor-pointer hover:text-red-700"
-                          onClick={() => eliminarProveedor(proveedor.id)}
-                        />
+                      <div className="flex space-x-2 justify-center">
+                        <ProtectedContent requiredPermission="modify">
+                          <>
+                            <button
+                              onClick={() => iniciarEdicion(proveedor)}
+                              className="text-blue-500 hover:text-blue-700"
+                            >
+                              <FaEdit />
+                            </button>
+                            <button
+                              onClick={() => eliminarProveedor(proveedor.id)}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <FaTrash />
+                            </button>
+                          </>
+                        </ProtectedContent>
                       </div>
                     </td>
                   </tr>
@@ -826,22 +908,26 @@ export default function TalentosPage() {
             accept=".xlsx,.xls"
             onChange={handleFileUpload}
           />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="mt-2 flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
-          >
-            <FaFileUpload className="mr-2" />{" "}
-            {loading ? "Cargando..." : "Subir Archivo"}
-          </button>
+          <ProtectedContent requiredPermission="modify">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="mt-2 flex items-center px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+            >
+              <FaFileUpload className="mr-2" />{" "}
+              {loading ? "Cargando..." : "Subir Archivo"}
+            </button>
+          </ProtectedContent>
         </div>
       </div>
 
       {/* Sección de Documentación unificada con mejor UX */}
       <div className="mt-8 space-y-6 bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-bold">Documentación del Talento</h2>
-        <p className="text-sm text-gray-600">
-          Selecciona un talento para ver y subir documentos asociados.
-        </p>
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-bold">Documentación del Talento</h2>
+          <p className="text-sm text-gray-600">
+            Selecciona un talento para ver y subir documentos asociados.
+          </p>
+        </div>
 
         {/* Notificación personalizada */}
         {uploadMessage && (
@@ -873,34 +959,36 @@ export default function TalentosPage() {
           </select>
         </div>
 
-        {/* Subida de archivo */}
-        {selectedProviderId && (
-          <div className="grid md:grid-cols-3 gap-4 items-end mt-4">
-            <div className="md:col-span-2">
-              <label className="text-sm font-medium text-gray-700 mb-1">
-                Archivo
-              </label>
-              <input
-                type="file"
-                ref={docFileInputRef}
-                onChange={handleDocFileChange}
-                className="border rounded p-2 w-full"
-              />
+        {/* Subida de archivo - solo para administradores */}
+        <ProtectedContent requiredPermission="modify">
+          {selectedProviderId && (
+            <div className="grid md:grid-cols-3 gap-4 items-end mt-4">
+              <div className="md:col-span-2">
+                <label className="text-sm font-medium text-gray-700 mb-1">
+                  Archivo
+                </label>
+                <input
+                  type="file"
+                  ref={docFileInputRef}
+                  onChange={handleDocFileChange}
+                  className="border rounded p-2 w-full"
+                />
+              </div>
+              <button
+                disabled={!docFile}
+                onClick={handleUploadDocument}
+                className={`h-full px-4 py-2 rounded text-white transition ${
+                  !docFile
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-[#a767d0] hover:bg-[#955bb8]"
+                }`}
+              >
+                <FaCloudUploadAlt className="inline mr-2" />
+                Subir Documento
+              </button>
             </div>
-            <button
-              disabled={!docFile}
-              onClick={handleUploadDocument}
-              className={`h-full px-4 py-2 rounded text-white transition ${
-                !docFile
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-[#a767d0] hover:bg-[#955bb8]"
-              }`}
-            >
-              <FaCloudUploadAlt className="inline mr-2" />
-              Subir Documento
-            </button>
-          </div>
-        )}
+          )}
+        </ProtectedContent>
 
         {/* Lista de documentos */}
         <div>
@@ -908,9 +996,7 @@ export default function TalentosPage() {
             Documentos Cargados
           </h3>
           {docList.filter(
-            (doc) =>
-              !filterProviderId ||
-              doc.provider_id === parseInt(filterProviderId),
+            (doc) => !filterProviderId || doc.provider_id === filterProviderId,
           ).length === 0 ? (
             <p className="text-sm italic text-gray-500">
               No hay documentos registrados para el talento seleccionado.
@@ -920,8 +1006,7 @@ export default function TalentosPage() {
               {docList
                 .filter(
                   (doc) =>
-                    !filterProviderId ||
-                    doc.provider_id === parseInt(filterProviderId),
+                    !filterProviderId || doc.provider_id === filterProviderId,
                 )
                 .map((doc) => {
                   const prov = proveedores.find(

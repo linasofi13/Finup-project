@@ -4,8 +4,17 @@ import DocumentosPage from "@/app/documentos/page";
 import axios from "axios";
 import { TEST_API_URL } from "../config/testConfig";
 
-// Mock axios
+// Mock axios and the API instance
 jest.mock("axios");
+jest.mock("@/services/authService", () => ({
+  authService: {
+    validateToken: jest
+      .fn()
+      .mockResolvedValue({ id: 1, email: "test@test.com", name: "Test User" }),
+    logout: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
 const mockAxios = axios as jest.Mocked<typeof axios>;
 
 // Mock data
@@ -34,7 +43,19 @@ const mockDocumentos = [
 
 describe("Documentos Page", () => {
   beforeEach(() => {
-    // Configure los mocks antes de cada test
+    // Reset all mocks before each test
+    jest.clearAllMocks();
+
+    // Mock the API instance
+    mockAxios.create.mockReturnValue({
+      ...mockAxios,
+      interceptors: {
+        request: { use: jest.fn(), eject: jest.fn() },
+        response: { use: jest.fn(), eject: jest.fn() },
+      },
+    });
+
+    // Configure the mocks for each test
     mockAxios.get.mockImplementation((url) => {
       if (url.includes("provider-documents")) {
         return Promise.resolve({ data: mockDocumentos });

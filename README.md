@@ -1,16 +1,37 @@
-# Finup Project
+# 💼 Finup Project
 
 ## 📌 Project Overview
-Finup Project is a software solution developed as part of the **Integrated Project II** course at EAFIT University, under the guidance of Professor Liliana González. This project is carried out for the client Bancolombia - Panamá and aims to provide an efficient platform for financial and operational management.
 
-The system facilitates budget allocation, cost tracking, supplier management, and efficiency analysis within the organization. Through an intuitive and data-driven approach, the platform supports better decision-making processes and optimizes resource utilization.
+Finup is a software solution developed for Bancolombia Panamá within the **Integrated Project II** course at **Universidad EAFIT**, guided by Professor **Liliana González**.
+
+The platform aims to digitalize the processes of capacity management and budget analysis for Continuous Value Teams (EVCs), which are currently carried out manually. The solution facilitates:
+
+* Budget allocation and tracking
+* Suppliers, EVCS, and role management
+* Financial document handling
+* Efficiency analysis through dashboards and alerts
 
 ## 👥 Team Members
-- **Juan Esteban García**
-- **Lina Ballesteros**
-- **David Grisales**
-- **Juan Diego Llorente**
 
-## 📂 Deliverable 0
-For detailed documentation and the initial project proposal, refer to **[Deliverable 0](https://github.com/linasofi13/Finup-project/wiki)** in the project wiki.
+* **Lina Ballesteros** — Scrum Master / UX/UI
+* **David Grisales** — Architecture
+* **Juan Diego Llorente** — QA & Testing
+* **Juan Esteban García** —  Developer
+* **Andrés Felipe Álvarez** — Product Owner
+
+## 📚 Documentation Access
+
+You can explore the full documentation and deliverables in our project Wiki:
+
+🔗 [Go to Wiki Home](https://github.com/linasofi13/Finup-project/wiki)
+
+---
+
+## 🛠 Technologies
+
+* Python / FastAPI / SQLAlchemy / PostgreSQL
+* React / Next.js / TailwindCSS
+* Docker / GitHub Actions
+* AWS 
+
 

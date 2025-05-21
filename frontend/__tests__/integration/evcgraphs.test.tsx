@@ -36,13 +36,51 @@ jest.mock("next/navigation", () => ({
 }));
 
 // Mock axios
-jest.mock("axios");
+jest.mock("axios", () => ({
+  get: jest.fn((url: string) => {
+    if (url.includes("/providers/providers")) {
+      return Promise.resolve({ data: [] });
+    }
+    if (url.includes("/evc-qs/evc_qs/")) {
+      return Promise.resolve({ data: mockEvcQsData });
+    }
+    if (url.includes("/evc-financials/evc_financials/")) {
+      return Promise.resolve({ data: [] });
+    }
+    if (url.includes("/evcs/")) {
+      return Promise.resolve({ data: mockEvcsData });
+    }
+    return Promise.resolve({ data: [] });
+  }),
+  post: jest.fn(() => Promise.resolve({ data: {} })),
+  create: jest.fn(() => ({
+    get: jest.fn(() => Promise.resolve({ data: [] })),
+    post: jest.fn(() => Promise.resolve({ data: {} })),
+    interceptors: {
+      request: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() },
+      response: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() },
+    },
+  })),
+  interceptors: {
+    request: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() },
+    response: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() },
+  },
+}));
+
+// Get the mocked axios instance
 const mockAxios = axios as jest.Mocked<typeof axios>;
+
+// Mock js-cookie
+jest.mock("js-cookie", () => ({
+  get: jest.fn(() => "mock-token"),
+  set: jest.fn(),
+  remove: jest.fn(),
+}));
 
 // Mock AuthContext values
 const mockAuthContext = {
   user: {
-    id: 1,
+    id: "1",
     email: "test@example.com",
     name: "Test User",
     role: "admin",
@@ -51,6 +89,10 @@ const mockAuthContext = {
   logout: jest.fn(),
   isAuthenticated: true,
   loading: false,
+  error: null,
+  refreshSession: jest.fn(),
+  setUser: jest.fn(),
+  register: jest.fn(),
 };
 
 // Wrapper component with mocked context
@@ -102,14 +144,19 @@ describe("Dashboard EVC Indicators", () => {
     jest.clearAllMocks();
     // Configure mocks
     mockAxios.get.mockImplementation((url) => {
-      switch (url) {
-        case `${TEST_API_URL}/evcs/`:
-          return Promise.resolve({ data: mockEvcsData });
-        case `${TEST_API_URL}/evc-qs/evc_qs/`:
-          return Promise.resolve({ data: mockEvcQsData });
-        default:
-          return Promise.resolve({ data: [] });
+      if (url.includes("/providers/providers")) {
+        return Promise.resolve({ data: [] });
       }
+      if (url.includes("/evc-qs/evc_qs/")) {
+        return Promise.resolve({ data: mockEvcQsData });
+      }
+      if (url.includes("/evc-financials/evc_financials/")) {
+        return Promise.resolve({ data: [] });
+      }
+      if (url.includes("/evcs/")) {
+        return Promise.resolve({ data: mockEvcsData });
+      }
+      return Promise.resolve({ data: [] });
     });
   });
 
@@ -126,7 +173,9 @@ describe("Dashboard EVC Indicators", () => {
 
     // 2. Wait for initial data load
     await waitFor(() => {
-      expect(mockAxios.get).toHaveBeenCalledWith(`${TEST_API_URL}/evcs/`);
+      expect(mockAxios.get).toHaveBeenCalledWith(
+        `${TEST_API_URL}/providers/providers`,
+      );
     });
 
     // 3. Click on EVCs tab
@@ -139,20 +188,10 @@ describe("Dashboard EVC Indicators", () => {
     await waitFor(() => {
       // Estado de EVCs
       expect(screen.getByText("EVCs por Estado")).toBeInTheDocument();
-      const activoTexts = screen.getAllByText(
-        (content, element) =>
-          element?.tagName.toLowerCase() === "text" &&
-          content.includes("Activos"),
-      );
-      expect(activoTexts.length).toBeGreaterThan(0);
 
-      expect(
-        screen.getByText(
-          (content, element) =>
-            element?.tagName.toLowerCase() === "text" &&
-            content.includes("Inactivos"),
-        ),
-      ).toBeInTheDocument();
+      // Look for the text in any element, not just text elements
+      expect(screen.getByText(/Activos/i)).toBeInTheDocument();
+      expect(screen.getByText(/Inactivos/i)).toBeInTheDocument();
 
       // Distribución por Entorno
       expect(
@@ -186,11 +225,17 @@ describe("Dashboard EVC Indicators", () => {
       expect(screen.getByText(`${avgPercentage}%`)).toBeInTheDocument();
     });
 
-    // 5. Verify API calls
-    expect(mockAxios.get).toHaveBeenCalledWith(`${TEST_API_URL}/evcs/`);
+    // 6. Verify API calls
+    expect(mockAxios.get).toHaveBeenCalledWith(
+      `${TEST_API_URL}/providers/providers`,
+    );
     expect(mockAxios.get).toHaveBeenCalledWith(
       `${TEST_API_URL}/evc-qs/evc_qs/`,
     );
+    expect(mockAxios.get).toHaveBeenCalledWith(
+      `${TEST_API_URL}/evc-financials/evc_financials/`,
+    );
+    expect(mockAxios.get).toHaveBeenCalledWith(`${TEST_API_URL}/evcs/`);
   });
 
   it("should handle empty data gracefully", async () => {

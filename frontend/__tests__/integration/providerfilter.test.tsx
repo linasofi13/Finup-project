@@ -3,10 +3,62 @@ import userEvent from "@testing-library/user-event";
 import ProveedoresPage from "@/app/proveedores/page";
 import axios from "axios";
 import { finupBucket } from "@/services/supabaseClient";
+import { AuthContext } from "@/context/AuthContext";
 
 // Mock axios
-jest.mock("axios");
+jest.mock("axios", () => ({
+  get: jest.fn(() => Promise.resolve({ data: [] })),
+  post: jest.fn(() => Promise.resolve({ data: {} })),
+  create: jest.fn(() => ({
+    get: jest.fn(() => Promise.resolve({ data: [] })),
+    post: jest.fn(() => Promise.resolve({ data: {} })),
+    interceptors: {
+      request: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() },
+      response: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() },
+    },
+  })),
+  interceptors: {
+    request: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() },
+    response: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() },
+  },
+}));
+
+// Get the mocked axios instance
 const mockAxios = axios as jest.Mocked<typeof axios>;
+
+// Mock js-cookie
+jest.mock("js-cookie", () => ({
+  get: jest.fn(() => "mock-token"),
+  set: jest.fn(),
+  remove: jest.fn(),
+}));
+
+// Mock AuthContext values
+const mockAuthContext = {
+  user: {
+    id: "1",
+    email: "test@example.com",
+    name: "Test User",
+    role: "admin",
+  },
+  login: jest.fn(),
+  logout: jest.fn(),
+  isAuthenticated: true,
+  loading: false,
+  error: null,
+  refreshSession: jest.fn(),
+  setUser: jest.fn(),
+  register: jest.fn(),
+};
+
+// Wrapper component with mocked context
+const renderWithAuth = (component: React.ReactNode) => {
+  return render(
+    <AuthContext.Provider value={mockAuthContext}>
+      {component}
+    </AuthContext.Provider>,
+  );
+};
 
 // Mock Supabase Client
 jest.mock("@/services/supabaseClient", () => ({
@@ -68,7 +120,7 @@ describe("Provider Role Filtering", () => {
     const user = userEvent.setup();
 
     // 1. Render the providers page
-    render(<ProveedoresPage />);
+    renderWithAuth(<ProveedoresPage />);
 
     // 2. Wait for providers to load
     await screen.findByText("Juan Pérez");
@@ -114,7 +166,7 @@ describe("Provider Role Filtering", () => {
   it("should handle no matches for role filter", async () => {
     const user = userEvent.setup();
 
-    render(<ProveedoresPage />);
+    renderWithAuth(<ProveedoresPage />);
     await screen.findByText("Juan Pérez");
 
     const roleFilter = screen.getByTestId("role-filter");
@@ -128,7 +180,7 @@ describe("Provider Role Filtering", () => {
   it("should clear filters when input is emptied", async () => {
     const user = userEvent.setup();
 
-    render(<ProveedoresPage />);
+    renderWithAuth(<ProveedoresPage />);
     await screen.findByText("Juan Pérez");
 
     const roleFilter = screen.getByTestId("role-filter");

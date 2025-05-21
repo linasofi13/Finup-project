@@ -50,13 +50,13 @@ jest.mock("axios", () => {
       ),
       interceptors: {
         request: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() },
-        response: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() }
-      }
+        response: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() },
+      },
     })),
     interceptors: {
       request: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() },
-      response: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() }
-    }
+      response: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() },
+    },
   };
   return mockAxios;
 });
@@ -64,7 +64,9 @@ jest.mock("axios", () => {
 // Mock authService
 jest.mock("@/services/authService", () => ({
   authService: {
-    validateToken: jest.fn().mockResolvedValue({ id: 1, email: "test@test.com", name: "Test User" }),
+    validateToken: jest
+      .fn()
+      .mockResolvedValue({ id: 1, email: "test@test.com", name: "Test User" }),
     logout: jest.fn().mockResolvedValue(undefined),
   },
 }));
@@ -97,11 +99,7 @@ jest.mock("xlsx", () => {
 });
 
 const renderWithAuth = (component: React.ReactNode) => {
-  return render(
-    <AuthProvider>
-      {component}
-    </AuthProvider>
-  );
+  return render(<AuthProvider>{component}</AuthProvider>);
 };
 
 describe("Proveedores Page - Export Feature", () => {
@@ -137,7 +135,8 @@ describe("Proveedores Page - Export Feature", () => {
       expect(filename).toBe("talentos.xlsx");
 
       // Verificar el formato de los datos
-      const sheetData = (XLSX.utils.json_to_sheet as jest.Mock).mock.calls[0][0];
+      const sheetData = (XLSX.utils.json_to_sheet as jest.Mock).mock
+        .calls[0][0];
       expect(sheetData).toEqual([
         expect.objectContaining({
           name: "Proveedor Test",

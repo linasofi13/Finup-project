@@ -14,13 +14,13 @@ jest.mock("axios", () => ({
     post: jest.fn(() => Promise.resolve({ data: {} })),
     interceptors: {
       request: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() },
-      response: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() }
-    }
+      response: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() },
+    },
   })),
   interceptors: {
     request: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() },
-    response: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() }
-  }
+    response: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() },
+  },
 }));
 
 // Get the mocked axios instance
@@ -48,7 +48,7 @@ const mockAuthContext = {
   error: null,
   refreshSession: jest.fn(),
   setUser: jest.fn(),
-  register: jest.fn()
+  register: jest.fn(),
 };
 
 // Wrapper component with mocked context

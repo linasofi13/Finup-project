@@ -1,4 +1,10 @@
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from "@testing-library/react";
 import ProveedoresPage from "@/app/proveedores/page";
 import { AuthProvider } from "@/context/AuthContext";
 import axios from "axios";
@@ -41,13 +47,13 @@ jest.mock("axios", () => {
       ),
       interceptors: {
         request: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() },
-        response: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() }
-      }
+        response: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() },
+      },
     })),
     interceptors: {
       request: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() },
-      response: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() }
-    }
+      response: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() },
+    },
   };
   return mockAxios;
 });
@@ -59,7 +65,7 @@ jest.mock("@/services/authService", () => ({
       id: 1,
       email: "test@test.com",
       name: "Test User",
-      rol: "Admin" // Changed to match the exact role name from Roles.ADMIN
+      rol: "Admin", // Changed to match the exact role name from Roles.ADMIN
     }),
     logout: jest.fn().mockResolvedValue(undefined),
   },
@@ -94,11 +100,7 @@ jest.mock("@/services/supabaseClient", () => ({
 }));
 
 const renderWithAuth = (component: React.ReactNode) => {
-  return render(
-    <AuthProvider>
-      {component}
-    </AuthProvider>
-  );
+  return render(<AuthProvider>{component}</AuthProvider>);
 };
 
 describe("Proveedores Page", () => {

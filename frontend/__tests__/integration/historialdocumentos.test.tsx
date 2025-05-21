@@ -8,7 +8,9 @@ import { TEST_API_URL } from "../config/testConfig";
 jest.mock("axios");
 jest.mock("@/services/authService", () => ({
   authService: {
-    validateToken: jest.fn().mockResolvedValue({ id: 1, email: "test@test.com", name: "Test User" }),
+    validateToken: jest
+      .fn()
+      .mockResolvedValue({ id: 1, email: "test@test.com", name: "Test User" }),
     logout: jest.fn().mockResolvedValue(undefined),
   },
 }));
@@ -49,8 +51,8 @@ describe("Documentos Page", () => {
       ...mockAxios,
       interceptors: {
         request: { use: jest.fn(), eject: jest.fn() },
-        response: { use: jest.fn(), eject: jest.fn() }
-      }
+        response: { use: jest.fn(), eject: jest.fn() },
+      },
     });
 
     // Configure the mocks for each test

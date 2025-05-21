@@ -5,7 +5,29 @@ import axios from "axios";
 import { TEST_API_URL } from "../config/testConfig";
 
 // Mock axios
-jest.mock("axios");
+jest.mock("axios", () => ({
+  get: jest.fn((url: string) => {
+    if (url.includes('/evcs/')) {
+      return Promise.resolve({ data: [mockEvc] });
+    }
+    return Promise.resolve({ data: [] });
+  }),
+  post: jest.fn(() => Promise.resolve({ data: {} })),
+  create: jest.fn(() => ({
+    get: jest.fn(() => Promise.resolve({ data: [] })),
+    post: jest.fn(() => Promise.resolve({ data: {} })),
+    interceptors: {
+      request: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() },
+      response: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() }
+    }
+  })),
+  interceptors: {
+    request: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() },
+    response: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() }
+  }
+}));
+
+// Get the mocked axios instance
 const mockAxios = axios as jest.Mocked<typeof axios>;
 
 // Mock data

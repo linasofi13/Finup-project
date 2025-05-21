@@ -978,10 +978,11 @@ export default function TalentosPage() {
               <button
                 disabled={!docFile}
                 onClick={handleUploadDocument}
-                className={`h-full px-4 py-2 rounded text-white transition ${!docFile
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-[#a767d0] hover:bg-[#955bb8]"
-                  }`}
+                className={`h-full px-4 py-2 rounded text-white transition ${
+                  !docFile
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-[#a767d0] hover:bg-[#955bb8]"
+                }`}
               >
                 <FaCloudUploadAlt className="inline mr-2" />
                 Subir Documento

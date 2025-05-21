@@ -56,13 +56,13 @@ jest.mock("axios", () => ({
     post: jest.fn(() => Promise.resolve({ data: {} })),
     interceptors: {
       request: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() },
-      response: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() }
-    }
+      response: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() },
+    },
   })),
   interceptors: {
     request: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() },
-    response: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() }
-  }
+    response: { use: jest.fn(), eject: jest.fn(), clear: jest.fn() },
+  },
 }));
 
 // Get the mocked axios instance
@@ -90,7 +90,7 @@ const mockAuthContext = {
   error: null,
   refreshSession: jest.fn(),
   setUser: jest.fn(),
-  register: jest.fn()
+  register: jest.fn(),
 };
 
 // Wrapper component with mocked context
@@ -120,9 +120,12 @@ describe("Bulk Upload Feature", () => {
     });
 
     // 3. Esperar que se procese el archivo y aparezca el modal
-    await waitFor(() => {
-      expect(screen.getByTestId("preview-modal-title")).toBeInTheDocument();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(screen.getByTestId("preview-modal-title")).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
 
     // 4. Verificar datos en el modal
     expect(screen.getByText("Test Provider")).toBeInTheDocument();

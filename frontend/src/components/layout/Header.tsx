@@ -109,14 +109,19 @@ export default function Header({ isSidebarOpen }: HeaderProps) {
       <div className="w-full px-6">
         <div className="max-w-7xl mx-auto flex justify-between h-16 items-center">
           <div className="flex items-center space-x-8">
-            <Link href="/">
-              <Image
-                src="/images/logoBancolombia.svg"
-                alt="Logo"
-                width={32}
-                height={32}
-                className="h-8 w-auto mr-2"
-              />
+            <Link href="/" className="flex items-center">
+              <div className="relative">
+                <Image
+                  src="/images/logoBancolombia.svg"
+                  alt="Logo"
+                  width={32}
+                  height={32}
+                  className="h-8 w-auto"
+                />
+                <span className="absolute -right-3 -top-1 bg-blue-300 text-white text-[10px] px-2 py-0.5 rounded-full font-medium">
+                  No oficial
+                </span>
+              </div>
             </Link>
           </div>
           <div className="relative w-1/3 hidden md:block">
